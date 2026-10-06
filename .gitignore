@@ -1,0 +1,22 @@
+# Secrets - never commit these
+.env
+.env.*
+*.pem
+*.key
+service_role*
+
+# Local tooling and OS junk
+.claude/
+node_modules/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+
+# Netlify / Vercel local folders
+.netlify/
+.vercel/

@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Nearby – Local classifieds</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;800&display=swap">
+<style>
+:root{--bg:#f2f5f4;--panel:#fff;--ink:#14211f;--mute:#5d6e6a;--line:#dbe3e1;--acc:#0f766e;--acc-ink:#fff;--soft:#e2f1ee;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#101716;--panel:#18211f;--ink:#e8f0ee;--mute:#9ab0ab;--line:#2a3835;--acc:#2dd4bf;--acc-ink:#062b27;--soft:#1d3532}}
+:root[data-theme="dark"]{--bg:#101716;--panel:#18211f;--ink:#e8f0ee;--mute:#9ab0ab;--line:#2a3835;--acc:#2dd4bf;--acc-ink:#062b27;--soft:#1d3532}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.45 Figtree,system-ui,-apple-system,Segoe UI,sans-serif}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--panel);border-bottom:1px solid var(--line);display:flex;gap:12px;align-items:center;padding:10px 16px}
+.logo{font-weight:800;font-size:22px;letter-spacing:-.02em;color:var(--acc);white-space:nowrap}
+.search{flex:1;min-width:0;border:1px solid var(--line);background:var(--bg);border-radius:999px;padding:10px 16px}
+.btn{border:0;background:var(--acc);color:var(--acc-ink);font-weight:600;border-radius:999px;padding:10px 18px;white-space:nowrap}
+.btn.ghost{background:var(--soft);color:var(--ink)}
+.wrap{display:grid;grid-template-columns:230px 1fr;gap:20px;max-width:1150px;margin:0 auto;padding:18px 16px 40px}
+aside{position:sticky;top:76px;align-self:start}
+aside h3{margin:0 0 8px;font-size:14px;color:var(--mute);font-weight:600}
+.cat{display:flex;width:100%;align-items:center;gap:10px;border:0;background:none;text-align:left;padding:9px 10px;border-radius:10px;font-weight:600}
+.cat:hover{background:var(--soft)}
+.cat[aria-pressed="true"]{background:var(--soft);color:var(--acc)}
+.cat .ic{width:32px;height:32px;border-radius:50%;background:var(--panel);border:1px solid var(--line);display:grid;place-items:center}
+.cat .n{margin-left:auto;color:var(--mute);font-weight:400;font-size:14px}
+.bar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+h1,h2{margin:0;letter-spacing:-.01em}
+h1{font-size:24px}
+h2{font-size:19px}
+select{border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:8px 10px}
+.sec{margin-bottom:28px}
+.sec .hd{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
+.link{border:0;background:none;color:var(--acc);font-weight:600;padding:4px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px}
+.card{border:1px solid var(--line);background:var(--panel);border-radius:14px;padding:0;text-align:left;overflow:hidden;display:block;width:100%}
+.card:hover{border-color:var(--acc)}
+.ph{aspect-ratio:1/1;background:hsl(var(--h) 45% 88%);display:grid;place-items:center;font-size:64px;overflow:hidden}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .ph{background:hsl(var(--h) 25% 24%)}}
+:root[data-theme="dark"] .ph{background:hsl(var(--h) 25% 24%)}
+.ph img{width:100%;height:100%;object-fit:cover}
+.cb{padding:10px 12px 12px;display:flex;flex-direction:column;gap:2px}
+.cb b{font-size:18px}
+.cb .t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cb .m{color:var(--mute);font-size:13px}
+.tog{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;margin-bottom:14px}.tog button{border:0;background:var(--panel);padding:8px 16px;font-weight:600}.tog button[aria-pressed="true"]{background:var(--acc);color:var(--acc-ink)}
+.chips{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:-6px 0 14px;color:var(--mute);font-size:14px}.chips button{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:4px 12px;font-weight:600}.note{color:var(--mute);margin:0 0 12px}
+.near{align-items:end;display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap}.near label{flex:1;min-width:150px}
+.empty{background:var(--panel);border:1px dashed var(--line);border-radius:14px;padding:36px 20px;text-align:center;color:var(--mute)}
+dialog{border:0;border-radius:18px;padding:0;width:min(560px,94vw);max-height:92vh;background:var(--panel);color:var(--ink)}
+dialog::backdrop{background:rgba(0,0,0,.5)}
+.dlg{padding:20px;display:flex;flex-direction:column;gap:12px}
+.dlg .top{display:flex;justify-content:space-between;align-items:center}
+.x{border:0;background:var(--soft);width:34px;height:34px;border-radius:50%}
+label{display:flex;flex-direction:column;gap:4px;font-weight:600;font-size:14px}
+label input,label select,label textarea{border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:10px;font-weight:400}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.big{aspect-ratio:4/3;border-radius:14px}
+.price{font-size:26px;font-weight:800}
+.tag{display:inline-block;background:var(--soft);border-radius:999px;padding:2px 10px;font-size:13px;font-weight:600;width:fit-content}
+.sbtn{border:1px solid var(--line);background:var(--bg);border-radius:12px;padding:10px;text-align:left;width:100%}.sbtn:hover{border-color:var(--acc)}.sbtn b{color:var(--ink)}
+.qa{display:flex;gap:8px;flex-wrap:wrap}.qa button{border:1px solid var(--line);background:var(--bg);border-radius:999px;padding:6px 14px;font-weight:600}.qa button:hover{border-color:var(--acc)}.offer{display:flex;flex-direction:column;gap:10px;border:1px solid var(--line);border-radius:12px;padding:12px}
+.cw{position:relative}.heart{position:absolute;top:8px;right:8px;width:36px;height:36px;border-radius:50%;border:0;background:rgba(255,255,255,.92);color:#444;font-size:18px;display:grid;place-items:center}.heart[aria-pressed="true"],.btn[aria-pressed="true"]{color:#d6336c}
+.seller{display:flex;gap:10px;align-items:center;color:var(--mute)}
+.av{width:36px;height:36px;border-radius:50%;background:var(--acc);color:var(--acc-ink);display:grid;place-items:center;font-weight:800}
+.ok{background:var(--soft);padding:12px;border-radius:10px;font-weight:600}
+@media (max-width:760px){
+ .wrap{grid-template-columns:1fr}
+ aside{position:static;display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}
+ aside h3{display:none}
+ .cat{width:auto;white-space:nowrap;border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:6px 12px}
+ .cat .n,.cat .ic{display:none}
+ .logo{font-size:18px}
+ .btn{padding:10px 14px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">Nearby</div>
+  <input class="search" id="q" type="search" placeholder="Search listings" aria-label="Search listings">
+  <button class="btn" id="post">Post an ad</button>
+</header>
+<div class="wrap">
+  <aside id="cats" aria-label="Categories"></aside>
+  <main id="main"></main>
+</div>
+
+<dialog id="dPost"><form class="dlg" id="f">
+  <div class="top"><h2>Post an ad</h2><button type="button" class="x" data-close aria-label="Close">✕</button></div>
+  <label>Title<input name="t" required maxlength="60" placeholder="What are you selling?"></label>
+  <div class="row">
+    <label>Category<select name="c" id="fc"></select></label>
+    <label>Price ($, 0 for free)<input name="p" type="number" min="0" value="0" required></label>
+  </div>
+  <label>City<input name="loc" id="fl" list="cl" required autocomplete="off" placeholder="Start typing a city"></label><datalist id="cl"></datalist>
+  <label>Description<textarea name="d" rows="3" required placeholder="Condition, size, pickup details"></textarea></label>
+  <label>Photo (optional)<input name="img" type="file" accept="image/*"></label>
+  <button class="btn" type="submit">Publish ad</button>
+</form></dialog>
+
+<dialog id="dView"><div class="dlg" id="view"></div></dialog>
+
+<script>
+const cats=[["Vehicles","🚗",210],["Property","🏠",150],["Electronics","📱",190],["Furniture","🛋️",30],["Clothing","👕",330],["Sports","🚲",100],["Jobs","💼",260]];
+let items=[
+{t:"2016 Honda Civic, 82k miles",p:11800,c:"Vehicles",loc:"Saratoga Springs, NY",d:"One owner, clean title, new tires. Service records available.",ago:"2h",e:"🚗"},
+{t:"Trek mountain bike, size M",p:350,c:"Sports",loc:"Ballston Spa, NY",d:"Lightly used, recently tuned. Includes helmet.",ago:"3h",e:"🚲"},
+{t:"Sunny 2-bedroom apartment",p:1650,c:"Property",loc:"Albany, NY",d:"Per month. Near bus line, laundry in building, pets allowed.",ago:"5h",e:"🏠"},
+{t:"iPhone 13, 128GB, unlocked",p:420,c:"Electronics",loc:"Clifton Park, NY",d:"Battery health 91%. Comes with case and charger.",ago:"1d",e:"📱"},
+{t:"Leather sofa, three-seater",p:240,c:"Furniture",loc:"Schenectady, NY",d:"Good condition, pickup only. Buyer must bring help.",ago:"1d",e:"🛋️"},
+{t:"Winter jacket, women's M",p:45,c:"Clothing",loc:"Troy, NY",d:"Worn one season. Warm, waterproof, no stains.",ago:"2d",e:"🧥"},
+{t:"Line cook, full time",p:0,c:"Jobs",loc:"Saratoga Springs, NY",d:"Busy restaurant, $22/hr plus tips. Message to apply.",ago:"2d",e:"🍳"},
+{t:"Gaming laptop, RTX 3060",p:780,c:"Electronics",loc:"Albany, NY",d:"16GB RAM, 1TB SSD. Runs current games well.",ago:"3d",e:"💻"},
+{t:"Oak dining table with 4 chairs",p:180,c:"Furniture",loc:"Glens Falls, NY",d:"Solid wood, a few light scratches.",ago:"3d",e:"🪑"},
+{t:"Studio room for rent",p:900,c:"Property",loc:"Troy, NY",d:"Per month, utilities included. Quiet street.",ago:"4d",e:"🛏️"},
+{t:"2012 Subaru Outback",p:6200,c:"Vehicles",loc:"Queensbury, NY",d:"AWD, 140k miles, runs great. Snow tires included.",ago:"4d",e:"🚙"},
+{t:"Dog walker needed, weekdays",p:0,c:"Jobs",loc:"Saratoga Springs, NY",d:"Two mid-day walks, $20 each. References please.",ago:"5d",e:"🐕"},
+{t:"Yoga mat and blocks set",p:20,c:"Sports",loc:"Clifton Park, NY",d:"Barely used. Mat, two blocks, strap.",ago:"5d",e:"🧘"},
+{t:"Denim jacket, men's L",p:30,c:"Clothing",loc:"Albany, NY",d:"Classic fit, great condition.",ago:"6d",e:"👖"},
+{t:"Standing desk, electric",p:210,c:"Furniture",loc:"Boston, MA",d:"Adjustable height, 60 inch top. Barely used.",ago:"6h",e:"🖥️"},
+{t:"Carbon road bike, size 54",p:900,c:"Sports",loc:"Burlington, VT",d:"Light, well kept, new chain and tires.",ago:"8h",e:"🚴"},
+{t:"Studio apartment near downtown",p:1400,c:"Property",loc:"Hartford, CT",d:"Per month, heat included. Walk to shops.",ago:"1d",e:"🏢"},
+{t:"2018 Toyota Camry, 61k miles",p:14500,c:"Vehicles",loc:"New York, NY",d:"Clean history, single owner.",ago:"2d",e:"🚘"},
+{t:"Nintendo Switch with 3 games",p:190,c:"Electronics",loc:"Pittsburgh, PA",d:"Includes dock, two controllers, and games.",ago:"3d",e:"🎮"},
+{t:"Barista, part time",p:0,c:"Jobs",loc:"Syracuse, NY",d:"Weekend shifts, $17/hr plus tips. Training provided.",ago:"4d",e:"☕"}
+].map((x,i)=>({...x,id:i+1,h:(cats.find(c=>c[0]===x.c)||[0,0,200])[2],hrs:parseInt(x.ago)*(x.ago.endsWith("d")?24:1)}));
+const T={"Saratoga Springs, NY":[43.083,-73.785],"Ballston Spa, NY":[43.0006,-73.8487],"Clifton Park, NY":[42.8656,-73.771],"Schenectady, NY":[42.8142,-73.9396],"Albany, NY":[42.6526,-73.7562],"Troy, NY":[42.7284,-73.6918],"Glens Falls, NY":[43.3095,-73.644],"Queensbury, NY":[43.3281,-73.6551],"New York, NY":[40.7128,-74.006],"Buffalo, NY":[42.8864,-78.8784],"Rochester, NY":[43.1566,-77.6088],"Syracuse, NY":[43.0481,-76.1474],"Boston, MA":[42.3601,-71.0589],"Springfield, MA":[42.1015,-72.5898],"Worcester, MA":[42.2626,-71.8023],"Burlington, VT":[44.4759,-73.2121],"Rutland, VT":[43.6106,-72.9726],"Hartford, CT":[41.7658,-72.6734],"New Haven, CT":[41.3083,-72.9279],"Philadelphia, PA":[39.9526,-75.1652],"Pittsburgh, PA":[40.4406,-79.9959],"Newark, NJ":[40.7357,-74.1724],"Manchester, NH":[42.9956,-71.4548]};
+let cur="All",q="",sort="new",nid=100,me="Saratoga Springs, NY",rad=50,view="cat",geoMsg="",ow=false;
+const offers={};
+const SL={"Saratoga Springs, NY":["Dana R.",2021,4.9,41,"within an hour"],"Ballston Spa, NY":["Hannah K.",2022,4.7,12,"within a few hours"],"Clifton Park, NY":["Priya S.",2020,4.8,63,"within an hour"],"Schenectady, NY":["Tom W.",2023,4.5,6,"within a day"],"Albany, NY":["Marcus T.",2019,4.9,88,"within an hour"],"Troy, NY":["Leo B.",2021,4.6,27,"within a few hours"],"Glens Falls, NY":["Gail P.",2022,4.8,15,"within a day"],"Queensbury, NY":["Rick M.",2018,4.7,34,"within a few hours"],"Boston, MA":["Alex C.",2020,4.8,52,"within an hour"],"Burlington, VT":["Sam H.",2022,4.9,19,"within a few hours"],"Hartford, CT":["Jo L.",2021,4.4,9,"within a day"],"New York, NY":["Chris D.",2019,4.7,71,"within an hour"],"Pittsburgh, PA":["Nina V.",2023,5,4,"within a few hours"],"Syracuse, NY":["Omar F.",2022,4.6,11,"within a day"]};
+const sel=i=>{if(i.you)return{n:"You",y:"today",r:0,rv:0,rt:""};const a=SL[i.loc]||["Local seller",2023,0,0,"within a day"];return{n:a[0],y:a[1],r:a[2],rv:a[3],rt:a[4]}};
+const rate=s=>s.r?`★ ${s.r} (${s.rv} reviews)`:"No reviews yet";
+function prof(id){
+  const i=items.find(x=>x.id==id),s=sel(i),l=items.filter(x=>i.you?x.you:(!x.you&&x.loc===i.loc));
+  $("#view").innerHTML=`<div class="top"><button class="link" data-back="${i.id}">← Back to listing</button><button class="x" data-close aria-label="Close">✕</button></div>
+  <div class="seller"><div class="av" style="width:56px;height:56px;font-size:22px">${esc(s.n[0])}</div><div><h2 style="color:var(--ink)">${esc(s.n)}</h2><span>${esc(i.loc)} · Member since ${s.y}</span></div></div>
+  <div>${rate(s)}${s.rt?` · Replies ${s.rt}`:""}</div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">${i.you?`<span class="tag">New seller</span>`:`<span class="tag">Email verified</span><span class="tag">Phone verified</span>`}</div>
+  <h2>Listings (${l.length})</h2><div class="grid">${l.map(card).join("")}</div>`;
+}
+const offerHtml=(i,s)=>i.you||i.p<2?"":offers[i.id]?`<div class="ok">You offered ${fmt(offers[i.id])}. ${esc(s.n)} will reply by email.</div>`:`<button class="btn ghost" data-offer="${i.id}">Make an offer</button>`;
+function offerForm(id){
+  const i=items.find(x=>x.id==id),amts=[...new Set([.9,.8,.7].map(f=>Math.max(1,Math.round(i.p*f))))].filter(a=>a<i.p);
+  $("#offer").innerHTML=`<div class="offer"><b>Your offer</b><span style="color:var(--mute)">Asking price: ${fmt(i.p)}</span><div class="qa">${amts.map(a=>`<button type="button" data-amt="${a}">${fmt(a)}</button>`).join("")}</div><label>Offer amount ($)<input id="oa" type="number" min="1" value="${amts[0]||1}"></label><p id="oerr" class="note" role="alert" style="margin:0"></p><button class="btn" data-sendoffer="${i.id}">Send offer</button></div>`;
+}
+function sendOffer(id){
+  const i=items.find(x=>x.id==id),s=sel(i),n=Math.round(+$("#oa").value),err=m=>{$("#oerr").textContent=m};
+  if(!(n>=1))return err("Enter an offer of $1 or more.");
+  if(n>=i.p)return err("That's the asking price or higher. Send a message to buy at the asking price.");
+  if(n<i.p*.5&&!ow){ow=true;return err("Offers under half the asking price are rarely accepted. Press Send offer again to send it anyway.")}
+  offers[i.id]=n;ow=false;
+  $("#offer").innerHTML=`<div class="ok">Offer of ${fmt(n)} sent to ${esc(s.n)}. They'll reply by email${s.rt?", usually "+s.rt:""}.</div>`;
+}
+const pa=i=>i.ago==="Just now"?"Posted just now":"Posted "+i.ago+" ago";
+const dc=(a,b)=>{const r=x=>x*Math.PI/180,dl=r(b[0]-a[0]),dn=r(b[1]-a[1]),h=Math.sin(dl/2)**2+Math.cos(r(a[0]))*Math.cos(r(b[0]))*Math.sin(dn/2)**2;return 3959*2*Math.asin(Math.sqrt(h))};
+const dist=i=>dc(T[me],T[i.loc]);
+function locate(){
+  if(!navigator.geolocation){geoMsg="Location isn't available here. Type your city instead.";render();return}
+  navigator.geolocation.getCurrentPosition(p=>{const c=[p.coords.latitude,p.coords.longitude];me=Object.keys(T).sort((a,b)=>dc(c,T[a])-dc(c,T[b]))[0];geoMsg="Set to the closest city we have: "+me+".";render()},()=>{geoMsg="Couldn't get your location. Type your city instead.";render()},{timeout:8000});
+}
+const dd=i=>{const d=dist(i);return d<1?"Under 1 mi":Math.round(d)+" mi away"};
+const inR=i=>!rad||dist(i)<=rad;
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmt=p=>p===0?"Free":"$"+p.toLocaleString();
+const saved=new Set((()=>{try{return JSON.parse(localStorage.getItem("nearby-saved"))||[]}catch(e){return[]}})());
+const card=i=>`<div class="cw"><button class="card" data-id="${i.id}"><div class="ph" style="--h:${i.h}">${i.img?`<img src="${i.img}" alt="">`:`<span>${i.e}</span>`}</div><div class="cb"><b>${fmt(i.p)}</b><span class="t">${esc(i.t)}</span><span class="m">${esc(i.loc)} · ${dd(i)}</span><span class="m">${pa(i)}</span></div></button><button class="heart" data-save="${i.id}" aria-pressed="${saved.has(i.id)}" aria-label="Save listing">${saved.has(i.id)?"♥":"♡"}</button></div>`;
+function toggleSave(id){
+  id=+id;const on=!saved.has(id);on?saved.add(id):saved.delete(id);
+  try{localStorage.setItem("nearby-saved",JSON.stringify([...saved]))}catch(e){}
+  document.querySelectorAll(`[data-save="${id}"]`).forEach(b=>{b.setAttribute("aria-pressed",on);b.textContent=b.classList.contains("heart")?(on?"♥":"♡"):(on?"♥ Saved":"♡ Save")});
+  side();if(cur==="Saved")render();
+}
+
+function side(){
+  const row=(n,e,k)=>`<button class="cat" data-cat="${n}" aria-pressed="${cur===n}"><span class="ic">${e}</span>${n}<span class="n">${k}</span></button>`;
+  $("#cats").innerHTML=`<h3>Categories</h3>`+row("All","🏷️",items.length)+row("Saved","♥",items.filter(i=>saved.has(i.id)).length)+cats.map(c=>row(c[0],c[1],items.filter(i=>i.c===c[0]).length)).join("");
+}
+function render(){
+  side();
+  const match=i=>(cur==="Saved"?saved.has(i.id):(cur==="All"||i.c===cur)&&inR(i))&&(!q||(i.t+" "+i.d+" "+i.loc).toLowerCase().includes(q));
+  let list=items.filter(match);
+  const main=$("#main");
+  const gm=geoMsg;geoMsg="";
+  const near=Object.keys(T).filter(k=>k!==me).sort((a,b)=>dc(T[me],T[a])-dc(T[me],T[b])).slice(0,4);
+  const bar=`<div class="near"><label>City<input id="me" list="cl" value="${esc(me)}" placeholder="Start typing a city" autocomplete="off"></label><label>Within<select id="rad">${[[0,"Any distance"],[5,"5 miles"],[10,"10 miles"],[25,"25 miles"],[50,"50 miles"],[100,"100 miles"]].map(r=>`<option value="${r[0]}"${r[0]===rad?" selected":""}>${r[1]}</option>`).join("")}</select></label><button class="btn ghost" id="geo" type="button">Use my location</button></div><div class="chips">Nearby: ${near.map(n=>`<button data-city="${esc(n)}">${esc(n)}</button>`).join("")}</div>${gm?`<p class="note">${esc(gm)}</p>`:""}`;
+  const nb=cur==="Saved"?"":bar;
+  const tog=cur==="All"&&!q?`<div class="tog"><button data-view="cat" aria-pressed="${view==="cat"}">By category</button><button data-view="all" aria-pressed="${view==="all"}">View all</button></div>`:"";
+  if(!list.length){main.innerHTML=nb+tog+`<div class="empty">${cur==="Saved"?`<h2>Nothing saved yet</h2><p>Tap the heart on any ad to save it here.</p>`:`<h2>No listings found</h2><p>Try a wider distance, a different search, or post an ad.</p>`}</div>`;return}
+  if(cur==="All"&&!q&&view==="cat"){
+    main.innerHTML=nb+tog+cats.map(c=>{const l=items.filter(i=>i.c===c[0]&&inR(i)).sort((a,b)=>dist(a)-dist(b));if(!l.length)return"";
+      return `<section class="sec"><div class="hd"><h2>${c[1]} ${c[0]}</h2><button class="link" data-cat="${c[0]}">See all ${l.length}</button></div><div class="grid">${l.slice(0,4).map(card).join("")}</div></section>`}).join("");
+    return;
+  }
+  if(sort==="low")list.sort((a,b)=>a.p-b.p);else if(sort==="high")list.sort((a,b)=>b.p-a.p);else if(sort==="near")list.sort((a,b)=>dist(a)-dist(b));else if(sort==="old")list.sort((a,b)=>b.hrs-a.hrs||a.id-b.id);else list.sort((a,b)=>a.hrs-b.hrs||b.id-a.id);
+  main.innerHTML=nb+tog+`<div class="bar"><h1>${q?`Results for “${esc(q)}”`:cur==="All"?"All listings":cur==="Saved"?"Saved listings":esc(cur)}</h1><select id="sort" aria-label="Sort"><option value="new">Newest first</option><option value="old">Oldest first</option><option value="near">Nearest</option><option value="low">Price: low to high</option><option value="high">Price: high to low</option></select></div><div class="grid">${list.map(card).join("")}</div>`;
+  $("#sort").value=sort;
+}
+function open(id){
+  const i=items.find(x=>x.id==id),s=sel(i);
+  $("#view").innerHTML=`<div class="top"><span class="tag">${esc(i.c)}</span><button class="btn ghost" data-save="${i.id}" aria-pressed="${saved.has(i.id)}">${saved.has(i.id)?"♥ Saved":"♡ Save"}</button><button class="x" data-close aria-label="Close">✕</button></div>
+  <div class="ph big" style="--h:${i.h}">${i.img?`<img src="${i.img}" alt="">`:`<span>${i.e}</span>`}</div>
+  <div class="price">${fmt(i.p)}</div><h2>${esc(i.t)}</h2>
+  <div class="m" style="color:var(--mute)">${esc(i.loc)} · ${dd(i)} · Posted ${i.ago==="Just now"?"just now":i.ago+" ago"}</div>
+  <p style="margin:0">${esc(i.d)}</p>
+  <button class="seller sbtn" data-prof="${i.id}"><div class="av">${esc(s.n[0])}</div><span><b>${esc(s.n)}</b><br>${rate(s)} · View profile</span></button>
+  <div id="msg"><label>Message ${esc(s.n)}<textarea id="mt" rows="2">Hi, is this still available?</textarea></label><button class="btn" style="margin-top:10px" id="send">Send message</button></div>
+  <div id="offer">${offerHtml(i,s)}</div>`;
+  {const d=$("#dView");if(!d.open)d.showModal()}
+}
+document.addEventListener("click",e=>{
+  const t=e.target;
+  const sv=t.closest("[data-save]");if(sv){toggleSave(sv.dataset.save);return}
+  const od=t.closest("[data-offer]");if(od){offerForm(od.dataset.offer);return}
+  const am=t.closest("[data-amt]");if(am){$("#oa").value=am.dataset.amt;ow=false;return}
+  const so=t.closest("[data-sendoffer]");if(so){sendOffer(so.dataset.sendoffer);return}
+  const pf=t.closest("[data-prof]");if(pf){prof(pf.dataset.prof);return}
+  const bk=t.closest("[data-back]");if(bk){open(bk.dataset.back);return}
+  const ct=t.closest("[data-city]");if(ct){me=ct.dataset.city;render();return}
+  if(t.id==="geo"){locate();return}
+  const vw=t.closest("[data-view]");if(vw){view=vw.dataset.view;render();return}
+  const cat=t.closest("[data-cat]");if(cat){cur=cat.dataset.cat;q="";$("#q").value="";render();window.scrollTo({top:0});return}
+  const c=t.closest(".card");if(c){open(c.dataset.id);return}
+  if(t.closest("[data-close]")){t.closest("dialog").close();return}
+  if(t.id==="send"){$("#msg").innerHTML=`<div class="ok">Message sent. The seller will reply by email.</div>`;return}
+  if(t.id==="post"){$("#fl").value=me;$("#dPost").showModal();return}
+  if(t.tagName==="DIALOG")t.close();
+});
+document.addEventListener("change",e=>{const t=e.target;if(t.id==="sort")sort=t.value;else if(t.id==="rad")rad=+t.value;else return;render()});
+document.addEventListener("input",e=>{const t=e.target;if(t.id==="oa")ow=false;if(t.id==="me"){const k=Object.keys(T).find(n=>n.toLowerCase()===t.value.trim().toLowerCase());if(k&&k!==me){me=k;render()}}});
+$("#q").addEventListener("input",e=>{q=e.target.value.trim().toLowerCase();render()});
+$("#cl").innerHTML=Object.keys(T).sort().map(n=>`<option value="${n}">`).join("");
+$("#fl").addEventListener("input",e=>e.target.setCustomValidity(""));
+$("#fc").innerHTML=cats.map(c=>`<option>${c[0]}</option>`).join("");
+$("#f").addEventListener("submit",async e=>{
+  e.preventDefault();
+  const f=new FormData(e.target),file=f.get("img");
+  let img=null;
+  if(file&&file.size)img=await new Promise(r=>{const fr=new FileReader();fr.onload=()=>r(fr.result);fr.readAsDataURL(file)});
+  const c=f.get("c");
+  const loc=Object.keys(T).find(n=>n.toLowerCase()===String(f.get("loc")).trim().toLowerCase());
+  if(!loc){$("#fl").setCustomValidity("Choose a city from the list");$("#fl").reportValidity();return}
+  items.unshift({id:nid++,t:f.get("t"),p:Math.max(0,+f.get("p")||0),c,loc,d:f.get("d"),ago:"Just now",e:cats.find(x=>x[0]===c)[1],h:cats.find(x=>x[0]===c)[2],img,you:true});
+  e.target.reset();$("#dPost").close();cur=c;q="";$("#q").value="";sort="new";render();window.scrollTo({top:0});
+});
+render();
+</script>
+</body>
+</html>
