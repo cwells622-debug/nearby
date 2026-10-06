@@ -178,13 +178,21 @@ const inR=i=>!rad||dist(i)<=rad;
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt=p=>p===0?"Free":"$"+p.toLocaleString();
-const saved=new Set((()=>{try{return JSON.parse(localStorage.getItem("nearby-saved-v2"))||[]}catch(e){return[]}})());
+const saved=new Set();
 const card=i=>`<div class="cw"><button class="card" data-id="${i.id}"><div class="ph" style="--h:${i.h}">${i.img?`<img src="${esc(i.img)}" alt="">`:`<span>${i.e}</span>`}</div><div class="cb"><b>${fmt(i.p)}</b><span class="t">${esc(i.t)}</span><span class="m">${esc(i.loc)} · ${dd(i)}</span><span class="m">${pa(i)}</span></div></button><button class="heart" data-save="${i.id}" aria-pressed="${saved.has(i.id)}" aria-label="Save listing">${saved.has(i.id)?"♥":"♡"}</button></div>`;
-function toggleSave(id){
-  id=+id;const on=!saved.has(id);on?saved.add(id):saved.delete(id);
-  try{localStorage.setItem("nearby-saved-v2",JSON.stringify([...saved]))}catch(e){}
+// Saved ads live in the database (favorites table), private to the signed-in user.
+// The page keeps a copy in "saved" so hearts can be drawn instantly.
+function paintHearts(id,on){
   document.querySelectorAll(`[data-save="${id}"]`).forEach(b=>{b.setAttribute("aria-pressed",on);b.textContent=b.classList.contains("heart")?(on?"♥":"♡"):(on?"♥ Saved":"♡ Save")});
   side();if(cur==="Saved")render();
+}
+async function toggleSave(id){
+  id=+id;
+  if(!user){needLogin("Please log in or create an account to save ads.");return}
+  const on=!saved.has(id);on?saved.add(id):saved.delete(id);paintHearts(id,on);
+  const {error}=on?await sb.from("favorites").insert({user_id:user.id,listing_id:id})
+                  :await sb.from("favorites").delete().eq("user_id",user.id).eq("listing_id",id);
+  if(error){on?saved.delete(id):saved.add(id);paintHearts(id,!on);alert("Couldn't update your saved ads: "+error.message)}
 }
 
 function side(){
@@ -201,7 +209,7 @@ function render(){
   const bar=`<div class="near"><label>City<input id="me" list="cl" value="${esc(me)}" placeholder="Start typing a city" autocomplete="off"></label><label>Within<select id="rad">${[[0,"Any distance"],[5,"5 miles"],[10,"10 miles"],[25,"25 miles"],[50,"50 miles"],[100,"100 miles"]].map(r=>`<option value="${r[0]}"${r[0]===rad?" selected":""}>${r[1]}</option>`).join("")}</select></label><button class="btn ghost" id="geo" type="button">Use my location</button></div><div class="chips">Nearby: ${near.map(n=>`<button data-city="${esc(n)}">${esc(n)}</button>`).join("")}</div>${gm?`<p class="note">${esc(gm)}</p>`:""}`;
   const nb=cur==="Saved"?"":bar;
   const tog=cur==="All"&&!q?`<div class="tog"><button data-view="cat" aria-pressed="${view==="cat"}">By category</button><button data-view="all" aria-pressed="${view==="all"}">View all</button></div>`:"";
-  if(!list.length){main.innerHTML=nb+tog+`<div class="empty">${cur==="Saved"?`<h2>Nothing saved yet</h2><p>Tap the heart on any ad to save it here.</p>`:`<h2>No listings found</h2><p>Try a wider distance, a different search, or post an ad.</p>`}</div>`;return}
+  if(!list.length){main.innerHTML=nb+tog+`<div class="empty">${cur==="Saved"?user?`<h2>Nothing saved yet</h2><p>Tap the heart on any ad to save it here.</p>`:`<h2>Log in to see your saved ads</h2><p>Saved ads are kept in your account, so you can see them on any device.</p>`:`<h2>No listings found</h2><p>Try a wider distance, a different search, or post an ad.</p>`}</div>`;return}
   if(cur==="All"&&!q&&view==="cat"){
     main.innerHTML=nb+tog+cats.map(c=>{const l=items.filter(i=>i.c===c[0]&&inR(i)).sort((a,b)=>dist(a)-dist(b));if(!l.length)return"";
       return `<section class="sec"><div class="hd"><h2>${c[1]} ${c[0]}</h2><button class="link" data-cat="${c[0]}">See all ${l.length}</button></div><div class="grid">${l.slice(0,4).map(card).join("")}</div></section>`}).join("");
@@ -269,9 +277,28 @@ function authMode(on){
   $("#authSwitch").textContent=on?"Already have an account? Log in":"New here? Create an account";
   $("#authMsg").className="autherr";$("#authMsg").textContent="";
 }
+// Opens the login pop-up with a short explanation.
+function needLogin(text){
+  authMode(false);
+  $("#authMsg").textContent=sb?text:"Accounts aren't set up yet. Add your Supabase URL and anon key to config.js.";
+  $("#dView").close();$("#dAuth").showModal();
+}
+// Fetch this user's saved ad ids. RLS makes the database return only their own rows.
+async function loadFavorites(){
+  const {data,error}=await sb.from("favorites").select("listing_id");
+  if(error)return;
+  saved.clear();data.forEach(r=>saved.add(r.listing_id));
+  if(items.length)render();
+}
 // Update the header to match who is signed in (user is null when signed out).
 function showUser(u){
+  const changed=(u?u.id:null)!==(user?user.id:null);
   user=u;
+  if(changed){
+    saved.clear();
+    // Wait a tick: Supabase must finish its login work before we ask it for more data.
+    if(u)setTimeout(loadFavorites,0);
+  }
   $("#auth").textContent=u?"Log out":"Log in";
   $("#who").textContent=u?(u.user_metadata&&u.user_metadata.display_name)||u.email:"";
   if(items.length)render();  // so "your" ads are recognised after logging in or out
@@ -307,11 +334,7 @@ if(sb)sb.auth.onAuthStateChange((event,session)=>showUser(session?session.user:n
 /* ---------- Post, edit and delete ads ---------- */
 // Opens the form: empty for a new ad, or filled in when editing ad number "id".
 function startPost(id){
-  if(!user){
-    authMode(false);
-    $("#authMsg").textContent=sb?"Please log in or create an account to post an ad.":"Accounts aren't set up yet. Add your Supabase URL and anon key to config.js.";
-    $("#dAuth").showModal();return;
-  }
+  if(!user){needLogin("Please log in or create an account to post an ad.");return}
   const form=$("#f"),i=id?items.find(x=>x.id===id):null;
   if(id&&!(i&&i.sid===user.id))return;
   editId=i?i.id:null;
