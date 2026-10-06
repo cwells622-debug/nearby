@@ -104,7 +104,7 @@ label input,label select,label textarea{border:1px solid var(--line);background:
 </div>
 
 <dialog id="dPost"><form class="dlg" id="f">
-  <div class="top"><h2>Post an ad</h2><button type="button" class="x" data-close aria-label="Close">✕</button></div>
+  <div class="top"><h2 id="postTitle">Post an ad</h2><button type="button" class="x" data-close aria-label="Close">✕</button></div>
   <label>Title<input name="t" required maxlength="60" placeholder="What are you selling?"></label>
   <div class="row">
     <label>Category<select name="c" id="fc"></select></label>
@@ -112,8 +112,9 @@ label input,label select,label textarea{border:1px solid var(--line);background:
   </div>
   <label>City<input name="loc" id="fl" list="cl" required autocomplete="off" placeholder="Start typing a city"></label><datalist id="cl"></datalist>
   <label>Description<textarea name="d" rows="3" required placeholder="Condition, size, pickup details"></textarea></label>
-  <label>Photo (optional)<input name="img" type="file" accept="image/*"></label>
-  <button class="btn" type="submit">Publish ad</button>
+  <label><span id="photoLbl">Photo (optional, JPG, PNG or WebP, up to 5 MB)</span><input name="img" id="fimg" type="file" accept="image/jpeg,image/png,image/webp"></label>
+  <p class="autherr" id="postMsg" role="alert"></p>
+  <button class="btn" type="submit" id="postGo">Publish ad</button>
 </form></dialog>
 
 <dialog id="dView"><div class="dlg" id="view"></div></dialog>
@@ -137,7 +138,7 @@ label input,label select,label textarea{border:1px solid var(--line);background:
 const HUES={Vehicles:210,Property:150,Electronics:190,Furniture:30,Clothing:330,Sports:100,Jobs:260};
 let cats=[],items=[];
 const T={};
-let cur="All",q="",sort="new",nid=-1,me="Saratoga Springs, NY",rad=50,view="cat",geoMsg="",ow=false;
+let cur="All",q="",sort="new",me="Saratoga Springs, NY",rad=50,view="cat",geoMsg="",ow=false;
 const offers={};
 const SL={"Saratoga Springs, NY":["Dana R.",2021,4.9,41,"within an hour"],"Ballston Spa, NY":["Hannah K.",2022,4.7,12,"within a few hours"],"Clifton Park, NY":["Priya S.",2020,4.8,63,"within an hour"],"Schenectady, NY":["Tom W.",2023,4.5,6,"within a day"],"Albany, NY":["Marcus T.",2019,4.9,88,"within an hour"],"Troy, NY":["Leo B.",2021,4.6,27,"within a few hours"],"Glens Falls, NY":["Gail P.",2022,4.8,15,"within a day"],"Queensbury, NY":["Rick M.",2018,4.7,34,"within a few hours"],"Boston, MA":["Alex C.",2020,4.8,52,"within an hour"],"Burlington, VT":["Sam H.",2022,4.9,19,"within a few hours"],"Hartford, CT":["Jo L.",2021,4.4,9,"within a day"],"New York, NY":["Chris D.",2019,4.7,71,"within an hour"],"Pittsburgh, PA":["Nina V.",2023,5,4,"within a few hours"],"Syracuse, NY":["Omar F.",2022,4.6,11,"within a day"]};
 // Is this ad mine? (i.you = posted this session; sid = seller's account id from the database)
@@ -178,7 +179,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt=p=>p===0?"Free":"$"+p.toLocaleString();
 const saved=new Set((()=>{try{return JSON.parse(localStorage.getItem("nearby-saved-v2"))||[]}catch(e){return[]}})());
-const card=i=>`<div class="cw"><button class="card" data-id="${i.id}"><div class="ph" style="--h:${i.h}">${i.img?`<img src="${i.img}" alt="">`:`<span>${i.e}</span>`}</div><div class="cb"><b>${fmt(i.p)}</b><span class="t">${esc(i.t)}</span><span class="m">${esc(i.loc)} · ${dd(i)}</span><span class="m">${pa(i)}</span></div></button><button class="heart" data-save="${i.id}" aria-pressed="${saved.has(i.id)}" aria-label="Save listing">${saved.has(i.id)?"♥":"♡"}</button></div>`;
+const card=i=>`<div class="cw"><button class="card" data-id="${i.id}"><div class="ph" style="--h:${i.h}">${i.img?`<img src="${esc(i.img)}" alt="">`:`<span>${i.e}</span>`}</div><div class="cb"><b>${fmt(i.p)}</b><span class="t">${esc(i.t)}</span><span class="m">${esc(i.loc)} · ${dd(i)}</span><span class="m">${pa(i)}</span></div></button><button class="heart" data-save="${i.id}" aria-pressed="${saved.has(i.id)}" aria-label="Save listing">${saved.has(i.id)?"♥":"♡"}</button></div>`;
 function toggleSave(id){
   id=+id;const on=!saved.has(id);on?saved.add(id):saved.delete(id);
   try{localStorage.setItem("nearby-saved-v2",JSON.stringify([...saved]))}catch(e){}
@@ -213,13 +214,14 @@ function render(){
 function open(id){
   const i=items.find(x=>x.id==id),s=sel(i);
   $("#view").innerHTML=`<div class="top"><span class="tag">${esc(i.c)}</span><button class="btn ghost" data-save="${i.id}" aria-pressed="${saved.has(i.id)}">${saved.has(i.id)?"♥ Saved":"♡ Save"}</button><button class="x" data-close aria-label="Close">✕</button></div>
-  <div class="ph big" style="--h:${i.h}">${i.img?`<img src="${i.img}" alt="">`:`<span>${i.e}</span>`}</div>
+  <div class="ph big" style="--h:${i.h}">${i.img?`<img src="${esc(i.img)}" alt="">`:`<span>${i.e}</span>`}</div>
   <div class="price">${fmt(i.p)}</div><h2>${esc(i.t)}</h2>
   <div class="m" style="color:var(--mute)">${esc(i.loc)} · ${dd(i)} · Posted ${i.ago==="Just now"?"just now":i.ago+" ago"}</div>
   <p style="margin:0">${esc(i.d)}</p>
   <button class="seller sbtn" data-prof="${i.id}"><div class="av">${esc(s.n[0])}</div><span><b>${esc(s.n)}</b><br>${rate(s)} · View profile</span></button>
   <div id="msg"><label>Message ${esc(s.n)}<textarea id="mt" rows="2">Hi, is this still available?</textarea></label><button class="btn" style="margin-top:10px" id="send">Send message</button></div>
-  <div id="offer">${offerHtml(i,s)}</div>`;
+  <div id="offer">${offerHtml(i,s)}</div>
+  ${i.sid&&isMine(i)?`<div class="qa"><button class="btn ghost" data-edit="${i.id}">Edit this ad</button><button class="btn ghost" data-del="${i.id}">Delete this ad</button></div>`:""}`;
   {const d=$("#dView");if(!d.open)d.showModal()}
 }
 document.addEventListener("click",e=>{
@@ -237,31 +239,24 @@ document.addEventListener("click",e=>{
   const c=t.closest(".card");if(c){open(c.dataset.id);return}
   if(t.closest("[data-close]")){t.closest("dialog").close();return}
   if(t.id==="send"){$("#msg").innerHTML=`<div class="ok">Message sent. The seller will reply by email.</div>`;return}
-  if(t.id==="post"){$("#fl").value=me;$("#dPost").showModal();return}
+  if(t.id==="post"){startPost();return}
+  const ed=t.closest("[data-edit]");if(ed){startPost(+ed.dataset.edit);return}
+  const dl=t.closest("[data-del]");if(dl){deleteAd(+dl.dataset.del);return}
   if(t.tagName==="DIALOG")t.close();
 });
 document.addEventListener("change",e=>{const t=e.target;if(t.id==="sort")sort=t.value;else if(t.id==="rad")rad=+t.value;else return;render()});
 document.addEventListener("input",e=>{const t=e.target;if(t.id==="oa")ow=false;if(t.id==="me"){const k=Object.keys(T).find(n=>n.toLowerCase()===t.value.trim().toLowerCase());if(k&&k!==me){me=k;render()}}});
 $("#q").addEventListener("input",e=>{q=e.target.value.trim().toLowerCase();render()});
 $("#fl").addEventListener("input",e=>e.target.setCustomValidity(""));
-$("#f").addEventListener("submit",async e=>{
-  e.preventDefault();
-  const f=new FormData(e.target),file=f.get("img");
-  let img=null;
-  if(file&&file.size)img=await new Promise(r=>{const fr=new FileReader();fr.onload=()=>r(fr.result);fr.readAsDataURL(file)});
-  const c=f.get("c");
-  const loc=Object.keys(T).find(n=>n.toLowerCase()===String(f.get("loc")).trim().toLowerCase());
-  if(!loc){$("#fl").setCustomValidity("Choose a city from the list");$("#fl").reportValidity();return}
-  items.unshift({id:nid--,t:f.get("t"),p:Math.max(0,+f.get("p")||0),c,loc,d:f.get("d"),ago:"Just now",e:cats.find(x=>x[0]===c)[1],h:cats.find(x=>x[0]===c)[2],img,you:true});
-  e.target.reset();$("#dPost").close();cur=c;q="";$("#q").value="";sort="new";render();window.scrollTo({top:0});
-});
 </script>
 
 <script>
 /* ---------- Accounts (Supabase Auth) ---------- */
 // "sb" is our connection to Supabase, like an ADO connection object in classic ASP.
 // Its settings come from config.js.
-let sb=null,user=null,signup=false;
+let sb=null,user=null,signup=false,editId=null;
+const BUCKET="listing-photos",cityIds={};   // cityIds: "Albany, NY" -> the city's id in the database
+const PHOTO_TYPES={"image/jpeg":"jpg","image/png":"png","image/webp":"webp"},MAX_PHOTO=5*1024*1024;
 const cfgOk=typeof NEARBY_CONFIG!=="undefined"&&/^https?:\/\//.test(NEARBY_CONFIG.supabaseUrl)&&!NEARBY_CONFIG.supabaseAnonKey.startsWith("PASTE");
 if(cfgOk&&window.supabase)sb=window.supabase.createClient(NEARBY_CONFIG.supabaseUrl,NEARBY_CONFIG.supabaseAnonKey);
 
@@ -309,6 +304,85 @@ $("#fa").addEventListener("submit",async e=>{
 // Runs on page load and every time someone logs in or out.
 if(sb)sb.auth.onAuthStateChange((event,session)=>showUser(session?session.user:null));
 
+/* ---------- Post, edit and delete ads ---------- */
+// Opens the form: empty for a new ad, or filled in when editing ad number "id".
+function startPost(id){
+  if(!user){
+    authMode(false);
+    $("#authMsg").textContent=sb?"Please log in or create an account to post an ad.":"Accounts aren't set up yet. Add your Supabase URL and anon key to config.js.";
+    $("#dAuth").showModal();return;
+  }
+  const form=$("#f"),i=id?items.find(x=>x.id===id):null;
+  if(id&&!(i&&i.sid===user.id))return;
+  editId=i?i.id:null;
+  form.reset();$("#postMsg").textContent="";$("#fl").setCustomValidity("");
+  $("#postTitle").textContent=i?"Edit your ad":"Post an ad";
+  $("#postGo").textContent=i?"Save changes":"Publish ad";
+  $("#photoLbl").textContent=i?"Replace photo (leave empty to keep the current one)":"Photo (optional, JPG, PNG or WebP, up to 5 MB)";
+  if(i){const e=form.elements;e.t.value=i.t;e.c.value=i.c;e.p.value=i.p;e.loc.value=i.loc;e.d.value=i.d}
+  else $("#fl").value=me;
+  $("#dView").close();$("#dPost").showModal();
+}
+// Photos go in a folder named after the user's id, so storage rules can check ownership.
+async function uploadPhoto(file){
+  const path=user.id+"/"+crypto.randomUUID()+"."+PHOTO_TYPES[file.type];
+  const {error}=await sb.storage.from(BUCKET).upload(path,file,{contentType:file.type});
+  if(error)throw error;
+  return path;
+}
+$("#f").addEventListener("submit",async e=>{
+  e.preventDefault();
+  const msg=$("#postMsg");msg.textContent="";
+  if(!user){msg.textContent="Please log in first.";return}
+  const f=new FormData(e.target),file=f.get("img"),hasFile=!!(file&&file.size);
+  const loc=Object.keys(T).find(n=>n.toLowerCase()===String(f.get("loc")).trim().toLowerCase());
+  if(!loc){$("#fl").setCustomValidity("Choose a city from the list");$("#fl").reportValidity();return}
+  if(hasFile&&!PHOTO_TYPES[file.type]){msg.textContent="The photo must be a JPG, PNG or WebP image.";return}
+  if(hasFile&&file.size>MAX_PHOTO){msg.textContent="That photo is too big. The limit is 5 MB.";return}
+  const catName=f.get("c");
+  const row={category_id:cats.find(c=>c[0]===catName)[3],city_id:cityIds[loc],title:String(f.get("t")).trim(),
+    description:String(f.get("d")).trim(),price:Math.max(0,Math.round(+f.get("p")||0))};
+  const go=$("#postGo");go.disabled=true;
+  let newId=null,newPath=null;
+  try{
+    let id=editId;
+    if(editId){
+      // RLS silently skips rows that aren't yours, so an empty result means "not your ad".
+      const {data,error}=await sb.from("listings").update(row).eq("id",editId).select("id");
+      if(error)throw error;
+      if(!data.length)throw new Error("You can only edit your own ads.");
+    }else{
+      const {data,error}=await sb.from("listings").insert({...row,seller_id:user.id}).select("id").single();
+      if(error)throw error;
+      id=newId=data.id;
+    }
+    if(hasFile){
+      newPath=await uploadPhoto(file);
+      const {error}=await sb.from("listing_photos").insert({listing_id:id,storage_path:newPath});
+      if(error)throw error;
+      const old=editId?(items.find(x=>x.id===editId).paths||[]):[];
+      if(old.length){await sb.from("listing_photos").delete().in("storage_path",old);await sb.storage.from(BUCKET).remove(old)}
+    }
+  }catch(err){
+    // Undo a half-finished new ad so no photo-less leftovers remain.
+    if(newPath)await sb.storage.from(BUCKET).remove([newPath]);
+    if(newId)await sb.from("listings").delete().eq("id",newId);
+    msg.textContent=err.message||"Something went wrong. Please try again.";go.disabled=false;return;
+  }
+  go.disabled=false;e.target.reset();$("#dPost").close();
+  cur=catName;q="";$("#q").value="";sort="new";editId=null;
+  await loadData();window.scrollTo({top:0});
+});
+async function deleteAd(id){
+  const i=items.find(x=>x.id===id);
+  if(!user||!i||i.sid!==user.id)return;
+  if(!confirm("Delete this ad? This can't be undone."))return;
+  const {data,error}=await sb.from("listings").delete().eq("id",id).select("id");
+  if(error||!data.length){alert(error?error.message:"You can only delete your own ads.");return}
+  if(i.paths.length)await sb.storage.from(BUCKET).remove(i.paths);
+  $("#dView").close();await loadData();
+}
+
 /* ---------- Load categories, cities and listings from the database ---------- */
 // Turns "how long ago" into the short text the prototype used: "Just now", "5h", "2d".
 const agoText=h=>h<1?"Just now":h<24?h+"h":Math.floor(h/24)+"d";
@@ -320,20 +394,22 @@ async function loadData(){
   const [rc,rt,rl]=await Promise.all([
     sb.from("categories").select("id,name,icon").order("id"),
     sb.from("cities").select("id,name,state,lat,lng"),
-    sb.from("listings").select("id,seller_id,category_id,city_id,title,description,price,created_at,profiles(display_name,created_at)")
+    sb.from("listings").select("id,seller_id,category_id,city_id,title,description,price,created_at,profiles(display_name,created_at),listing_photos(storage_path)")
       .eq("status","active").order("created_at",{ascending:false}).limit(500)
   ]);
   const err=rc.error||rt.error||rl.error;
   if(err){main.innerHTML=`<div class="empty"><h2>Couldn't load listings</h2><p>${esc(err.message)}</p></div>`;return}
 
   const catById={},cityById={};
-  cats=rc.data.map(c=>{const r=[c.name,c.icon,HUES[c.name]||200];catById[c.id]=r;return r});
-  rt.data.forEach(c=>{const k=c.name+", "+c.state;T[k]=[c.lat,c.lng];cityById[c.id]=k});
+  cats=rc.data.map(c=>{const r=[c.name,c.icon,HUES[c.name]||200,c.id];catById[c.id]=r;return r});
+  rt.data.forEach(c=>{const k=c.name+", "+c.state;T[k]=[c.lat,c.lng];cityById[c.id]=k;cityIds[k]=c.id});
   if(!T[me])me=Object.keys(T).sort()[0];
   const now=Date.now();
   items=rl.data.map(r=>{
     const c=catById[r.category_id],hrs=Math.max(0,Math.floor((now-new Date(r.created_at))/36e5));
-    return{id:r.id,t:r.title,p:r.price,c:c[0],loc:cityById[r.city_id],d:r.description,ago:agoText(hrs),hrs,e:c[1],h:c[2],
+    const paths=(r.listing_photos||[]).map(p=>p.storage_path);
+    const img=paths.length?sb.storage.from(BUCKET).getPublicUrl(paths[0]).data.publicUrl:null;
+    return{id:r.id,paths,img,t:r.title,p:r.price,c:c[0],loc:cityById[r.city_id],d:r.description,ago:agoText(hrs),hrs,e:c[1],h:c[2],
       sid:r.seller_id,sn:r.profiles&&r.profiles.display_name,sy:r.profiles&&new Date(r.profiles.created_at).getFullYear()}
   }).filter(i=>i.loc);
   // Fill the city suggestions and the category list in the Post form.
