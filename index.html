@@ -391,10 +391,12 @@ async function loadData(){
   if(!sb){main.innerHTML=`<div class="empty"><h2>Can't reach the database</h2><p>Add your Supabase URL and anon key to config.js.</p></div>`;return}
   // Three SELECT queries at once, like three Recordsets opened on one connection.
   // The listings query also pulls the seller's name from profiles (a JOIN).
+  // "profiles!seller_id" says which link to follow: listings and profiles are
+  // also connected through favorites, so Supabase needs to be told.
   const [rc,rt,rl]=await Promise.all([
     sb.from("categories").select("id,name,icon").order("id"),
     sb.from("cities").select("id,name,state,lat,lng"),
-    sb.from("listings").select("id,seller_id,category_id,city_id,title,description,price,created_at,profiles(display_name,created_at),listing_photos(storage_path)")
+    sb.from("listings").select("id,seller_id,category_id,city_id,title,description,price,created_at,profiles!seller_id(display_name,created_at),listing_photos(storage_path)")
       .eq("status","active").order("created_at",{ascending:false}).limit(500)
   ]);
   const err=rc.error||rt.error||rl.error;
