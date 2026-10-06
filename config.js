@@ -7,6 +7,6 @@
 //   Project URL  -> supabaseUrl
 //   anon public  -> supabaseAnonKey
 const NEARBY_CONFIG = {
-  supabaseUrl: "PASTE_YOUR_PROJECT_URL_HERE",
-  supabaseAnonKey: "PASTE_YOUR_ANON_PUBLIC_KEY_HERE"
+  supabaseUrl: "https://xhjybpostmfgwidqipgc.supabase.co",
+  supabaseAnonKey: "sb_publishable_uuz1NgftKiBRGtME6enOzg_nELwZIpz"
 };
