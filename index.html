@@ -100,7 +100,7 @@ label input,label select,label textarea{border:1px solid var(--line);background:
 </header>
 <div class="wrap">
   <aside id="cats" aria-label="Categories"></aside>
-  <main id="main"></main>
+  <main id="main"><p class="note">Loading listings…</p></main>
 </div>
 
 <dialog id="dPost"><form class="dlg" id="f">
@@ -132,44 +132,27 @@ label input,label select,label textarea{border:1px solid var(--line);background:
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
 <script>
-const cats=[["Vehicles","🚗",210],["Property","🏠",150],["Electronics","📱",190],["Furniture","🛋️",30],["Clothing","👕",330],["Sports","🚲",100],["Jobs","💼",260]];
-let items=[
-{t:"2016 Honda Civic, 82k miles",p:11800,c:"Vehicles",loc:"Saratoga Springs, NY",d:"One owner, clean title, new tires. Service records available.",ago:"2h",e:"🚗"},
-{t:"Trek mountain bike, size M",p:350,c:"Sports",loc:"Ballston Spa, NY",d:"Lightly used, recently tuned. Includes helmet.",ago:"3h",e:"🚲"},
-{t:"Sunny 2-bedroom apartment",p:1650,c:"Property",loc:"Albany, NY",d:"Per month. Near bus line, laundry in building, pets allowed.",ago:"5h",e:"🏠"},
-{t:"iPhone 13, 128GB, unlocked",p:420,c:"Electronics",loc:"Clifton Park, NY",d:"Battery health 91%. Comes with case and charger.",ago:"1d",e:"📱"},
-{t:"Leather sofa, three-seater",p:240,c:"Furniture",loc:"Schenectady, NY",d:"Good condition, pickup only. Buyer must bring help.",ago:"1d",e:"🛋️"},
-{t:"Winter jacket, women's M",p:45,c:"Clothing",loc:"Troy, NY",d:"Worn one season. Warm, waterproof, no stains.",ago:"2d",e:"🧥"},
-{t:"Line cook, full time",p:0,c:"Jobs",loc:"Saratoga Springs, NY",d:"Busy restaurant, $22/hr plus tips. Message to apply.",ago:"2d",e:"🍳"},
-{t:"Gaming laptop, RTX 3060",p:780,c:"Electronics",loc:"Albany, NY",d:"16GB RAM, 1TB SSD. Runs current games well.",ago:"3d",e:"💻"},
-{t:"Oak dining table with 4 chairs",p:180,c:"Furniture",loc:"Glens Falls, NY",d:"Solid wood, a few light scratches.",ago:"3d",e:"🪑"},
-{t:"Studio room for rent",p:900,c:"Property",loc:"Troy, NY",d:"Per month, utilities included. Quiet street.",ago:"4d",e:"🛏️"},
-{t:"2012 Subaru Outback",p:6200,c:"Vehicles",loc:"Queensbury, NY",d:"AWD, 140k miles, runs great. Snow tires included.",ago:"4d",e:"🚙"},
-{t:"Dog walker needed, weekdays",p:0,c:"Jobs",loc:"Saratoga Springs, NY",d:"Two mid-day walks, $20 each. References please.",ago:"5d",e:"🐕"},
-{t:"Yoga mat and blocks set",p:20,c:"Sports",loc:"Clifton Park, NY",d:"Barely used. Mat, two blocks, strap.",ago:"5d",e:"🧘"},
-{t:"Denim jacket, men's L",p:30,c:"Clothing",loc:"Albany, NY",d:"Classic fit, great condition.",ago:"6d",e:"👖"},
-{t:"Standing desk, electric",p:210,c:"Furniture",loc:"Boston, MA",d:"Adjustable height, 60 inch top. Barely used.",ago:"6h",e:"🖥️"},
-{t:"Carbon road bike, size 54",p:900,c:"Sports",loc:"Burlington, VT",d:"Light, well kept, new chain and tires.",ago:"8h",e:"🚴"},
-{t:"Studio apartment near downtown",p:1400,c:"Property",loc:"Hartford, CT",d:"Per month, heat included. Walk to shops.",ago:"1d",e:"🏢"},
-{t:"2018 Toyota Camry, 61k miles",p:14500,c:"Vehicles",loc:"New York, NY",d:"Clean history, single owner.",ago:"2d",e:"🚘"},
-{t:"Nintendo Switch with 3 games",p:190,c:"Electronics",loc:"Pittsburgh, PA",d:"Includes dock, two controllers, and games.",ago:"3d",e:"🎮"},
-{t:"Barista, part time",p:0,c:"Jobs",loc:"Syracuse, NY",d:"Weekend shifts, $17/hr plus tips. Training provided.",ago:"4d",e:"☕"}
-].map((x,i)=>({...x,id:i+1,h:(cats.find(c=>c[0]===x.c)||[0,0,200])[2],hrs:parseInt(x.ago)*(x.ago.endsWith("d")?24:1)}));
-const T={"Saratoga Springs, NY":[43.083,-73.785],"Ballston Spa, NY":[43.0006,-73.8487],"Clifton Park, NY":[42.8656,-73.771],"Schenectady, NY":[42.8142,-73.9396],"Albany, NY":[42.6526,-73.7562],"Troy, NY":[42.7284,-73.6918],"Glens Falls, NY":[43.3095,-73.644],"Queensbury, NY":[43.3281,-73.6551],"New York, NY":[40.7128,-74.006],"Buffalo, NY":[42.8864,-78.8784],"Rochester, NY":[43.1566,-77.6088],"Syracuse, NY":[43.0481,-76.1474],"Boston, MA":[42.3601,-71.0589],"Springfield, MA":[42.1015,-72.5898],"Worcester, MA":[42.2626,-71.8023],"Burlington, VT":[44.4759,-73.2121],"Rutland, VT":[43.6106,-72.9726],"Hartford, CT":[41.7658,-72.6734],"New Haven, CT":[41.3083,-72.9279],"Philadelphia, PA":[39.9526,-75.1652],"Pittsburgh, PA":[40.4406,-79.9959],"Newark, NJ":[40.7357,-74.1724],"Manchester, NH":[42.9956,-71.4548]};
-let cur="All",q="",sort="new",nid=100,me="Saratoga Springs, NY",rad=50,view="cat",geoMsg="",ow=false;
+// Filled in from Supabase by loadData() at the bottom of the page.
+// cats: [name, icon, hue]   items: the listings   T: "City, ST" -> [lat, lng]
+const HUES={Vehicles:210,Property:150,Electronics:190,Furniture:30,Clothing:330,Sports:100,Jobs:260};
+let cats=[],items=[];
+const T={};
+let cur="All",q="",sort="new",nid=-1,me="Saratoga Springs, NY",rad=50,view="cat",geoMsg="",ow=false;
 const offers={};
 const SL={"Saratoga Springs, NY":["Dana R.",2021,4.9,41,"within an hour"],"Ballston Spa, NY":["Hannah K.",2022,4.7,12,"within a few hours"],"Clifton Park, NY":["Priya S.",2020,4.8,63,"within an hour"],"Schenectady, NY":["Tom W.",2023,4.5,6,"within a day"],"Albany, NY":["Marcus T.",2019,4.9,88,"within an hour"],"Troy, NY":["Leo B.",2021,4.6,27,"within a few hours"],"Glens Falls, NY":["Gail P.",2022,4.8,15,"within a day"],"Queensbury, NY":["Rick M.",2018,4.7,34,"within a few hours"],"Boston, MA":["Alex C.",2020,4.8,52,"within an hour"],"Burlington, VT":["Sam H.",2022,4.9,19,"within a few hours"],"Hartford, CT":["Jo L.",2021,4.4,9,"within a day"],"New York, NY":["Chris D.",2019,4.7,71,"within an hour"],"Pittsburgh, PA":["Nina V.",2023,5,4,"within a few hours"],"Syracuse, NY":["Omar F.",2022,4.6,11,"within a day"]};
-const sel=i=>{if(i.you)return{n:"You",y:"today",r:0,rv:0,rt:""};const a=SL[i.loc]||["Local seller",2023,0,0,"within a day"];return{n:a[0],y:a[1],r:a[2],rv:a[3],rt:a[4]}};
+// Is this ad mine? (i.you = posted this session; sid = seller's account id from the database)
+const isMine=i=>!!(i.you||(user&&i.sid&&i.sid===user.id));
+const sel=i=>{if(isMine(i))return{n:"You",y:"today",r:0,rv:0,rt:""};if(i.sn)return{n:i.sn,y:i.sy,r:0,rv:0,rt:""};const a=SL[i.loc]||["Local seller",2023,0,0,"within a day"];return{n:a[0],y:a[1],r:a[2],rv:a[3],rt:a[4]}};
 const rate=s=>s.r?`★ ${s.r} (${s.rv} reviews)`:"No reviews yet";
 function prof(id){
-  const i=items.find(x=>x.id==id),s=sel(i),l=items.filter(x=>i.you?x.you:(!x.you&&x.loc===i.loc));
+  const i=items.find(x=>x.id==id),s=sel(i),l=items.filter(x=>isMine(i)?isMine(x):i.sid?x.sid===i.sid:(!x.sid&&!isMine(x)&&x.loc===i.loc));
   $("#view").innerHTML=`<div class="top"><button class="link" data-back="${i.id}">← Back to listing</button><button class="x" data-close aria-label="Close">✕</button></div>
   <div class="seller"><div class="av" style="width:56px;height:56px;font-size:22px">${esc(s.n[0])}</div><div><h2 style="color:var(--ink)">${esc(s.n)}</h2><span>${esc(i.loc)} · Member since ${s.y}</span></div></div>
   <div>${rate(s)}${s.rt?` · Replies ${s.rt}`:""}</div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap">${i.you?`<span class="tag">New seller</span>`:`<span class="tag">Email verified</span><span class="tag">Phone verified</span>`}</div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">${isMine(i)||i.sn?`<span class="tag">New seller</span>`:`<span class="tag">Email verified</span><span class="tag">Phone verified</span>`}</div>
   <h2>Listings (${l.length})</h2><div class="grid">${l.map(card).join("")}</div>`;
 }
-const offerHtml=(i,s)=>i.you||i.p<2?"":offers[i.id]?`<div class="ok">You offered ${fmt(offers[i.id])}. ${esc(s.n)} will reply by email.</div>`:`<button class="btn ghost" data-offer="${i.id}">Make an offer</button>`;
+const offerHtml=(i,s)=>isMine(i)||i.p<2?"":offers[i.id]?`<div class="ok">You offered ${fmt(offers[i.id])}. ${esc(s.n)} will reply by email.</div>`:`<button class="btn ghost" data-offer="${i.id}">Make an offer</button>`;
 function offerForm(id){
   const i=items.find(x=>x.id==id),amts=[...new Set([.9,.8,.7].map(f=>Math.max(1,Math.round(i.p*f))))].filter(a=>a<i.p);
   $("#offer").innerHTML=`<div class="offer"><b>Your offer</b><span style="color:var(--mute)">Asking price: ${fmt(i.p)}</span><div class="qa">${amts.map(a=>`<button type="button" data-amt="${a}">${fmt(a)}</button>`).join("")}</div><label>Offer amount ($)<input id="oa" type="number" min="1" value="${amts[0]||1}"></label><p id="oerr" class="note" role="alert" style="margin:0"></p><button class="btn" data-sendoffer="${i.id}">Send offer</button></div>`;
@@ -194,11 +177,11 @@ const inR=i=>!rad||dist(i)<=rad;
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt=p=>p===0?"Free":"$"+p.toLocaleString();
-const saved=new Set((()=>{try{return JSON.parse(localStorage.getItem("nearby-saved"))||[]}catch(e){return[]}})());
+const saved=new Set((()=>{try{return JSON.parse(localStorage.getItem("nearby-saved-v2"))||[]}catch(e){return[]}})());
 const card=i=>`<div class="cw"><button class="card" data-id="${i.id}"><div class="ph" style="--h:${i.h}">${i.img?`<img src="${i.img}" alt="">`:`<span>${i.e}</span>`}</div><div class="cb"><b>${fmt(i.p)}</b><span class="t">${esc(i.t)}</span><span class="m">${esc(i.loc)} · ${dd(i)}</span><span class="m">${pa(i)}</span></div></button><button class="heart" data-save="${i.id}" aria-pressed="${saved.has(i.id)}" aria-label="Save listing">${saved.has(i.id)?"♥":"♡"}</button></div>`;
 function toggleSave(id){
   id=+id;const on=!saved.has(id);on?saved.add(id):saved.delete(id);
-  try{localStorage.setItem("nearby-saved",JSON.stringify([...saved]))}catch(e){}
+  try{localStorage.setItem("nearby-saved-v2",JSON.stringify([...saved]))}catch(e){}
   document.querySelectorAll(`[data-save="${id}"]`).forEach(b=>{b.setAttribute("aria-pressed",on);b.textContent=b.classList.contains("heart")?(on?"♥":"♡"):(on?"♥ Saved":"♡ Save")});
   side();if(cur==="Saved")render();
 }
@@ -260,9 +243,7 @@ document.addEventListener("click",e=>{
 document.addEventListener("change",e=>{const t=e.target;if(t.id==="sort")sort=t.value;else if(t.id==="rad")rad=+t.value;else return;render()});
 document.addEventListener("input",e=>{const t=e.target;if(t.id==="oa")ow=false;if(t.id==="me"){const k=Object.keys(T).find(n=>n.toLowerCase()===t.value.trim().toLowerCase());if(k&&k!==me){me=k;render()}}});
 $("#q").addEventListener("input",e=>{q=e.target.value.trim().toLowerCase();render()});
-$("#cl").innerHTML=Object.keys(T).sort().map(n=>`<option value="${n}">`).join("");
 $("#fl").addEventListener("input",e=>e.target.setCustomValidity(""));
-$("#fc").innerHTML=cats.map(c=>`<option>${c[0]}</option>`).join("");
 $("#f").addEventListener("submit",async e=>{
   e.preventDefault();
   const f=new FormData(e.target),file=f.get("img");
@@ -271,10 +252,9 @@ $("#f").addEventListener("submit",async e=>{
   const c=f.get("c");
   const loc=Object.keys(T).find(n=>n.toLowerCase()===String(f.get("loc")).trim().toLowerCase());
   if(!loc){$("#fl").setCustomValidity("Choose a city from the list");$("#fl").reportValidity();return}
-  items.unshift({id:nid++,t:f.get("t"),p:Math.max(0,+f.get("p")||0),c,loc,d:f.get("d"),ago:"Just now",e:cats.find(x=>x[0]===c)[1],h:cats.find(x=>x[0]===c)[2],img,you:true});
+  items.unshift({id:nid--,t:f.get("t"),p:Math.max(0,+f.get("p")||0),c,loc,d:f.get("d"),ago:"Just now",e:cats.find(x=>x[0]===c)[1],h:cats.find(x=>x[0]===c)[2],img,you:true});
   e.target.reset();$("#dPost").close();cur=c;q="";$("#q").value="";sort="new";render();window.scrollTo({top:0});
 });
-render();
 </script>
 
 <script>
@@ -299,6 +279,7 @@ function showUser(u){
   user=u;
   $("#auth").textContent=u?"Log out":"Log in";
   $("#who").textContent=u?(u.user_metadata&&u.user_metadata.display_name)||u.email:"";
+  if(items.length)render();  // so "your" ads are recognised after logging in or out
 }
 $("#auth").addEventListener("click",async()=>{
   if(user){await sb.auth.signOut();return}
@@ -327,6 +308,40 @@ $("#fa").addEventListener("submit",async e=>{
 });
 // Runs on page load and every time someone logs in or out.
 if(sb)sb.auth.onAuthStateChange((event,session)=>showUser(session?session.user:null));
+
+/* ---------- Load categories, cities and listings from the database ---------- */
+// Turns "how long ago" into the short text the prototype used: "Just now", "5h", "2d".
+const agoText=h=>h<1?"Just now":h<24?h+"h":Math.floor(h/24)+"d";
+async function loadData(){
+  const main=$("#main");
+  if(!sb){main.innerHTML=`<div class="empty"><h2>Can't reach the database</h2><p>Add your Supabase URL and anon key to config.js.</p></div>`;return}
+  // Three SELECT queries at once, like three Recordsets opened on one connection.
+  // The listings query also pulls the seller's name from profiles (a JOIN).
+  const [rc,rt,rl]=await Promise.all([
+    sb.from("categories").select("id,name,icon").order("id"),
+    sb.from("cities").select("id,name,state,lat,lng"),
+    sb.from("listings").select("id,seller_id,category_id,city_id,title,description,price,created_at,profiles(display_name,created_at)")
+      .eq("status","active").order("created_at",{ascending:false}).limit(500)
+  ]);
+  const err=rc.error||rt.error||rl.error;
+  if(err){main.innerHTML=`<div class="empty"><h2>Couldn't load listings</h2><p>${esc(err.message)}</p></div>`;return}
+
+  const catById={},cityById={};
+  cats=rc.data.map(c=>{const r=[c.name,c.icon,HUES[c.name]||200];catById[c.id]=r;return r});
+  rt.data.forEach(c=>{const k=c.name+", "+c.state;T[k]=[c.lat,c.lng];cityById[c.id]=k});
+  if(!T[me])me=Object.keys(T).sort()[0];
+  const now=Date.now();
+  items=rl.data.map(r=>{
+    const c=catById[r.category_id],hrs=Math.max(0,Math.floor((now-new Date(r.created_at))/36e5));
+    return{id:r.id,t:r.title,p:r.price,c:c[0],loc:cityById[r.city_id],d:r.description,ago:agoText(hrs),hrs,e:c[1],h:c[2],
+      sid:r.seller_id,sn:r.profiles&&r.profiles.display_name,sy:r.profiles&&new Date(r.profiles.created_at).getFullYear()}
+  }).filter(i=>i.loc);
+  // Fill the city suggestions and the category list in the Post form.
+  $("#cl").innerHTML=Object.keys(T).sort().map(n=>`<option value="${esc(n)}">`).join("");
+  $("#fc").innerHTML=cats.map(c=>`<option>${esc(c[0])}</option>`).join("");
+  render();
+}
+loadData();
 </script>
 </body>
 </html>
