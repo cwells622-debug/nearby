@@ -346,10 +346,26 @@ function startPost(id){
   else $("#fl").value=me;
   $("#dView").close();$("#dPost").showModal();
 }
+// Privacy: phone photos carry hidden "EXIF" data (GPS location, camera, date).
+// Drawing the picture onto a blank canvas and saving it again keeps only the pixels,
+// so none of that hidden data is uploaded. It also shrinks big photos to 1600px wide/tall.
+async function cleanPhoto(file){
+  const MAX=1600;
+  const bmp=await createImageBitmap(file,{imageOrientation:"from-image"});  // applies the phone's rotation first
+  const s=Math.min(1,MAX/Math.max(bmp.width,bmp.height));
+  const c=document.createElement("canvas");
+  c.width=Math.round(bmp.width*s);c.height=Math.round(bmp.height*s);
+  c.getContext("2d").drawImage(bmp,0,0,c.width,c.height);
+  bmp.close();
+  const blob=await new Promise(r=>c.toBlob(r,file.type,0.85));
+  if(!blob||!PHOTO_TYPES[blob.type])throw new Error("Couldn't process that photo. Please try a different image.");
+  return blob;
+}
 // Photos go in a folder named after the user's id, so storage rules can check ownership.
 async function uploadPhoto(file){
-  const path=user.id+"/"+crypto.randomUUID()+"."+PHOTO_TYPES[file.type];
-  const {error}=await sb.storage.from(BUCKET).upload(path,file,{contentType:file.type});
+  const blob=await cleanPhoto(file);   // never upload the original file
+  const path=user.id+"/"+crypto.randomUUID()+"."+PHOTO_TYPES[blob.type];
+  const {error}=await sb.storage.from(BUCKET).upload(path,blob,{contentType:blob.type});
   if(error)throw error;
   return path;
 }
