@@ -1,0 +1,4 @@
+# Netlify settings. Only the "public" folder is published,
+# so SQL files, notes and the spec stay private in GitHub.
+[build]
+  publish = "public"

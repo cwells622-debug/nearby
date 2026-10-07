@@ -13,9 +13,13 @@
 2. `seed_demo.sql`
 3. `step4_photos_and_limits.sql`
 
-## In progress: Step 6, publish the site
-- Needs: a GitHub repository, then a Netlify (or Vercel) site connected to it.
-- After going live: add the live address to Supabase -> Authentication -> URL Configuration (Site URL and Redirect URLs), so email confirmation links open the live site.
+## Step 6: publishing
+- Code is on GitHub: https://github.com/cwells622-debug/nearby (branch `main`).
+- Live site (Netlify): https://chadads.netlify.app/ . Netlify redeploys on every push to `main`.
+- Only the `public/` folder is published (`index.html`, `config.js`), set in `netlify.toml`. SQL files, notes and the spec stay in GitHub only. Edit the site in `public/`.
+- `nearby-classifieds.html` (the original prototype) stays in the repo root for reference and is not published.
+- To do: in Supabase -> Authentication -> URL Configuration, set Site URL and Redirect URLs to the live address, so email confirmation links open the live site.
+- To do: test sign up, posting with a photo and saving on the live site and on a phone.
 
 ## Next (Phase 2)
 - City and radius filter in the database (SQL function), real GeoNames city list.
