@@ -14,6 +14,7 @@
 3. `step4_photos_and_limits.sql`
 4. `seed_cities_us.sql` (7,513 US places with 5,000+ people, from GeoNames, CC BY 4.0)
 5. `step7_vehicle_link.sql` (optional link on Vehicles ads)
+6. `add_categories_2.sql` (ATV, Appliances, Campers, Real Estate, Medical, Motorcycles, Antiques, Lawn and Garden, Heavy Machinery)
 
 ## Step 6: publishing
 - Code is on GitHub: https://github.com/cwells622-debug/nearby (branch `main`).
