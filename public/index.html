@@ -138,6 +138,14 @@ dialog.wide{width:min(1020px,96vw)}
  .adi{overflow-y:auto;max-height:92vh;padding:30px 28px}
  .gal{aspect-ratio:auto;height:calc(92vh - 92px);min-height:380px}
 }
+/* Video: player inside the gallery, thumbnail tile, "play" badge on cards, rows in the Post form */
+.gal video,.gal iframe{width:100%;height:100%;border:0;background:#000;display:block}
+.gthumbs .vt{width:64px;height:64px;border-radius:12px;background:var(--ink);color:var(--bg);display:grid;place-items:center;font-size:20px;border:2px solid transparent}
+.gthumbs button[aria-pressed="true"] .vt{border-color:var(--acc)}
+.vbadge{position:absolute;left:10px;bottom:10px;background:rgba(0,0,0,.6);color:#fff;font-size:12px;font-weight:600;padding:3px 9px;border-radius:999px;pointer-events:none}
+.vrow{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--soft);border-radius:12px;padding:10px 12px;font-size:14px}
+.vrow span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.card .ph{position:relative}
 .share{display:flex;flex-direction:column;gap:8px;margin-top:6px;padding-top:14px;border-top:1px solid var(--line)}
 .share .sh{font-size:13px;font-weight:600;color:var(--mute);text-transform:uppercase;letter-spacing:.05em}
 .sharerow{display:flex;gap:8px;flex-wrap:wrap}
@@ -197,6 +205,10 @@ dialog.wide{width:min(1020px,96vw)}
   <div id="curPhotos" class="thumbs" hidden></div>
   <label><span id="photoLbl">Photos (optional, up to 5; JPG, PNG or WebP, 5 MB each)</span><input id="fimg" type="file" multiple accept="image/jpeg,image/png,image/webp"></label>
   <div id="newPhotos" class="thumbs" hidden></div>
+  <div id="curVideo" class="vrow" hidden></div>
+  <label><span id="videoLbl">Video clip (optional, MP4, MOV or WebM, up to 50 MB)</span><input id="fvid" type="file" accept="video/mp4,video/quicktime,video/webm"></label>
+  <div id="newVideo" class="vrow" hidden></div>
+  <label>Or a video link (YouTube or Vimeo, optional)<input name="vlink" type="url" maxlength="200" placeholder="https://www.youtube.com/watch?v=..." autocomplete="off"></label>
   <p class="autherr" id="postMsg" role="alert"></p>
   <button class="btn" type="submit" id="postGo">Publish ad</button>
 </form></dialog>
@@ -264,7 +276,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt=p=>p===0?"Free":"$"+p.toLocaleString();
 const saved=new Set();
-const card=i=>`<div class="cw"><button class="card" data-id="${i.id}"><div class="ph" style="--h:${i.h}">${i.img?`<img src="${esc(i.img)}" alt="">`:`<span>${i.e}</span>`}</div><div class="cb"><b>${fmt(i.p)}</b><span class="t">${esc(i.t)}</span><span class="m">${esc(i.loc)} · ${dd(i)}</span></div></button><button class="heart" data-save="${i.id}" aria-pressed="${saved.has(i.id)}" aria-label="Save listing">${saved.has(i.id)?"♥":"♡"}</button></div>`;
+const card=i=>`<div class="cw"><button class="card" data-id="${i.id}"><div class="ph" style="--h:${i.h}">${i.img?`<img src="${esc(i.img)}" alt="">`:`<span>${i.e}</span>`}${i.hasVideo?`<span class="vbadge">▶ Video</span>`:""}</div><div class="cb"><b>${fmt(i.p)}</b><span class="t">${esc(i.t)}</span><span class="m">${esc(i.loc)} · ${dd(i)}</span></div></button><button class="heart" data-save="${i.id}" aria-pressed="${saved.has(i.id)}" aria-label="Save listing">${saved.has(i.id)?"♥":"♡"}</button></div>`;
 // Saved ads live in the database (favorites table), private to the signed-in user.
 // The page keeps a copy in "saved" so hearts can be drawn instantly.
 function paintHearts(id,on){
@@ -324,24 +336,30 @@ function shareHtml(i){
 }
 // ---- Ad pop-up: photo gallery ----
 let gi=0,gId=null;
+// One "slide" of the gallery: a photo, an uploaded video, or a YouTube/Vimeo player.
+function slideHtml(m,k,n){
+  if(m.t==="vid")return `<video src="${esc(m.u)}" controls playsinline preload="metadata"></video>`;
+  if(m.t==="emb")return `<iframe src="${esc(m.u)}" title="Video" loading="lazy" allowfullscreen referrerpolicy="strict-origin-when-cross-origin" allow="encrypted-media; picture-in-picture; fullscreen" sandbox="allow-scripts allow-same-origin allow-presentation allow-popups"></iframe>`;
+  return `<img src="${esc(m.u)}" alt="Photo ${k+1} of ${n}">`;
+}
 function showPhoto(n){
-  const i=items.find(x=>x.id===gId);if(!i||!i.imgs||!i.imgs.length)return;
-  gi=(n+i.imgs.length)%i.imgs.length;
-  $("#gal .gimg").innerHTML=`<img src="${esc(i.imgs[gi])}" alt="Photo ${gi+1} of ${i.imgs.length}">`;
-  const ct=$("#gal .gcount");if(ct)ct.textContent=(gi+1)+" / "+i.imgs.length;
+  const i=items.find(x=>x.id===gId);if(!i||!i.media||!i.media.length)return;
+  gi=(n+i.media.length)%i.media.length;
+  $("#gal .gimg").innerHTML=slideHtml(i.media[gi],gi,i.media.length);   // replacing the slide also stops any playing video
+  const ct=$("#gal .gcount");if(ct)ct.textContent=(gi+1)+" / "+i.media.length;
   document.querySelectorAll(".gthumbs button").forEach((b,k)=>b.setAttribute("aria-pressed",k===gi));
 }
 function open(id){
-  const i=items.find(x=>x.id==id),s=sel(i),n=(i.imgs||[]).length,mine=isMine(i);
+  const i=items.find(x=>x.id==id),s=sel(i),n=(i.media||[]).length,mine=isMine(i);
   gId=i.id;gi=0;
   $("#view").className="dlg ad";$("#dView").classList.add("wide");
   $("#view").innerHTML=`<div class="adg"><div class="gwrap">
     <div class="gal" id="gal" tabindex="0" aria-label="Photos of ${esc(i.t)}">
-      <div class="gimg">${i.img?`<img src="${esc(i.img)}" alt="Photo 1 of ${n}">`:`<span>${i.e}</span>`}</div>
-      ${n>1?`<button class="gnav prev" data-gnav="-1" aria-label="Previous photo">‹</button><button class="gnav next" data-gnav="1" aria-label="Next photo">›</button><span class="gcount">1 / ${n}</span>`:""}
+      <div class="gimg">${n?slideHtml(i.media[0],0,n):`<span>${i.e}</span>`}</div>
+      ${n>1?`<button class="gnav prev" data-gnav="-1" aria-label="Previous">‹</button><button class="gnav next" data-gnav="1" aria-label="Next">›</button><span class="gcount">1 / ${n}</span>`:""}
       <button class="x gx" data-close aria-label="Close">✕</button>
     </div>
-    ${n>1?`<div class="gthumbs">${i.imgs.map((u,k)=>`<button type="button" data-gi="${k}" aria-pressed="${k===0}" aria-label="Show photo ${k+1}"><img src="${esc(u)}" alt=""></button>`).join("")}</div>`:""}
+    ${n>1?`<div class="gthumbs">${i.media.map((m,k)=>`<button type="button" data-gi="${k}" aria-pressed="${k===0}" aria-label="Show ${m.t==="img"?"photo":"video"} ${k+1}">${m.t==="img"?`<img src="${esc(m.u)}" alt="">`:`<span class="vt">▶</span>`}</button>`).join("")}</div>`:""}
   </div>
   <div class="adi">
     <span class="tag">${esc(i.c)}</span>
@@ -360,10 +378,13 @@ function open(id){
   {const d=$("#dView");if(!d.open)d.showModal()}
 }
 // When the pop-up closes, take "?ad=..." back out of the address.
-$("#dView").addEventListener("close",()=>{try{history.replaceState(null,"",location.pathname)}catch(e){}});
+$("#dView").addEventListener("close",()=>{
+  try{history.replaceState(null,"",location.pathname)}catch(e){}
+  $("#view").innerHTML="";   // empties the pop-up, which also stops any video still playing
+});
 // Arrow keys flip photos; swiping left or right on the photo does too.
 document.addEventListener("keydown",e=>{
-  if(!$("#dView").open||!$("#gal")||/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName))return;
+  if(!$("#dView").open||!$("#gal")||/^(INPUT|TEXTAREA|SELECT|VIDEO|IFRAME)$/.test(e.target.tagName))return;
   if(e.key==="ArrowRight"){showPhoto(gi+1);e.preventDefault()}else if(e.key==="ArrowLeft"){showPhoto(gi-1);e.preventDefault()}
 });
 let sx=null;
@@ -378,6 +399,7 @@ document.addEventListener("click",e=>{
   const ext=t.closest("a[data-ext]");if(ext){
     if(!confirm("Warning: this link leaves ChadAds.\n\nYou are going to "+new URL(ext.href).hostname+", a website we don't control. Only continue if you trust it, and never enter passwords or payment details you aren't sure about.\n\nContinue?"))e.preventDefault();
     return}
+  if(t.closest("[data-unvideo]")){pickedVideo=null;showPickedVideo();return}
   const up=t.closest("[data-unpick]");if(up){picked.splice(+up.dataset.unpick,1);showPicked();return}
   const ns=t.closest("[data-nshare]");if(ns){
     const i=items.find(x=>x.id===+ns.dataset.nshare);
@@ -496,7 +518,11 @@ function startPost(id){
   if(id&&!(i&&i.sid===user.id))return;
   editId=i?i.id:null;
   form.reset();$("#postMsg").textContent="";$("#fl").setCustomValidity("");
-  picked=[];showPicked();
+  picked=[];showPicked();pickedVideo=null;showPickedVideo();
+  // When editing: show the video already on the ad; choosing a new file replaces it.
+  const cv=$("#curVideo");cv.hidden=!(i&&i.vpath);
+  cv.innerHTML=i&&i.vpath?`<span>🎬 This ad has a video</span><label style="flex-direction:row;align-items:center;gap:6px;color:var(--ink)"><input type="checkbox" name="rmv"> Remove</label>`:"";
+  $("#videoLbl").textContent=i&&i.vpath?"Replace the video (leave empty to keep it)":"Video clip (optional, MP4, MOV or WebM, up to 50 MB)";
   $("#postTitle").textContent=i?"Edit your ad":"Post an ad";
   $("#postGo").textContent=i?"Save changes":"Publish ad";
   $("#photoLbl").textContent=i?"Add more photos (up to 5 in total; JPG, PNG or WebP, 5 MB each)":"Photos (optional, up to 5; JPG, PNG or WebP, 5 MB each)";
@@ -504,7 +530,7 @@ function startPost(id){
   const cp=$("#curPhotos");
   cp.hidden=!(i&&i.paths.length);
   cp.innerHTML=i?i.paths.map((p,n)=>`<label class="rm"><img src="${esc(i.imgs[n])}" alt=""><span><input type="checkbox" name="rm" value="${esc(p)}"> Remove</span></label>`).join(""):"";
-  if(i){const e=form.elements;e.t.value=i.t;e.c.value=i.c;e.p.value=i.p;e.loc.value=i.loc;e.d.value=i.d;e.link.value=i.link||""}
+  if(i){const e=form.elements;e.t.value=i.t;e.c.value=i.c;e.p.value=i.p;e.loc.value=i.loc;e.d.value=i.d;e.link.value=i.link||"";e.vlink.value=i.vlink||""}
   else $("#fl").value=me;
   showLinkField();
   $("#dView").close();$("#dPost").showModal();
@@ -531,6 +557,66 @@ $("#fimg").addEventListener("change",e=>{
   if(picked.length>MAX_PHOTOS){picked.length=MAX_PHOTOS;msg.textContent="An ad can have up to "+MAX_PHOTOS+" photos. Extra ones were not added."}
   showPicked();
 });
+// ---- Video ----
+// One uploaded clip per ad (the database enforces this too). Chosen file waits here until "Publish".
+let pickedVideo=null;
+const VIDEO_TYPES={"video/mp4":"mp4","video/quicktime":"mov","video/webm":"webm"},MAX_VIDEO=50*1024*1024,VBUCKET="listing-videos";
+function showPickedVideo(){
+  const box=$("#newVideo");box.hidden=!pickedVideo;
+  box.innerHTML=pickedVideo?`<span>🎬 ${esc(pickedVideo.name)} (${(pickedVideo.size/1048576).toFixed(1)} MB)</span><button type="button" class="link" data-unvideo>Remove</button>`:"";
+}
+$("#fvid").addEventListener("change",e=>{
+  const f=e.target.files[0];e.target.value="";if(!f)return;
+  const msg=$("#postMsg");msg.textContent="";
+  if(!VIDEO_TYPES[f.type]){msg.textContent="Videos must be MP4, MOV or WebM.";return}
+  if(f.size>MAX_VIDEO){msg.textContent="That video is too big ("+(f.size/1048576).toFixed(0)+" MB). The limit is 50 MB, about 30 to 60 seconds from a phone. For longer videos, use a YouTube or Vimeo link.";return}
+  pickedVideo=f;showPickedVideo();
+});
+// Privacy: phones hide the GPS position inside video files, as text like "+43.0830-073.7850/".
+// MP4 and MOV files keep that in a small "moov" section. We find it and overwrite every GPS
+// position with zeros, without re-encoding, so quality and size stay the same.
+// (Other hidden details, such as the phone model or the date, are not removed.)
+async function scrubVideo(file){
+  if(file.type==="video/webm")return file;
+  const size=file.size;let pos=0;
+  while(pos+8<=size){
+    const h=new DataView(await file.slice(pos,pos+16).arrayBuffer());
+    let len=h.getUint32(0),hdr=8;
+    const type=String.fromCharCode(h.getUint8(4),h.getUint8(5),h.getUint8(6),h.getUint8(7));
+    if(len===1){len=Number(h.getBigUint64(8));hdr=16}else if(len===0)len=size-pos;
+    if(len<hdr)break;
+    if(type==="moov"){
+      if(len>16*1024*1024)throw new Error("This video has an unusual layout and can't be cleaned. Please use a different clip.");
+      const moov=new Uint8Array(await file.slice(pos,pos+len).arrayBuffer());
+      let s="";for(let k=0;k<moov.length;k+=0x8000)s+=String.fromCharCode.apply(null,moov.subarray(k,k+0x8000));
+      const re=/[+-]\d{1,3}\.\d+[+-]\d{1,3}\.\d+(?:[+-]\d+(?:\.\d+)?)?(?:CRS[A-Za-z0-9:_]*)?\//g;
+      let m;while((m=re.exec(s))){for(let k=0;k<m[0].length-1;k++){const c=s.charCodeAt(m.index+k);if(c>=48&&c<=57)moov[m.index+k]=48}}   // every digit becomes 0
+      return new File([file.slice(0,pos),moov,file.slice(pos+len)],file.name,{type:file.type});
+    }
+    pos+=len;
+  }
+  return file;
+}
+async function uploadVideo(file){
+  const clean=await scrubVideo(file);
+  const path=user.id+"/"+crypto.randomUUID()+"."+VIDEO_TYPES[file.type];
+  const {error}=await sb.storage.from(VBUCKET).upload(path,clean,{contentType:file.type});
+  if(error)throw error;
+  return path;
+}
+// Turns a YouTube or Vimeo address into the address of its embedded player (or null if it isn't one).
+const VIDEO_LINK_OK=/^https:\/\/(www\.|m\.)?(youtube\.com\/(watch\?v=|shorts\/|embed\/)|youtu\.be\/|vimeo\.com\/)[A-Za-z0-9_?=&\/.-]+$/i;
+function videoEmbed(u){
+  try{
+    if(!u||!VIDEO_LINK_OK.test(u))return null;
+    const x=new URL(u),h=x.hostname.replace(/^(www\.|m\.)/,"");let id=null,m;
+    if(h==="youtube.com"){id=x.pathname==="/watch"?x.searchParams.get("v"):(m=x.pathname.match(/^\/(?:shorts|embed)\/([\w-]{6,20})/))&&m[1]}
+    else if(h==="youtu.be")id=x.pathname.slice(1).split("/")[0];
+    if(id&&/^[\w-]{6,20}$/.test(id))return "https://www.youtube-nocookie.com/embed/"+id;
+    if(h==="vimeo.com"&&(m=x.pathname.match(/^\/(\d{5,12})(?:\/([a-f0-9]{6,}))?/)))return "https://player.vimeo.com/video/"+m[1]+(m[2]?"?h="+m[2]:"");
+  }catch(e){}
+  return null;
+}
 // Privacy: phone photos carry hidden "EXIF" data (GPS location, camera, date).
 // Drawing the picture onto a blank canvas and saving it again keeps only the pixels,
 // so none of that hidden data is uploaded. It also shrinks big photos to 1600px wide/tall.
@@ -573,10 +659,15 @@ $("#f").addEventListener("submit",async e=>{
   const rawLink=catName==="Vehicles"?String(f.get("link")||"").trim():"";
   const link=rawLink?safeUrl(rawLink):null;
   if(rawLink&&(!link||link.length>500)){msg.textContent="The link must be a web address starting with http:// or https:// (500 characters at most).";return}
+  // Video link: YouTube or Vimeo only.
+  const vlink=String(f.get("vlink")||"").trim();
+  if(vlink&&!videoEmbed(vlink)){msg.textContent="The video link must be a YouTube or Vimeo address (starting with https://).";return}
   const row={category_id:cats.find(c=>c[0]===catName)[3],city_id:cityIds[loc],title:String(f.get("t")).trim(),
-    description:String(f.get("d")).trim(),price:Math.max(0,Math.round(+f.get("p")||0)),link};
+    description:String(f.get("d")).trim(),price:Math.max(0,Math.round(+f.get("p")||0)),link,video_link:vlink||null};
+  // Uploaded video: a new file replaces the old one; ticking "Remove" deletes it.
+  const oldVid=editId?items.find(x=>x.id===editId).vpath:null,dropVid=!!oldVid&&(!!pickedVideo||f.get("rmv")!==null);
   const go=$("#postGo");go.disabled=true;
-  let newId=null,newPaths=[],removedRows=false;
+  let newId=null,newPaths=[],removedRows=false,newVid=null,vidRowGone=false;
   try{
     let id=editId;
     if(editId){
@@ -602,16 +693,30 @@ $("#f").addEventListener("submit",async e=>{
       const {error}=await sb.from("listing_photos").insert(newPaths.map(p=>({listing_id:id,storage_path:p})));
       if(error)throw error;
     }
+    // 3b. Video: upload the new clip (GPS removed), unlink the old one, link the new one.
+    if(pickedVideo)newVid=await uploadVideo(pickedVideo);
+    if(dropVid){
+      const {error}=await sb.from("listing_videos").delete().eq("listing_id",id);
+      if(error)throw error;
+      vidRowGone=true;
+    }
+    if(newVid){
+      const {error}=await sb.from("listing_videos").insert({listing_id:id,storage_path:newVid});
+      if(error)throw error;
+    }
     // 4. Only now delete the removed files from storage.
     if(removed.length)await sb.storage.from(BUCKET).remove(removed);
+    if(dropVid)await sb.storage.from(VBUCKET).remove([oldVid]);
   }catch(err){
     // Undo a half-finished save so nothing is left behind.
     if(newPaths.length)await sb.storage.from(BUCKET).remove(newPaths);
+    if(newVid)await sb.storage.from(VBUCKET).remove([newVid]);
+    if(vidRowGone)await sb.from("listing_videos").insert({listing_id:editId,storage_path:oldVid});
     if(removedRows)await sb.from("listing_photos").insert(removed.map(p=>({listing_id:editId,storage_path:p})));
     if(newId)await sb.from("listings").delete().eq("id",newId);
     msg.textContent=err.message||"Something went wrong. Please try again.";go.disabled=false;return;
   }
-  go.disabled=false;e.target.reset();picked=[];showPicked();$("#dPost").close();
+  go.disabled=false;e.target.reset();picked=[];showPicked();pickedVideo=null;showPickedVideo();$("#dPost").close();
   cur=catName;q="";$("#q").value="";sort="new";editId=null;
   await loadData();window.scrollTo({top:0});
 });
@@ -622,6 +727,7 @@ async function deleteAd(id){
   const {data,error}=await sb.from("listings").delete().eq("id",id).select("id");
   if(error||!data.length){alert(error?error.message:"You can only delete your own ads.");return}
   if(i.paths.length)await sb.storage.from(BUCKET).remove(i.paths);
+  if(i.vpath)await sb.storage.from(VBUCKET).remove([i.vpath]);
   $("#dView").close();await loadData();
 }
 
@@ -649,7 +755,7 @@ async function loadData(){
   const [rc,rt,rl]=await Promise.all([
     sb.from("categories").select("*").order("id"),
     fetchAll("cities","id,name,state,lat,lng"),
-    sb.from("listings").select("id,seller_id,category_id,city_id,title,description,price,link,created_at,profiles!seller_id(display_name,created_at),listing_photos(id,storage_path)")
+    sb.from("listings").select("id,seller_id,category_id,city_id,title,description,price,link,video_link,created_at,profiles!seller_id(display_name,created_at),listing_photos(id,storage_path),listing_videos(id,storage_path)")
       .eq("status","active").order("created_at",{ascending:false}).limit(500)
       .order("id",{referencedTable:"listing_photos"})   // photos in the order they were added
   ]);
@@ -667,7 +773,11 @@ async function loadData(){
     const c=catById[r.category_id],hrs=Math.max(0,Math.floor((now-new Date(r.created_at))/36e5));
     const paths=(r.listing_photos||[]).map(p=>p.storage_path);
     const imgs=paths.map(p=>sb.storage.from(BUCKET).getPublicUrl(p).data.publicUrl),img=imgs[0]||null;
-    return{id:r.id,paths,imgs,img,link:r.link,t:r.title,p:r.price,c:c[0],loc:cityById[r.city_id],d:r.description,ago:agoText(hrs),hrs,e:c[1],h:c[2],
+    // Everything shown in the ad's gallery: photos first, then the uploaded video, then a YouTube/Vimeo player.
+    const vpath=(r.listing_videos&&r.listing_videos[0])?r.listing_videos[0].storage_path:null;
+    const vurl=vpath?sb.storage.from(VBUCKET).getPublicUrl(vpath).data.publicUrl:null,emb=videoEmbed(r.video_link);
+    const media=[...imgs.map(u=>({t:"img",u})),...(vurl?[{t:"vid",u:vurl}]:[]),...(emb?[{t:"emb",u:emb}]:[])];
+    return{id:r.id,paths,imgs,img,media,vpath,vlink:r.video_link,hasVideo:!!(vurl||emb),link:r.link,t:r.title,p:r.price,c:c[0],loc:cityById[r.city_id],d:r.description,ago:agoText(hrs),hrs,e:c[1],h:c[2],
       sid:r.seller_id,sn:r.profiles&&r.profiles.display_name,sy:r.profiles&&new Date(r.profiles.created_at).getFullYear()}
   }).filter(i=>i.loc);
   // Fill the city suggestions and the category list in the Post form.

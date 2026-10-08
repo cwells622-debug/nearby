@@ -81,6 +81,8 @@ label input:focus,label select:focus,label textarea:focus{outline:none;border-co
   <datalist id="cl"></datalist>
   <label>Description<textarea name="d" rows="4" required maxlength="2000"></textarea></label>
   <label>Link (Vehicles only)<input name="link" type="url" maxlength="500" placeholder="https://"></label>
+  <label>Video link (YouTube or Vimeo)<input name="vlink" type="url" maxlength="200" placeholder="https://www.youtube.com/watch?v=..."></label>
+  <label id="eVidRow" style="flex-direction:row;align-items:center;gap:8px;color:var(--ink)" hidden><input type="checkbox" name="rmv"> Remove the uploaded video file</label>
   <div id="ePhotos" class="thumbs"></div>
   <p class="err" id="eErr" role="alert"></p>
   <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -97,7 +99,8 @@ label input:focus,label select:focus,label textarea:focus{outline:none;border-co
    database rules in step8_admin.sql (is_admin()). A non-admin who opens this page sees nothing. */
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const BUCKET="listing-photos",PAGE=50;
+const BUCKET="listing-photos",VBUCKET="listing-videos",PAGE=50;
+const VIDEO_LINK_OK=/^https:\/\/(www\.|m\.)?(youtube\.com\/(watch\?v=|shorts\/|embed\/)|youtu\.be\/|vimeo\.com\/)[A-Za-z0-9_?=&\/.-]+$/i;
 let sb=null,rows=[],cats=[],cityIds={},cityNames={},citiesLoaded=false,from=0,more=false,editing=null,busy=false;
 const ok=typeof NEARBY_CONFIG!=="undefined"&&/^https?:\/\//.test(NEARBY_CONFIG.supabaseUrl)&&!NEARBY_CONFIG.supabaseAnonKey.startsWith("PASTE");
 if(ok&&window.supabase)sb=window.supabase.createClient(NEARBY_CONFIG.supabaseUrl,NEARBY_CONFIG.supabaseAnonKey);
@@ -143,7 +146,7 @@ async function start(){
 async function load(reset){
   if(busy)return;busy=true;
   if(reset){from=0;rows=[]}
-  let q=sb.from("listings").select("id,seller_id,title,description,price,link,status,is_demo,created_at,category_id,city_id,categories(name),cities(name,state),profiles!seller_id(display_name),listing_photos(id,storage_path)")
+  let q=sb.from("listings").select("id,seller_id,title,description,price,link,status,is_demo,created_at,category_id,city_id,video_link,categories(name),cities(name,state),profiles!seller_id(display_name),listing_photos(id,storage_path),listing_videos(id,storage_path)")
     .order("created_at",{ascending:false}).range(from,from+PAGE-1);
   const text=($("#fq").value||"").replace(/[%_*,()]/g," ").trim(),st=$("#fs").value,src=$("#fd").value;
   if(text)q=q.ilike("title","%"+text+"%");
@@ -161,7 +164,7 @@ function draw(){
   rows.map(r=>{
     const ph=(r.listing_photos||[])[0],when=new Date(r.created_at).toLocaleDateString(undefined,{year:"numeric",month:"short",day:"numeric"});
     return `<tr><td class="th">${ph?`<img src="${esc(photoUrl(ph.storage_path))}" alt="" loading="lazy">`:`<span>none</span>`}</td>
-      <td><div class="ttl" title="${esc(r.title)}">${esc(r.title)}</div><div class="sub">#${r.id}${(r.listing_photos||[]).length>1?` · ${r.listing_photos.length} photos`:""}</div></td>
+      <td><div class="ttl" title="${esc(r.title)}">${esc(r.title)}</div><div class="sub">#${r.id}${(r.listing_photos||[]).length>1?` · ${r.listing_photos.length} photos`:""}${(r.listing_videos||[]).length?" · video":""}${r.video_link?" · video link":""}</div></td>
       <td>${r.is_demo?`<span class="pill demo">Demo</span>`:esc(r.profiles?r.profiles.display_name:"(unknown)")}</td>
       <td>${esc(r.categories?r.categories.name:"")}</td>
       <td>${esc(r.cities?r.cities.name+", "+r.cities.state:"")}</td>
@@ -191,7 +194,8 @@ async function openEdit(id){
   editing=r;const e=$("#fe").elements;
   $("#eTitle").textContent="Edit ad #"+r.id+(r.is_demo?" (demo)":"");
   e.t.value=r.title;e.c.value=r.category_id;e.p.value=r.price;e.loc.value=r.cities?r.cities.name+", "+r.cities.state:"";
-  e.s.value=r.status;e.d.value=r.description;e.link.value=r.link||"";
+  e.s.value=r.status;e.d.value=r.description;e.link.value=r.link||"";e.vlink.value=r.video_link||"";
+  $("#eVidRow").hidden=!(r.listing_videos||[]).length;e.rmv.checked=false;
   $("#eErr").textContent="";
   $("#ePhotos").innerHTML=(r.listing_photos||[]).map(p=>`<label><img src="${esc(photoUrl(p.storage_path))}" alt=""><span><input type="checkbox" name="rm" value="${esc(p.storage_path)}"> Remove</span></label>`).join("");
   $("#dEdit").showModal();
@@ -206,15 +210,23 @@ $("#fe").addEventListener("submit",async ev=>{
   let link=e.link.value.trim()?safeUrl(e.link.value.trim()):null;
   if(e.link.value.trim()&&!link){err.textContent="The link must start with http:// or https://";return}
   if(catName!=="Vehicles")link=null;   // the database only allows links on Vehicles ads
+  const vl=e.vlink.value.trim();
+  if(vl&&!VIDEO_LINK_OK.test(vl)){err.textContent="The video link must be a YouTube or Vimeo address starting with https://";return}
   const removed=[...ev.target.querySelectorAll('[name=rm]:checked')].map(x=>x.value);
   const go=$("#eGo");go.disabled=true;
   const {data,error}=await sb.from("listings").update({title:e.t.value.trim(),category_id:+e.c.value,city_id:cityId,
-    price:Math.max(0,Math.round(+e.p.value||0)),status:e.s.value,description:e.d.value.trim(),link}).eq("id",editing.id).select("id");
+    price:Math.max(0,Math.round(+e.p.value||0)),status:e.s.value,description:e.d.value.trim(),link,video_link:vl||null}).eq("id",editing.id).select("id");
   if(error||!data.length){go.disabled=false;err.textContent=error?error.message:"Not saved. Are you still an admin?";return}
   if(removed.length){
     const d=await sb.from("listing_photos").delete().eq("listing_id",editing.id).in("storage_path",removed);
     if(d.error){go.disabled=false;err.textContent="Saved, but photos were not removed: "+d.error.message;return}
     await sb.storage.from(BUCKET).remove(removed);
+  }
+  const vid=(editing.listing_videos||[])[0];
+  if(vid&&e.rmv.checked){
+    const dv=await sb.from("listing_videos").delete().eq("listing_id",editing.id);
+    if(dv.error){go.disabled=false;err.textContent="Saved, but the video was not removed: "+dv.error.message;return}
+    await sb.storage.from(VBUCKET).remove([vid.storage_path]);
   }
   go.disabled=false;$("#dEdit").close();
   const keep=from;from=0;rows=[];await loadKeep(keep);
@@ -232,6 +244,8 @@ async function deleteAd(id){
   if(error||!data.length){alert(error?error.message:"Not deleted. Are you still an admin?");return}
   const paths=(r.listing_photos||[]).map(p=>p.storage_path);
   if(paths.length)await sb.storage.from(BUCKET).remove(paths);
+  const vpaths=(r.listing_videos||[]).map(p=>p.storage_path);
+  if(vpaths.length)await sb.storage.from(VBUCKET).remove(vpaths);
   rows=rows.filter(x=>x.id!==id);draw();
 }
 

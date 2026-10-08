@@ -19,6 +19,7 @@
 8. `step9_hide_categories.sql` (hides Jobs, Property, Real Estate, Furniture, Clothing, Appliances, Electronics; deletes their demo ads. Run BEFORE pushing the matching page update)
 9. `hide_categories_2.sql` (hides Medical and Antiques)
 10. `add_categories_3.sql` (Farm Equipment, Trailers, Tools)
+11. `step11_video.sql` (video: uploaded clips up to 50 MB + YouTube/Vimeo links). Run BEFORE pushing the matching page update. Supabase free plan: 50 MB file cap and ~5 GB/month bandwidth, so watch usage.
 
 ## Step 6: publishing
 - Code is on GitHub: https://github.com/cwells622-debug/nearby (branch `main`).
