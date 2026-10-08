@@ -3,100 +3,119 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Nearby – Local classifieds</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;800&display=swap">
+<title>ChadAds – Local classifieds</title>
 <style>
-:root{--bg:#f2f5f4;--panel:#fff;--ink:#14211f;--mute:#5d6e6a;--line:#dbe3e1;--acc:#0f766e;--acc-ink:#fff;--soft:#e2f1ee;
+/* ChadAds look: black and white, one bright accent (--acc). Change --acc to restyle the whole site. */
+:root{--bg:#fff;--panel:#fff;--ink:#1d1d1f;--mute:#6e6e73;--line:#e5e5ea;--acc:#0071e3;--acc-ink:#fff;--soft:#f5f5f7;--glass:rgba(255,255,255,.78);
+--shadow:0 2px 4px rgba(0,0,0,.04),0 12px 28px rgba(0,0,0,.08);
 box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#101716;--panel:#18211f;--ink:#e8f0ee;--mute:#9ab0ab;--line:#2a3835;--acc:#2dd4bf;--acc-ink:#062b27;--soft:#1d3532}}
-:root[data-theme="dark"]{--bg:#101716;--panel:#18211f;--ink:#e8f0ee;--mute:#9ab0ab;--line:#2a3835;--acc:#2dd4bf;--acc-ink:#062b27;--soft:#1d3532}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#000;--panel:#1c1c1e;--ink:#f5f5f7;--mute:#98989d;--line:#38383a;--acc:#2997ff;--acc-ink:#fff;--soft:#2c2c2e;--glass:rgba(0,0,0,.72);--shadow:0 2px 4px rgba(0,0,0,.4),0 12px 28px rgba(0,0,0,.5)}}
+:root[data-theme="dark"]{--bg:#000;--panel:#1c1c1e;--ink:#f5f5f7;--mute:#98989d;--line:#38383a;--acc:#2997ff;--acc-ink:#fff;--soft:#2c2c2e;--glass:rgba(0,0,0,.72);--shadow:0 2px 4px rgba(0,0,0,.4),0 12px 28px rgba(0,0,0,.5)}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
-html{scroll-padding-top:env(safe-area-inset-top,0px)}
-body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.45 Figtree,system-ui,-apple-system,Segoe UI,sans-serif}
+html{scroll-padding-top:env(safe-area-inset-top,0px);-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.47 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Inter,Roboto,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
 button,input,select,textarea{font:inherit;color:inherit}
 button{cursor:pointer}
 :focus-visible{outline:3px solid var(--acc);outline-offset:2px}
-header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--panel);border-bottom:1px solid var(--line);display:flex;gap:12px;align-items:center;padding:10px 16px}
-.logo{font-weight:800;font-size:22px;letter-spacing:-.02em;color:var(--acc);white-space:nowrap}
-.search{flex:1;min-width:0;border:1px solid var(--line);background:var(--bg);border-radius:999px;padding:10px 16px}
-.btn{border:0;background:var(--acc);color:var(--acc-ink);font-weight:600;border-radius:999px;padding:10px 18px;white-space:nowrap}
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--glass);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid var(--line);display:flex;gap:14px;align-items:center;padding:12px 20px}
+.logo{font-weight:700;font-size:21px;letter-spacing:-.03em;color:var(--ink);white-space:nowrap}
+.search{flex:1 1 0;min-width:0;border:0;background:var(--soft);border-radius:999px;padding:11px 18px}
+.search::placeholder{color:var(--mute)}
+.btn{border:0;background:var(--acc);color:var(--acc-ink);font-weight:600;border-radius:999px;padding:10px 20px;white-space:nowrap;transition:opacity .15s}
+.btn:hover{opacity:.88}
 .btn.ghost{background:var(--soft);color:var(--ink)}
-.wrap{display:grid;grid-template-columns:230px 1fr;gap:20px;max-width:1150px;margin:0 auto;padding:18px 16px 40px}
-aside{position:sticky;top:76px;align-self:start}
-aside h3{margin:0 0 8px;font-size:14px;color:var(--mute);font-weight:600}
-.cat{display:flex;width:100%;align-items:center;gap:10px;border:0;background:none;text-align:left;padding:9px 10px;border-radius:10px;font-weight:600}
-.cat:hover{background:var(--soft)}
-.cat[aria-pressed="true"]{background:var(--soft);color:var(--acc)}
-.cat .ic{width:32px;height:32px;border-radius:50%;background:var(--panel);border:1px solid var(--line);display:grid;place-items:center}
-.cat .n{margin-left:auto;color:var(--mute);font-weight:400;font-size:14px}
-.bar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
-h1,h2{margin:0;letter-spacing:-.01em}
-h1{font-size:24px}
-h2{font-size:19px}
-select{border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:8px 10px}
-.sec{margin-bottom:28px}
-.sec .hd{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
-.link{border:0;background:none;color:var(--acc);font-weight:600;padding:4px}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px}
-.card{border:1px solid var(--line);background:var(--panel);border-radius:14px;padding:0;text-align:left;overflow:hidden;display:block;width:100%}
-.card:hover{border-color:var(--acc)}
-.ph{aspect-ratio:1/1;background:hsl(var(--h) 45% 88%);display:grid;place-items:center;font-size:64px;overflow:hidden}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .ph{background:hsl(var(--h) 25% 24%)}}
-:root[data-theme="dark"] .ph{background:hsl(var(--h) 25% 24%)}
+.wrap{max-width:1200px;margin:0 auto;padding:16px 20px 56px}
+aside{display:flex;gap:8px;overflow-x:auto;padding:2px 0 6px;scrollbar-width:none}
+aside::-webkit-scrollbar{display:none}
+aside h3{display:none}
+.cat{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;border:0;background:var(--soft);border-radius:999px;padding:8px 14px;font-weight:500;font-size:14px;transition:background .15s}
+.cat:hover{background:var(--line)}
+.cat[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.cat .ic{font-size:15px;line-height:1}
+.cat .n{display:none}
+.bar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:8px 0 18px;flex-wrap:wrap}
+h1,h2{margin:0;letter-spacing:-.02em}
+h1{font-size:30px;font-weight:700}
+h2{font-size:21px;font-weight:600}
+select{border:0;background:var(--soft);border-radius:12px;padding:9px 12px}
+.sec{margin-bottom:36px}
+.sec .hd{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px}
+.link{border:0;background:none;color:var(--acc);font-weight:500;padding:4px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(220px,100%),1fr));gap:28px 20px}
+.card{border:0;background:none;border-radius:0;padding:0;text-align:left;overflow:visible;display:block;width:100%}
+.card .ph{transition:transform .25s ease,box-shadow .25s ease}
+.card:hover .ph{transform:translateY(-3px);box-shadow:var(--shadow)}
+.ph{aspect-ratio:4/3;background:var(--soft);border-radius:16px;display:grid;place-items:center;font-size:56px;overflow:hidden}
 .ph img{width:100%;height:100%;object-fit:cover}
-.cb{padding:10px 12px 12px;display:flex;flex-direction:column;gap:2px}
-.cb b{font-size:18px}
+.cb{padding:12px 2px 0;display:flex;flex-direction:column;gap:2px}
+.cb b{font-size:17px;font-weight:600}
 .cb .t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.cb .m{color:var(--mute);font-size:13px}
-.tog{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;margin-bottom:14px}.tog button{border:0;background:var(--panel);padding:8px 16px;font-weight:600}.tog button[aria-pressed="true"]{background:var(--acc);color:var(--acc-ink)}
-.chips{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:-6px 0 14px;color:var(--mute);font-size:14px}.chips button{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:4px 12px;font-weight:600}.note{color:var(--mute);margin:0 0 12px}
-.near{align-items:end;display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap}.near label{flex:1;min-width:150px}
-.empty{background:var(--panel);border:1px dashed var(--line);border-radius:14px;padding:36px 20px;text-align:center;color:var(--mute)}
-dialog{border:0;border-radius:18px;padding:0;width:min(560px,94vw);max-height:92vh;background:var(--panel);color:var(--ink)}
-dialog::backdrop{background:rgba(0,0,0,.5)}
-.dlg{padding:20px;display:flex;flex-direction:column;gap:12px}
-.dlg .top{display:flex;justify-content:space-between;align-items:center}
-.x{border:0;background:var(--soft);width:34px;height:34px;border-radius:50%}
-label{display:flex;flex-direction:column;gap:4px;font-weight:600;font-size:14px}
-label input,label select,label textarea{border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:10px;font-weight:400}
+.cb .m{color:var(--mute);font-size:14px}
+.toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin:16px 0 8px}
+.locpill{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:9px 16px;font-weight:500;transition:border-color .15s}
+.locpill:hover{border-color:var(--mute)}
+.locpanel{background:var(--soft);border-radius:20px;padding:18px;margin:8px 0 20px}
+.tog{display:inline-flex;background:var(--soft);border-radius:999px;padding:3px}
+.tog button{border:0;background:none;padding:7px 16px;font-weight:500;border-radius:999px;color:var(--mute);transition:all .15s}
+.tog button[aria-pressed="true"]{background:var(--panel);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.chips{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:12px 0 0;color:var(--mute);font-size:14px}
+.chips button{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:5px 12px;font-weight:500}
+.note{color:var(--mute);margin:0 0 12px}
+.near{align-items:end;display:flex;gap:12px;flex-wrap:wrap}.near label{flex:1;min-width:150px}
+.empty{background:var(--soft);border-radius:22px;padding:48px 20px;text-align:center;color:var(--mute)}
+.empty h2{color:var(--ink);margin-bottom:6px}
+dialog{border:0;border-radius:26px;padding:0;width:min(580px,94vw);max-height:92vh;background:var(--panel);color:var(--ink);box-shadow:0 30px 80px rgba(0,0,0,.35)}
+dialog[open]{animation:pop .22s ease}
+@keyframes pop{from{opacity:0;transform:scale(.97) translateY(6px)}to{opacity:1;transform:none}}
+dialog::backdrop{background:rgba(0,0,0,.4);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.dlg{padding:24px;display:flex;flex-direction:column;gap:14px}
+.dlg .top{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.x{border:0;background:var(--soft);width:34px;height:34px;border-radius:50%;color:var(--mute)}
+label{display:flex;flex-direction:column;gap:6px;font-weight:500;font-size:14px;color:var(--mute)}
+label input,label select,label textarea{border:1px solid transparent;background:var(--soft);border-radius:12px;padding:12px;font-weight:400;color:var(--ink)}
+label input:focus,label select:focus,label textarea:focus{outline:none;border-color:var(--acc);background:var(--panel)}
 .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.big{aspect-ratio:4/3;border-radius:14px}
-.price{font-size:26px;font-weight:800}
-.tag{display:inline-block;background:var(--soft);border-radius:999px;padding:2px 10px;font-size:13px;font-weight:600;width:fit-content}
-.sbtn{border:1px solid var(--line);background:var(--bg);border-radius:12px;padding:10px;text-align:left;width:100%}.sbtn:hover{border-color:var(--acc)}.sbtn b{color:var(--ink)}
-.qa{display:flex;gap:8px;flex-wrap:wrap}.qa button{border:1px solid var(--line);background:var(--bg);border-radius:999px;padding:6px 14px;font-weight:600}.qa button:hover{border-color:var(--acc)}.offer{display:flex;flex-direction:column;gap:10px;border:1px solid var(--line);border-radius:12px;padding:12px}
-.cw{position:relative}.heart{position:absolute;top:8px;right:8px;width:36px;height:36px;border-radius:50%;border:0;background:rgba(255,255,255,.92);color:#444;font-size:18px;display:grid;place-items:center}.heart[aria-pressed="true"],.btn[aria-pressed="true"]{color:#d6336c}
+.big{aspect-ratio:4/3;border-radius:20px;font-size:80px}
+.price{font-size:30px;font-weight:700;letter-spacing:-.02em}
+.tag{display:inline-block;background:var(--soft);border-radius:999px;padding:3px 12px;font-size:13px;font-weight:500;width:fit-content}
+.sbtn{border:0;background:var(--soft);border-radius:16px;padding:12px;text-align:left;width:100%}.sbtn:hover{background:var(--line)}.sbtn b{color:var(--ink)}
+.qa{display:flex;gap:8px;flex-wrap:wrap}.qa button{border:0;background:var(--soft);border-radius:999px;padding:8px 16px;font-weight:500}.qa button:hover{background:var(--line)}.offer{display:flex;flex-direction:column;gap:10px;background:var(--soft);border-radius:16px;padding:14px}
+.cw{position:relative;min-width:0}.heart{position:absolute;top:10px;right:10px;width:36px;height:36px;border-radius:50%;border:0;background:rgba(255,255,255,.88);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);color:#1d1d1f;font-size:18px;display:grid;place-items:center;transition:transform .15s}
+.heart:hover{transform:scale(1.08)}
+.heart[aria-pressed="true"],.btn[aria-pressed="true"]{color:var(--acc)}
 .seller{display:flex;gap:10px;align-items:center;color:var(--mute)}
-.av{width:36px;height:36px;border-radius:50%;background:var(--acc);color:var(--acc-ink);display:grid;place-items:center;font-weight:800}
-.ok{background:var(--soft);padding:12px;border-radius:10px;font-weight:600}
+.av{width:36px;height:36px;border-radius:50%;background:var(--ink);color:var(--bg);display:grid;place-items:center;font-weight:700}
+.ok{background:var(--soft);padding:12px 14px;border-radius:14px;font-weight:500}
 .thumbs{display:flex;gap:8px;flex-wrap:wrap}
-.thumbs img{width:64px;height:64px;object-fit:cover;border-radius:10px;border:2px solid var(--line);display:block}
-.thumbs button{padding:0;border:0;background:none;border-radius:10px}
+.thumbs img{width:64px;height:64px;object-fit:cover;border-radius:12px;border:2px solid transparent;display:block}
+.thumbs button{padding:0;border:0;background:none;border-radius:12px}
 .thumbs button[aria-pressed="true"] img{border-color:var(--acc)}
 .thumbs .rm{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:12px;font-weight:400}
 .thumbs .rm input{margin:0}
 .who{color:var(--mute);font-size:14px;white-space:nowrap;max-width:150px;overflow:hidden;text-overflow:ellipsis}
 .hdr-r{display:flex;gap:8px;align-items:center}
-.autherr{color:#c92a2a;margin:0;font-size:14px}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .autherr{color:#ff8787}}
-:root[data-theme="dark"] .autherr{color:#ff8787}
+.autherr{color:#d70015;margin:0;font-size:14px}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .autherr{color:#ff6961}}
+:root[data-theme="dark"] .autherr{color:#ff6961}
 @media (max-width:760px){
  .who{display:none}
- .wrap{grid-template-columns:1fr}
- aside{position:static;display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}
- aside h3{display:none}
- .cat{width:auto;white-space:nowrap;border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:6px 12px}
- .cat .n,.cat .ic{display:none}
- .logo{font-size:18px}
- .btn{padding:10px 14px}
+ header{padding:10px 14px;gap:10px;flex-wrap:wrap}
+ .logo{flex:1}
+ .search{order:3;flex:1 1 100%}
+ .wrap{padding:12px 14px 48px}
+ .logo{font-size:20px}
+ .btn{padding:9px 16px}
+ h1{font-size:25px}
+ .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:22px 12px}
+ .dlg{padding:20px}
 }
-@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
 <body>
 <header>
-  <div class="logo">Nearby</div>
+  <div class="logo">ChadAds</div>
   <input class="search" id="q" type="search" placeholder="Search listings" aria-label="Search listings">
   <div class="hdr-r">
     <span class="who" id="who"></span>
@@ -147,7 +166,7 @@ label input,label select,label textarea{border:1px solid var(--line);background:
 const HUES={Vehicles:210,Property:150,Electronics:190,Furniture:30,Clothing:330,Sports:100,Jobs:260,ATV:20,Appliances:170,Campers:120,"Real Estate":140,Medical:350,Motorcycles:0,Antiques:40,"Lawn and Garden":90,"Heavy Machinery":50};
 let cats=[],items=[];
 const T={};
-let cur="All",q="",sort="new",me="Saratoga Springs, NY",rad=50,view="all",geoMsg="",ow=false;
+let cur="All",q="",sort="new",me="Saratoga Springs, NY",rad=50,view="all",showLoc=false,geoMsg="",ow=false;
 const offers={};
 const SL={"Saratoga Springs, NY":["Dana R.",2021,4.9,41,"within an hour"],"Ballston Spa, NY":["Hannah K.",2022,4.7,12,"within a few hours"],"Clifton Park, NY":["Priya S.",2020,4.8,63,"within an hour"],"Schenectady, NY":["Tom W.",2023,4.5,6,"within a day"],"Albany, NY":["Marcus T.",2019,4.9,88,"within an hour"],"Troy, NY":["Leo B.",2021,4.6,27,"within a few hours"],"Glens Falls, NY":["Gail P.",2022,4.8,15,"within a day"],"Queensbury, NY":["Rick M.",2018,4.7,34,"within a few hours"],"Boston, MA":["Alex C.",2020,4.8,52,"within an hour"],"Burlington, VT":["Sam H.",2022,4.9,19,"within a few hours"],"Hartford, CT":["Jo L.",2021,4.4,9,"within a day"],"New York, NY":["Chris D.",2019,4.7,71,"within an hour"],"Pittsburgh, PA":["Nina V.",2023,5,4,"within a few hours"],"Syracuse, NY":["Omar F.",2022,4.6,11,"within a day"]};
 // Is this ad mine? (i.you = posted this session; sid = seller's account id from the database)
@@ -188,7 +207,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt=p=>p===0?"Free":"$"+p.toLocaleString();
 const saved=new Set();
-const card=i=>`<div class="cw"><button class="card" data-id="${i.id}"><div class="ph" style="--h:${i.h}">${i.img?`<img src="${esc(i.img)}" alt="">`:`<span>${i.e}</span>`}</div><div class="cb"><b>${fmt(i.p)}</b><span class="t">${esc(i.t)}</span><span class="m">${esc(i.loc)} · ${dd(i)}</span><span class="m">${pa(i)}</span></div></button><button class="heart" data-save="${i.id}" aria-pressed="${saved.has(i.id)}" aria-label="Save listing">${saved.has(i.id)?"♥":"♡"}</button></div>`;
+const card=i=>`<div class="cw"><button class="card" data-id="${i.id}"><div class="ph" style="--h:${i.h}">${i.img?`<img src="${esc(i.img)}" alt="">`:`<span>${i.e}</span>`}</div><div class="cb"><b>${fmt(i.p)}</b><span class="t">${esc(i.t)}</span><span class="m">${esc(i.loc)} · ${dd(i)}</span></div></button><button class="heart" data-save="${i.id}" aria-pressed="${saved.has(i.id)}" aria-label="Save listing">${saved.has(i.id)?"♥":"♡"}</button></div>`;
 // Saved ads live in the database (favorites table), private to the signed-in user.
 // The page keeps a copy in "saved" so hearts can be drawn instantly.
 function paintHearts(id,on){
@@ -206,7 +225,9 @@ async function toggleSave(id){
 
 function side(){
   const row=(n,e,k)=>`<button class="cat" data-cat="${n}" aria-pressed="${cur===n}"><span class="ic">${e}</span>${n}<span class="n">${k}</span></button>`;
-  $("#cats").innerHTML=`<h3>Categories</h3>`+row("All","🏷️",items.length)+row("Saved","♥",items.filter(i=>saved.has(i.id)).length)+cats.map(c=>row(c[0],c[1],items.filter(i=>i.c===c[0]).length)).join("");
+  const box=$("#cats"),sl=box.scrollLeft;
+  box.innerHTML=row("All","🏷️",items.length)+row("Saved","♥",items.filter(i=>saved.has(i.id)).length)+cats.map(c=>row(c[0],c[1],items.filter(i=>i.c===c[0]).length)).join("");
+  box.scrollLeft=sl;   // keep the row where the visitor scrolled it
 }
 function render(){
   side();
@@ -215,17 +236,20 @@ function render(){
   const main=$("#main");
   const gm=geoMsg;geoMsg="";
   const near=Object.keys(T).filter(k=>k!==me).sort((a,b)=>dc(T[me],T[a])-dc(T[me],T[b])).slice(0,4);
-  const bar=`<div class="near"><label>City<input id="me" list="cl" value="${esc(me)}" placeholder="Start typing a city" autocomplete="off"></label><label>Within<select id="rad">${[[0,"Any distance"],[5,"5 miles"],[10,"10 miles"],[25,"25 miles"],[50,"50 miles"],[100,"100 miles"]].map(r=>`<option value="${r[0]}"${r[0]===rad?" selected":""}>${r[1]}</option>`).join("")}</select></label><button class="btn ghost" id="geo" type="button">Use my location</button></div><div class="chips">Nearby: ${near.map(n=>`<button data-city="${esc(n)}">${esc(n)}</button>`).join("")}</div>${gm?`<p class="note">${esc(gm)}</p>`:""}`;
-  const nb=cur==="Saved"?"":bar;
+  if(gm)showLoc=true;
+  const bar=`<div class="locpanel"><div class="near"><label>City<input id="me" list="cl" value="${esc(me)}" placeholder="Start typing a city" autocomplete="off"></label><label>Within<select id="rad">${[[0,"Any distance"],[5,"5 miles"],[10,"10 miles"],[25,"25 miles"],[50,"50 miles"],[100,"100 miles"]].map(r=>`<option value="${r[0]}"${r[0]===rad?" selected":""}>${r[1]}</option>`).join("")}</select></label><button class="btn ghost" id="geo" type="button">Use my location</button></div><div class="chips">Nearby: ${near.map(n=>`<button data-city="${esc(n)}">${esc(n)}</button>`).join("")}</div>${gm?`<p class="note" style="margin:12px 0 0">${esc(gm)}</p>`:""}</div>`;
+  const pill=`<button class="locpill" id="locToggle" type="button" aria-expanded="${showLoc}">📍 ${esc(me)} · ${rad?rad+" mi":"Any distance"}</button>`;
   const tog=cur==="All"&&!q?`<div class="tog"><button data-view="cat" aria-pressed="${view==="cat"}">By category</button><button data-view="all" aria-pressed="${view==="all"}">View all</button></div>`:"";
-  if(!list.length){main.innerHTML=nb+tog+`<div class="empty">${cur==="Saved"?user?`<h2>Nothing saved yet</h2><p>Tap the heart on any ad to save it here.</p>`:`<h2>Log in to see your saved ads</h2><p>Saved ads are kept in your account, so you can see them on any device.</p>`:`<h2>No listings found</h2><p>Try a wider distance, a different search, or post an ad.</p>`}</div>`;return}
+  // One slim row (location + view switch); the full location controls open underneath on demand.
+  const nb=cur==="Saved"?"":`<div class="toolbar">${pill}${tog}</div>`+(showLoc?bar:"");
+  if(!list.length){main.innerHTML=nb+`<div class="empty">${cur==="Saved"?user?`<h2>Nothing saved yet</h2><p>Tap the heart on any ad to save it here.</p>`:`<h2>Log in to see your saved ads</h2><p>Saved ads are kept in your account, so you can see them on any device.</p>`:`<h2>No listings found</h2><p>Try a wider distance, a different search, or post an ad.</p>`}</div>`;return}
   if(cur==="All"&&!q&&view==="cat"){
-    main.innerHTML=nb+tog+cats.map(c=>{const l=items.filter(i=>i.c===c[0]&&inR(i)).sort((a,b)=>dist(a)-dist(b));if(!l.length)return"";
+    main.innerHTML=nb+cats.map(c=>{const l=items.filter(i=>i.c===c[0]&&inR(i)).sort((a,b)=>dist(a)-dist(b));if(!l.length)return"";
       return `<section class="sec"><div class="hd"><h2>${c[1]} ${c[0]}</h2><button class="link" data-cat="${c[0]}">See all ${l.length}</button></div><div class="grid">${l.slice(0,4).map(card).join("")}</div></section>`}).join("");
     return;
   }
   if(sort==="low")list.sort((a,b)=>a.p-b.p);else if(sort==="high")list.sort((a,b)=>b.p-a.p);else if(sort==="near")list.sort((a,b)=>dist(a)-dist(b));else if(sort==="old")list.sort((a,b)=>b.hrs-a.hrs||a.id-b.id);else list.sort((a,b)=>a.hrs-b.hrs||b.id-a.id);
-  main.innerHTML=nb+tog+`<div class="bar"><h1>${q?`Results for “${esc(q)}”`:cur==="All"?"All listings":cur==="Saved"?"Saved listings":esc(cur)}</h1><select id="sort" aria-label="Sort"><option value="new">Newest first</option><option value="old">Oldest first</option><option value="near">Nearest</option><option value="low">Price: low to high</option><option value="high">Price: high to low</option></select></div><div class="grid">${list.map(card).join("")}</div>`;
+  main.innerHTML=nb+`<div class="bar"><h1>${q?`Results for “${esc(q)}”`:cur==="All"?"All listings":cur==="Saved"?"Saved listings":esc(cur)}</h1><select id="sort" aria-label="Sort"><option value="new">Newest first</option><option value="old">Oldest first</option><option value="near">Nearest</option><option value="low">Price: low to high</option><option value="high">Price: high to low</option></select></div><div class="grid">${list.map(card).join("")}</div>`;
   $("#sort").value=sort;
 }
 function open(id){
@@ -260,6 +284,7 @@ document.addEventListener("click",e=>{
   const pf=t.closest("[data-prof]");if(pf){prof(pf.dataset.prof);return}
   const bk=t.closest("[data-back]");if(bk){open(bk.dataset.back);return}
   const ct=t.closest("[data-city]");if(ct){me=ct.dataset.city;render();return}
+  if(t.closest("#locToggle")){showLoc=!showLoc;render();return}
   if(t.id==="geo"){locate();return}
   const vw=t.closest("[data-view]");if(vw){view=vw.dataset.view;render();return}
   const cat=t.closest("[data-cat]");if(cat){cur=cat.dataset.cat;q="";$("#q").value="";render();window.scrollTo({top:0});return}
