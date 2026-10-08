@@ -118,6 +118,7 @@ label input,label select,label textarea{border:1px solid var(--line);background:
   </div>
   <label>City<input name="loc" id="fl" list="cl" required autocomplete="off" placeholder="Start typing a city"></label><datalist id="cl"></datalist>
   <label>Description<textarea name="d" rows="3" required placeholder="Condition, size, pickup details"></textarea></label>
+  <label id="linkRow" hidden>Link (optional)<input name="link" type="url" maxlength="500" placeholder="https://" autocomplete="off"></label>
   <div id="curPhotos" class="thumbs" hidden></div>
   <label><span id="photoLbl">Photos (optional, up to 5; JPG, PNG or WebP, 5 MB each)</span><input id="fimg" type="file" multiple accept="image/jpeg,image/png,image/webp"></label>
   <div id="newPhotos" class="thumbs" hidden></div>
@@ -235,6 +236,7 @@ function open(id){
   <div class="price">${fmt(i.p)}</div><h2>${esc(i.t)}</h2>
   <div class="m" style="color:var(--mute)">${esc(i.loc)} · ${dd(i)} · Posted ${i.ago==="Just now"?"just now":i.ago+" ago"}</div>
   <p style="margin:0">${esc(i.d)}</p>
+  ${safeUrl(i.link)?`<p style="margin:0"><a href="${esc(safeUrl(i.link))}" target="_blank" rel="noopener noreferrer nofollow ugc" style="color:var(--acc);font-weight:600">🔗 ${esc(new URL(i.link).hostname)}</a></p>`:""}
   <button class="seller sbtn" data-prof="${i.id}"><div class="av">${esc(s.n[0])}</div><span><b>${esc(s.n)}</b><br>${rate(s)} · View profile</span></button>
   <div id="msg"><label>Message ${esc(s.n)}<textarea id="mt" rows="2">Hi, is this still available?</textarea></label><button class="btn" style="margin-top:10px" id="send">Send message</button></div>
   <div id="offer">${offerHtml(i,s)}</div>
@@ -360,10 +362,16 @@ function startPost(id){
   const cp=$("#curPhotos");
   cp.hidden=!(i&&i.paths.length);
   cp.innerHTML=i?i.paths.map((p,n)=>`<label class="rm"><img src="${esc(i.imgs[n])}" alt=""><span><input type="checkbox" name="rm" value="${esc(p)}"> Remove</span></label>`).join(""):"";
-  if(i){const e=form.elements;e.t.value=i.t;e.c.value=i.c;e.p.value=i.p;e.loc.value=i.loc;e.d.value=i.d}
+  if(i){const e=form.elements;e.t.value=i.t;e.c.value=i.c;e.p.value=i.p;e.loc.value=i.loc;e.d.value=i.d;e.link.value=i.link||""}
   else $("#fl").value=me;
+  showLinkField();
   $("#dView").close();$("#dPost").showModal();
 }
+// The "Link" box only appears when the category is Vehicles.
+function showLinkField(){$("#linkRow").hidden=$("#fc").value!=="Vehicles"}
+$("#fc").addEventListener("change",showLinkField);
+// Only web addresses starting with http:// or https:// are allowed (never javascript: and similar).
+function safeUrl(u){try{const x=new URL(u);return x.protocol==="https:"||x.protocol==="http:"?x.href:null}catch(e){return null}}
 // Photos the user has chosen so far. Each time they pick more files, the new ones are ADDED
 // to this list (the file box itself forgets its previous choice every time).
 let picked=[],pickedUrls=[];
@@ -419,8 +427,12 @@ $("#f").addEventListener("submit",async e=>{
     if(file.size>MAX_PHOTO){msg.textContent=`"${file.name}" is too big. The limit is 5 MB per photo.`;return}
   }
   const catName=f.get("c");
+  // Link: Vehicles only. Any other category saves an empty link.
+  const rawLink=catName==="Vehicles"?String(f.get("link")||"").trim():"";
+  const link=rawLink?safeUrl(rawLink):null;
+  if(rawLink&&(!link||link.length>500)){msg.textContent="The link must be a web address starting with http:// or https:// (500 characters at most).";return}
   const row={category_id:cats.find(c=>c[0]===catName)[3],city_id:cityIds[loc],title:String(f.get("t")).trim(),
-    description:String(f.get("d")).trim(),price:Math.max(0,Math.round(+f.get("p")||0))};
+    description:String(f.get("d")).trim(),price:Math.max(0,Math.round(+f.get("p")||0)),link};
   const go=$("#postGo");go.disabled=true;
   let newId=null,newPaths=[],removedRows=false;
   try{
@@ -495,7 +507,7 @@ async function loadData(){
   const [rc,rt,rl]=await Promise.all([
     sb.from("categories").select("id,name,icon").order("id"),
     fetchAll("cities","id,name,state,lat,lng"),
-    sb.from("listings").select("id,seller_id,category_id,city_id,title,description,price,created_at,profiles!seller_id(display_name,created_at),listing_photos(id,storage_path)")
+    sb.from("listings").select("id,seller_id,category_id,city_id,title,description,price,link,created_at,profiles!seller_id(display_name,created_at),listing_photos(id,storage_path)")
       .eq("status","active").order("created_at",{ascending:false}).limit(500)
       .order("id",{referencedTable:"listing_photos"})   // photos in the order they were added
   ]);
@@ -511,7 +523,7 @@ async function loadData(){
     const c=catById[r.category_id],hrs=Math.max(0,Math.floor((now-new Date(r.created_at))/36e5));
     const paths=(r.listing_photos||[]).map(p=>p.storage_path);
     const imgs=paths.map(p=>sb.storage.from(BUCKET).getPublicUrl(p).data.publicUrl),img=imgs[0]||null;
-    return{id:r.id,paths,imgs,img,t:r.title,p:r.price,c:c[0],loc:cityById[r.city_id],d:r.description,ago:agoText(hrs),hrs,e:c[1],h:c[2],
+    return{id:r.id,paths,imgs,img,link:r.link,t:r.title,p:r.price,c:c[0],loc:cityById[r.city_id],d:r.description,ago:agoText(hrs),hrs,e:c[1],h:c[2],
       sid:r.seller_id,sn:r.profiles&&r.profiles.display_name,sy:r.profiles&&new Date(r.profiles.created_at).getFullYear()}
   }).filter(i=>i.loc);
   // Fill the city suggestions and the category list in the Post form.
