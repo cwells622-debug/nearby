@@ -17,6 +17,7 @@
 6. `add_categories_2.sql` (ATV, Appliances, Campers, Real Estate, Medical, Motorcycles, Antiques, Lawn and Garden, Heavy Machinery)
 7. `step8_admin.sql` (admin role; edit the email inside it to your own before running). Admin page: /admin.html
 8. `step9_hide_categories.sql` (hides Jobs, Property, Real Estate, Furniture, Clothing, Appliances, Electronics; deletes their demo ads. Run BEFORE pushing the matching page update)
+9. `hide_categories_2.sql` (hides Medical and Antiques)
 
 ## Step 6: publishing
 - Code is on GitHub: https://github.com/cwells622-debug/nearby (branch `main`).
