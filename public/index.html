@@ -34,6 +34,16 @@ aside h3{display:none}
 .cat[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
 .cat .ic{font-size:15px;line-height:1}
 .cat .n{display:none}
+/* Computer screens: categories go down the left side, phones keep the scrolling pills above */
+@media (min-width:761px){
+ .wrap{display:grid;grid-template-columns:220px minmax(0,1fr);gap:36px;align-items:start}
+ aside{position:sticky;top:84px;flex-direction:column;gap:2px;overflow-x:hidden;overflow-y:auto;max-height:calc(100vh - 100px);padding:0 6px 0 0}
+ .cat{width:100%;background:none;border-radius:12px;padding:9px 12px;font-size:15px;gap:10px}
+ .cat:hover{background:var(--soft)}
+ .cat[aria-pressed="true"]{background:var(--soft);color:var(--ink);font-weight:600}
+ .cat .ic{width:26px;text-align:center;font-size:18px}
+ .cat .n{display:inline;margin-left:auto;color:var(--mute);font-size:13px;font-weight:400}
+}
 .bar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:8px 0 18px;flex-wrap:wrap}
 h1,h2{margin:0;letter-spacing:-.02em}
 h1{font-size:30px;font-weight:700}
@@ -225,9 +235,9 @@ async function toggleSave(id){
 
 function side(){
   const row=(n,e,k)=>`<button class="cat" data-cat="${n}" aria-pressed="${cur===n}"><span class="ic">${e}</span>${n}<span class="n">${k}</span></button>`;
-  const box=$("#cats"),sl=box.scrollLeft;
+  const box=$("#cats"),sl=box.scrollLeft,st=box.scrollTop;
   box.innerHTML=row("All","🏷️",items.length)+row("Saved","♥",items.filter(i=>saved.has(i.id)).length)+cats.map(c=>row(c[0],c[1],items.filter(i=>i.c===c[0]).length)).join("");
-  box.scrollLeft=sl;   // keep the row where the visitor scrolled it
+  box.scrollLeft=sl;box.scrollTop=st;   // keep the list where the visitor scrolled it
 }
 function render(){
   side();
