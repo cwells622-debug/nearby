@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>ChadAds Admin</title>
+<style>
+:root{--bg:#fff;--panel:#fff;--ink:#1d1d1f;--mute:#6e6e73;--line:#e5e5ea;--acc:#0071e3;--acc-ink:#fff;--soft:#f5f5f7;--danger:#d70015}
+@media (prefers-color-scheme:dark){:root{--bg:#000;--panel:#1c1c1e;--ink:#f5f5f7;--mute:#98989d;--line:#38383a;--acc:#2997ff;--soft:#2c2c2e;--danger:#ff6961}}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 15px/1.45 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Inter,Roboto,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+header{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:12px 20px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:3;flex-wrap:wrap}
+header h1{margin:0;font-size:20px;letter-spacing:-.02em}
+header .r{display:flex;gap:10px;align-items:center;color:var(--mute);font-size:14px}
+a{color:var(--acc)}
+.btn{border:0;background:var(--acc);color:var(--acc-ink);font-weight:600;border-radius:999px;padding:9px 18px;white-space:nowrap}
+.btn.ghost{background:var(--soft);color:var(--ink)}
+.btn.danger{background:var(--danger);color:#fff}
+.btn.sm{padding:6px 13px;font-size:14px}
+main{max-width:1200px;margin:0 auto;padding:18px 20px 60px}
+.msg{padding:48px 20px;text-align:center;color:var(--mute);background:var(--soft);border-radius:20px}
+.msg h2{color:var(--ink);margin:0 0 6px}
+.filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+.filters input,.filters select{border:0;background:var(--soft);border-radius:12px;padding:10px 12px}
+.filters input[type=search]{flex:1;min-width:180px}
+.wrapx{overflow-x:auto;border:1px solid var(--line);border-radius:16px}
+table{border-collapse:collapse;width:100%;min-width:820px}
+th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--line);vertical-align:middle}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--mute);font-weight:600;background:var(--soft)}
+tr:last-child td{border-bottom:0}
+.th img,.th span{width:48px;height:48px;border-radius:10px;object-fit:cover;background:var(--soft);display:grid;place-items:center;font-size:12px;color:var(--mute)}
+.ttl{font-weight:600;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sub{color:var(--mute);font-size:13px}
+.pill{display:inline-block;border-radius:999px;padding:2px 10px;font-size:12px;font-weight:600;background:var(--soft)}
+.pill.sold{background:var(--ink);color:var(--bg)}
+.pill.demo{border:1px solid var(--line);background:none;color:var(--mute)}
+.acts{display:flex;gap:6px;justify-content:flex-end}
+.more{text-align:center;margin-top:16px}
+dialog{border:0;border-radius:24px;padding:0;width:min(600px,94vw);max-height:92vh;background:var(--panel);color:var(--ink);box-shadow:0 30px 80px rgba(0,0,0,.35)}
+dialog::backdrop{background:rgba(0,0,0,.4)}
+form.dlg,.dlg{padding:22px;display:flex;flex-direction:column;gap:12px}
+.dlg .top{display:flex;justify-content:space-between;align-items:center}
+.dlg h2{margin:0;font-size:20px}
+.x{border:0;background:var(--soft);width:34px;height:34px;border-radius:50%;color:var(--mute)}
+label{display:flex;flex-direction:column;gap:5px;font-weight:500;font-size:14px;color:var(--mute)}
+label input,label select,label textarea{border:1px solid transparent;background:var(--soft);border-radius:12px;padding:11px;font-weight:400;color:var(--ink)}
+label input:focus,label select:focus,label textarea:focus{outline:none;border-color:var(--acc)}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.thumbs{display:flex;gap:10px;flex-wrap:wrap}
+.thumbs label{align-items:center;font-size:12px;gap:3px}
+.thumbs img{width:72px;height:72px;object-fit:cover;border-radius:12px;display:block}
+.err{color:var(--danger);margin:0;font-size:14px}
+.ok{background:var(--soft);padding:10px 14px;border-radius:12px}
+.login{max-width:380px;margin:40px auto;display:flex;flex-direction:column;gap:12px}
+@media (max-width:600px){main{padding:14px}.row{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <h1>ChadAds Admin</h1>
+  <div class="r"><span id="who"></span><a href="./">View site</a><button class="btn ghost sm" id="out" hidden>Log out</button></div>
+</header>
+<main id="main"><p class="msg">Loading…</p></main>
+
+<dialog id="dEdit"><form class="dlg" id="fe">
+  <div class="top"><h2 id="eTitle">Edit ad</h2><button type="button" class="x" data-close aria-label="Close">✕</button></div>
+  <label>Title<input name="t" required maxlength="60"></label>
+  <div class="row">
+    <label>Category<select name="c" id="ec"></select></label>
+    <label>Price ($, 0 for free)<input name="p" type="number" min="0" required></label>
+  </div>
+  <div class="row">
+    <label>City<input name="loc" id="el" list="cl" required autocomplete="off"></label>
+    <label>Status<select name="s"><option value="active">Active (visible)</option><option value="sold">Sold (hidden from public)</option></select></label>
+  </div>
+  <datalist id="cl"></datalist>
+  <label>Description<textarea name="d" rows="4" required maxlength="2000"></textarea></label>
+  <label>Link (Vehicles only)<input name="link" type="url" maxlength="500" placeholder="https://"></label>
+  <div id="ePhotos" class="thumbs"></div>
+  <p class="err" id="eErr" role="alert"></p>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn" type="submit" id="eGo">Save changes</button>
+    <button class="btn danger" type="button" id="eDel">Delete this ad</button>
+  </div>
+</form></dialog>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script>
+/* ChadAds admin page.
+   Safety: this page is only a convenient screen. What admins can actually do is decided by the
+   database rules in step8_admin.sql (is_admin()). A non-admin who opens this page sees nothing. */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const BUCKET="listing-photos",PAGE=50;
+let sb=null,rows=[],cats=[],cityIds={},cityNames={},citiesLoaded=false,from=0,more=false,editing=null,busy=false;
+const ok=typeof NEARBY_CONFIG!=="undefined"&&/^https?:\/\//.test(NEARBY_CONFIG.supabaseUrl)&&!NEARBY_CONFIG.supabaseAnonKey.startsWith("PASTE");
+if(ok&&window.supabase)sb=window.supabase.createClient(NEARBY_CONFIG.supabaseUrl,NEARBY_CONFIG.supabaseAnonKey);
+
+const say=(h,t)=>{$("#main").innerHTML=`<div class="msg"><h2>${h}</h2><p>${t}</p></div>`};
+
+function loginForm(){
+  $("#main").innerHTML=`<form class="login" id="lf"><h2 style="margin:0">Admin log in</h2>
+    <label>Email<input name="email" type="email" required autocomplete="email"></label>
+    <label>Password<input name="password" type="password" required autocomplete="current-password"></label>
+    <p class="err" id="lerr" role="alert"></p><button class="btn" type="submit">Log in</button></form>`;
+  $("#lf").addEventListener("submit",async e=>{
+    e.preventDefault();const f=new FormData(e.target);
+    const {error}=await sb.auth.signInWithPassword({email:String(f.get("email")).trim(),password:String(f.get("password"))});
+    if(error)$("#lerr").textContent=error.message;
+  });
+}
+
+async function start(){
+  if(!sb)return say("Not set up","config.js is missing the Supabase URL and key.");
+  const {data:{session}}=await sb.auth.getSession();
+  if(!session){$("#out").hidden=true;$("#who").textContent="";return loginForm()}
+  $("#who").textContent=session.user.email;$("#out").hidden=false;
+  const {data:isAdmin,error}=await sb.rpc("is_admin");
+  if(error)return say("Admin setup missing","Run step8_admin.sql in the Supabase SQL Editor. ("+esc(error.message)+")");
+  if(!isAdmin)return say("Not an admin","This account is not an administrator.");
+  const rc=await sb.from("categories").select("id,name").order("id");
+  if(rc.error)return say("Couldn't load",esc(rc.error.message));
+  cats=rc.data;
+  $("#ec").innerHTML=cats.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join("");
+  $("#main").innerHTML=`<div class="filters">
+      <input type="search" id="fq" placeholder="Search titles" aria-label="Search titles">
+      <select id="fs" aria-label="Status"><option value="">All statuses</option><option value="active">Active</option><option value="sold">Sold</option></select>
+      <select id="fd" aria-label="Source"><option value="">User and demo ads</option><option value="user">User ads only</option><option value="demo">Demo ads only</option></select>
+      <button class="btn ghost" id="fr">Refresh</button></div>
+    <div id="list"></div>`;
+  let t;$("#fq").addEventListener("input",()=>{clearTimeout(t);t=setTimeout(()=>load(true),300)});
+  $("#fs").addEventListener("change",()=>load(true));$("#fd").addEventListener("change",()=>load(true));
+  $("#fr").addEventListener("click",()=>load(true));
+  load(true);
+}
+
+async function load(reset){
+  if(busy)return;busy=true;
+  if(reset){from=0;rows=[]}
+  let q=sb.from("listings").select("id,seller_id,title,description,price,link,status,is_demo,created_at,category_id,city_id,categories(name),cities(name,state),profiles!seller_id(display_name),listing_photos(id,storage_path)")
+    .order("created_at",{ascending:false}).range(from,from+PAGE-1);
+  const text=($("#fq").value||"").replace(/[%_*,()]/g," ").trim(),st=$("#fs").value,src=$("#fd").value;
+  if(text)q=q.ilike("title","%"+text+"%");
+  if(st)q=q.eq("status",st);
+  if(src)q=q.eq("is_demo",src==="demo");
+  const {data,error}=await q;busy=false;
+  if(error){$("#list").innerHTML=`<div class="msg"><h2>Couldn't load ads</h2><p>${esc(error.message)}</p></div>`;return}
+  rows=rows.concat(data);more=data.length===PAGE;from+=data.length;draw();
+}
+
+const photoUrl=p=>sb.storage.from(BUCKET).getPublicUrl(p).data.publicUrl;
+function draw(){
+  if(!rows.length){$("#list").innerHTML=`<div class="msg"><h2>No ads found</h2><p>Try a different search or filter.</p></div>`;return}
+  $("#list").innerHTML=`<div class="wrapx"><table><thead><tr><th></th><th>Ad</th><th>Seller</th><th>Category</th><th>City</th><th>Price</th><th>Status</th><th>Posted</th><th></th></tr></thead><tbody>`+
+  rows.map(r=>{
+    const ph=(r.listing_photos||[])[0],when=new Date(r.created_at).toLocaleDateString(undefined,{year:"numeric",month:"short",day:"numeric"});
+    return `<tr><td class="th">${ph?`<img src="${esc(photoUrl(ph.storage_path))}" alt="" loading="lazy">`:`<span>none</span>`}</td>
+      <td><div class="ttl" title="${esc(r.title)}">${esc(r.title)}</div><div class="sub">#${r.id}${(r.listing_photos||[]).length>1?` · ${r.listing_photos.length} photos`:""}</div></td>
+      <td>${r.is_demo?`<span class="pill demo">Demo</span>`:esc(r.profiles?r.profiles.display_name:"(unknown)")}</td>
+      <td>${esc(r.categories?r.categories.name:"")}</td>
+      <td>${esc(r.cities?r.cities.name+", "+r.cities.state:"")}</td>
+      <td>${r.price===0?"Free":"$"+r.price.toLocaleString()}</td>
+      <td><span class="pill ${r.status==="sold"?"sold":""}">${esc(r.status)}</span></td>
+      <td class="sub">${esc(when)}</td>
+      <td><div class="acts"><button class="btn ghost sm" data-edit="${r.id}">Edit</button><button class="btn danger sm" data-del="${r.id}">Delete</button></div></td></tr>`}).join("")+
+  `</tbody></table></div>${more?`<div class="more"><button class="btn ghost" id="more">Load more</button></div>`:""}`;
+}
+
+async function ensureCities(){
+  if(citiesLoaded)return;
+  for(let f=0;;f+=1000){
+    const {data,error}=await sb.from("cities").select("id,name,state").order("id").range(f,f+999);
+    if(error)throw error;
+    data.forEach(c=>{const k=c.name+", "+c.state;cityIds[k]=c.id});
+    if(data.length<1000)break;
+  }
+  $("#cl").innerHTML=Object.keys(cityIds).sort().map(k=>`<option value="${esc(k)}">`).join("");
+  citiesLoaded=true;
+}
+function safeUrl(u){try{const x=new URL(u);return x.protocol==="https:"||x.protocol==="http:"?x.href:null}catch(e){return null}}
+
+async function openEdit(id){
+  const r=rows.find(x=>x.id===id);if(!r)return;
+  try{await ensureCities()}catch(e){alert("Couldn't load cities: "+e.message);return}
+  editing=r;const e=$("#fe").elements;
+  $("#eTitle").textContent="Edit ad #"+r.id+(r.is_demo?" (demo)":"");
+  e.t.value=r.title;e.c.value=r.category_id;e.p.value=r.price;e.loc.value=r.cities?r.cities.name+", "+r.cities.state:"";
+  e.s.value=r.status;e.d.value=r.description;e.link.value=r.link||"";
+  $("#eErr").textContent="";
+  $("#ePhotos").innerHTML=(r.listing_photos||[]).map(p=>`<label><img src="${esc(photoUrl(p.storage_path))}" alt=""><span><input type="checkbox" name="rm" value="${esc(p.storage_path)}"> Remove</span></label>`).join("");
+  $("#dEdit").showModal();
+}
+
+$("#fe").addEventListener("submit",async ev=>{
+  ev.preventDefault();if(!editing)return;
+  const e=ev.target.elements,err=$("#eErr");err.textContent="";
+  const cityId=cityIds[Object.keys(cityIds).find(k=>k.toLowerCase()===e.loc.value.trim().toLowerCase())];
+  if(!cityId){err.textContent="Choose a city from the list.";return}
+  const catName=(cats.find(c=>String(c.id)===e.c.value)||{}).name;
+  let link=e.link.value.trim()?safeUrl(e.link.value.trim()):null;
+  if(e.link.value.trim()&&!link){err.textContent="The link must start with http:// or https://";return}
+  if(catName!=="Vehicles")link=null;   // the database only allows links on Vehicles ads
+  const removed=[...ev.target.querySelectorAll('[name=rm]:checked')].map(x=>x.value);
+  const go=$("#eGo");go.disabled=true;
+  const {data,error}=await sb.from("listings").update({title:e.t.value.trim(),category_id:+e.c.value,city_id:cityId,
+    price:Math.max(0,Math.round(+e.p.value||0)),status:e.s.value,description:e.d.value.trim(),link}).eq("id",editing.id).select("id");
+  if(error||!data.length){go.disabled=false;err.textContent=error?error.message:"Not saved. Are you still an admin?";return}
+  if(removed.length){
+    const d=await sb.from("listing_photos").delete().eq("listing_id",editing.id).in("storage_path",removed);
+    if(d.error){go.disabled=false;err.textContent="Saved, but photos were not removed: "+d.error.message;return}
+    await sb.storage.from(BUCKET).remove(removed);
+  }
+  go.disabled=false;$("#dEdit").close();
+  const keep=from;from=0;rows=[];await loadKeep(keep);
+});
+// Reload the same number of rows that were showing, so the list doesn't jump back to the top.
+async function loadKeep(n){
+  const pages=Math.max(1,Math.ceil(n/PAGE));from=0;rows=[];
+  for(let i=0;i<pages;i++){busy=false;await load(false);if(!more)break}
+}
+
+async function deleteAd(id){
+  const r=rows.find(x=>x.id===id);if(!r)return;
+  if(!confirm(`Delete "${r.title}"? This permanently removes the ad and its photos.`))return;
+  const {data,error}=await sb.from("listings").delete().eq("id",id).select("id");
+  if(error||!data.length){alert(error?error.message:"Not deleted. Are you still an admin?");return}
+  const paths=(r.listing_photos||[]).map(p=>p.storage_path);
+  if(paths.length)await sb.storage.from(BUCKET).remove(paths);
+  rows=rows.filter(x=>x.id!==id);draw();
+}
+
+document.addEventListener("click",e=>{
+  const t=e.target;
+  const ed=t.closest("[data-edit]");if(ed){openEdit(+ed.dataset.edit);return}
+  const dl=t.closest("[data-del]");if(dl){deleteAd(+dl.dataset.del);return}
+  if(t.id==="more"){load(false);return}
+  if(t.id==="eDel"&&editing){const id=editing.id;$("#dEdit").close();deleteAd(id);return}
+  if(t.closest("[data-close]")){t.closest("dialog").close();return}
+  if(t.tagName==="DIALOG")t.close();
+});
+$("#out").addEventListener("click",()=>sb.auth.signOut());
+// Supabase also announces "signed in" when the tab regains focus; only restart when the person really changed.
+let lastUid;
+if(sb)sb.auth.onAuthStateChange((ev,session)=>{const uid=session?session.user.id:null;if(lastUid!==undefined&&uid!==lastUid)setTimeout(start,0);lastUid=uid});
+start();
+</script>
+</body>
+</html>
