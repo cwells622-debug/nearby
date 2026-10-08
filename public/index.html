@@ -70,6 +70,12 @@ label input,label select,label textarea{border:1px solid var(--line);background:
 .seller{display:flex;gap:10px;align-items:center;color:var(--mute)}
 .av{width:36px;height:36px;border-radius:50%;background:var(--acc);color:var(--acc-ink);display:grid;place-items:center;font-weight:800}
 .ok{background:var(--soft);padding:12px;border-radius:10px;font-weight:600}
+.thumbs{display:flex;gap:8px;flex-wrap:wrap}
+.thumbs img{width:64px;height:64px;object-fit:cover;border-radius:10px;border:2px solid var(--line);display:block}
+.thumbs button{padding:0;border:0;background:none;border-radius:10px}
+.thumbs button[aria-pressed="true"] img{border-color:var(--acc)}
+.thumbs .rm{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:12px;font-weight:400}
+.thumbs .rm input{margin:0}
 .who{color:var(--mute);font-size:14px;white-space:nowrap;max-width:150px;overflow:hidden;text-overflow:ellipsis}
 .hdr-r{display:flex;gap:8px;align-items:center}
 .autherr{color:#c92a2a;margin:0;font-size:14px}
@@ -112,7 +118,8 @@ label input,label select,label textarea{border:1px solid var(--line);background:
   </div>
   <label>City<input name="loc" id="fl" list="cl" required autocomplete="off" placeholder="Start typing a city"></label><datalist id="cl"></datalist>
   <label>Description<textarea name="d" rows="3" required placeholder="Condition, size, pickup details"></textarea></label>
-  <label><span id="photoLbl">Photo (optional, JPG, PNG or WebP, up to 5 MB)</span><input name="img" id="fimg" type="file" accept="image/jpeg,image/png,image/webp"></label>
+  <div id="curPhotos" class="thumbs" hidden></div>
+  <label><span id="photoLbl">Photos (optional, up to 5; JPG, PNG or WebP, 5 MB each)</span><input name="img" id="fimg" type="file" multiple accept="image/jpeg,image/png,image/webp"></label>
   <p class="autherr" id="postMsg" role="alert"></p>
   <button class="btn" type="submit" id="postGo">Publish ad</button>
 </form></dialog>
@@ -222,7 +229,8 @@ function render(){
 function open(id){
   const i=items.find(x=>x.id==id),s=sel(i);
   $("#view").innerHTML=`<div class="top"><span class="tag">${esc(i.c)}</span><button class="btn ghost" data-save="${i.id}" aria-pressed="${saved.has(i.id)}">${saved.has(i.id)?"♥ Saved":"♡ Save"}</button><button class="x" data-close aria-label="Close">✕</button></div>
-  <div class="ph big" style="--h:${i.h}">${i.img?`<img src="${esc(i.img)}" alt="">`:`<span>${i.e}</span>`}</div>
+  <div class="ph big" id="bigph" style="--h:${i.h}">${i.img?`<img src="${esc(i.img)}" alt="">`:`<span>${i.e}</span>`}</div>
+  ${i.imgs&&i.imgs.length>1?`<div class="thumbs">${i.imgs.map((u,n)=>`<button type="button" data-photo="${esc(u)}" aria-pressed="${n===0}" aria-label="Show photo ${n+1}"><img src="${esc(u)}" alt=""></button>`).join("")}</div>`:""}
   <div class="price">${fmt(i.p)}</div><h2>${esc(i.t)}</h2>
   <div class="m" style="color:var(--mute)">${esc(i.loc)} · ${dd(i)} · Posted ${i.ago==="Just now"?"just now":i.ago+" ago"}</div>
   <p style="margin:0">${esc(i.d)}</p>
@@ -234,6 +242,9 @@ function open(id){
 }
 document.addEventListener("click",e=>{
   const t=e.target;
+  const ph=t.closest("[data-photo]");if(ph){
+    $("#bigph").innerHTML=`<img src="${esc(ph.dataset.photo)}" alt="">`;
+    document.querySelectorAll("[data-photo]").forEach(b=>b.setAttribute("aria-pressed",b===ph));return}
   const sv=t.closest("[data-save]");if(sv){toggleSave(sv.dataset.save);return}
   const od=t.closest("[data-offer]");if(od){offerForm(od.dataset.offer);return}
   const am=t.closest("[data-amt]");if(am){$("#oa").value=am.dataset.amt;ow=false;return}
@@ -264,7 +275,7 @@ $("#fl").addEventListener("input",e=>e.target.setCustomValidity(""));
 // Its settings come from config.js.
 let sb=null,user=null,signup=false,editId=null;
 const BUCKET="listing-photos",cityIds={};   // cityIds: "Albany, NY" -> the city's id in the database
-const PHOTO_TYPES={"image/jpeg":"jpg","image/png":"png","image/webp":"webp"},MAX_PHOTO=5*1024*1024;
+const PHOTO_TYPES={"image/jpeg":"jpg","image/png":"png","image/webp":"webp"},MAX_PHOTO=5*1024*1024,MAX_PHOTOS=5;   // MAX_PHOTOS must match the limit in step4_photos_and_limits.sql
 const cfgOk=typeof NEARBY_CONFIG!=="undefined"&&/^https?:\/\//.test(NEARBY_CONFIG.supabaseUrl)&&!NEARBY_CONFIG.supabaseAnonKey.startsWith("PASTE");
 if(cfgOk&&window.supabase)sb=window.supabase.createClient(NEARBY_CONFIG.supabaseUrl,NEARBY_CONFIG.supabaseAnonKey);
 
@@ -341,7 +352,11 @@ function startPost(id){
   form.reset();$("#postMsg").textContent="";$("#fl").setCustomValidity("");
   $("#postTitle").textContent=i?"Edit your ad":"Post an ad";
   $("#postGo").textContent=i?"Save changes":"Publish ad";
-  $("#photoLbl").textContent=i?"Replace photo (leave empty to keep the current one)":"Photo (optional, JPG, PNG or WebP, up to 5 MB)";
+  $("#photoLbl").textContent=i?"Add more photos (up to 5 in total; JPG, PNG or WebP, 5 MB each)":"Photos (optional, up to 5; JPG, PNG or WebP, 5 MB each)";
+  // When editing, show the current photos; tick one to remove it when you save.
+  const cp=$("#curPhotos");
+  cp.hidden=!(i&&i.paths.length);
+  cp.innerHTML=i?i.paths.map((p,n)=>`<label class="rm"><img src="${esc(i.imgs[n])}" alt=""><span><input type="checkbox" name="rm" value="${esc(p)}"> Remove</span></label>`).join(""):"";
   if(i){const e=form.elements;e.t.value=i.t;e.c.value=i.c;e.p.value=i.p;e.loc.value=i.loc;e.d.value=i.d}
   else $("#fl").value=me;
   $("#dView").close();$("#dPost").showModal();
@@ -373,16 +388,21 @@ $("#f").addEventListener("submit",async e=>{
   e.preventDefault();
   const msg=$("#postMsg");msg.textContent="";
   if(!user){msg.textContent="Please log in first.";return}
-  const f=new FormData(e.target),file=f.get("img"),hasFile=!!(file&&file.size);
+  const f=new FormData(e.target),files=f.getAll("img").filter(x=>x&&x.size);
   const loc=Object.keys(T).find(n=>n.toLowerCase()===String(f.get("loc")).trim().toLowerCase());
   if(!loc){$("#fl").setCustomValidity("Choose a city from the list");$("#fl").reportValidity();return}
-  if(hasFile&&!PHOTO_TYPES[file.type]){msg.textContent="The photo must be a JPG, PNG or WebP image.";return}
-  if(hasFile&&file.size>MAX_PHOTO){msg.textContent="That photo is too big. The limit is 5 MB.";return}
+  // Photos: paths already on this ad, the ones ticked "Remove", and the newly chosen files.
+  const have=editId?items.find(x=>x.id===editId).paths:[],removed=f.getAll("rm").filter(p=>have.includes(p));
+  if(have.length-removed.length+files.length>MAX_PHOTOS){msg.textContent="An ad can have up to "+MAX_PHOTOS+" photos.";return}
+  for(const file of files){
+    if(!PHOTO_TYPES[file.type]){msg.textContent="Photos must be JPG, PNG or WebP images.";return}
+    if(file.size>MAX_PHOTO){msg.textContent=`"${file.name}" is too big. The limit is 5 MB per photo.`;return}
+  }
   const catName=f.get("c");
   const row={category_id:cats.find(c=>c[0]===catName)[3],city_id:cityIds[loc],title:String(f.get("t")).trim(),
     description:String(f.get("d")).trim(),price:Math.max(0,Math.round(+f.get("p")||0))};
   const go=$("#postGo");go.disabled=true;
-  let newId=null,newPath=null;
+  let newId=null,newPaths=[],removedRows=false;
   try{
     let id=editId;
     if(editId){
@@ -395,16 +415,25 @@ $("#f").addEventListener("submit",async e=>{
       if(error)throw error;
       id=newId=data.id;
     }
-    if(hasFile){
-      newPath=await uploadPhoto(file);
-      const {error}=await sb.from("listing_photos").insert({listing_id:id,storage_path:newPath});
+    // 1. Upload the new files (cleaned of GPS data) one by one.
+    for(const file of files)newPaths.push(await uploadPhoto(file));
+    // 2. Remove the database rows for photos the user ticked, so the 5-photo limit counts correctly.
+    if(removed.length){
+      const {error}=await sb.from("listing_photos").delete().eq("listing_id",id).in("storage_path",removed);
       if(error)throw error;
-      const old=editId?(items.find(x=>x.id===editId).paths||[]):[];
-      if(old.length){await sb.from("listing_photos").delete().in("storage_path",old);await sb.storage.from(BUCKET).remove(old)}
+      removedRows=true;
     }
+    // 3. Link the new files to the ad.
+    if(newPaths.length){
+      const {error}=await sb.from("listing_photos").insert(newPaths.map(p=>({listing_id:id,storage_path:p})));
+      if(error)throw error;
+    }
+    // 4. Only now delete the removed files from storage.
+    if(removed.length)await sb.storage.from(BUCKET).remove(removed);
   }catch(err){
-    // Undo a half-finished new ad so no photo-less leftovers remain.
-    if(newPath)await sb.storage.from(BUCKET).remove([newPath]);
+    // Undo a half-finished save so nothing is left behind.
+    if(newPaths.length)await sb.storage.from(BUCKET).remove(newPaths);
+    if(removedRows)await sb.from("listing_photos").insert(removed.map(p=>({listing_id:editId,storage_path:p})));
     if(newId)await sb.from("listings").delete().eq("id",newId);
     msg.textContent=err.message||"Something went wrong. Please try again.";go.disabled=false;return;
   }
@@ -435,8 +464,9 @@ async function loadData(){
   const [rc,rt,rl]=await Promise.all([
     sb.from("categories").select("id,name,icon").order("id"),
     sb.from("cities").select("id,name,state,lat,lng"),
-    sb.from("listings").select("id,seller_id,category_id,city_id,title,description,price,created_at,profiles!seller_id(display_name,created_at),listing_photos(storage_path)")
+    sb.from("listings").select("id,seller_id,category_id,city_id,title,description,price,created_at,profiles!seller_id(display_name,created_at),listing_photos(id,storage_path)")
       .eq("status","active").order("created_at",{ascending:false}).limit(500)
+      .order("id",{referencedTable:"listing_photos"})   // photos in the order they were added
   ]);
   const err=rc.error||rt.error||rl.error;
   if(err){main.innerHTML=`<div class="empty"><h2>Couldn't load listings</h2><p>${esc(err.message)}</p></div>`;return}
@@ -449,8 +479,8 @@ async function loadData(){
   items=rl.data.map(r=>{
     const c=catById[r.category_id],hrs=Math.max(0,Math.floor((now-new Date(r.created_at))/36e5));
     const paths=(r.listing_photos||[]).map(p=>p.storage_path);
-    const img=paths.length?sb.storage.from(BUCKET).getPublicUrl(paths[0]).data.publicUrl:null;
-    return{id:r.id,paths,img,t:r.title,p:r.price,c:c[0],loc:cityById[r.city_id],d:r.description,ago:agoText(hrs),hrs,e:c[1],h:c[2],
+    const imgs=paths.map(p=>sb.storage.from(BUCKET).getPublicUrl(p).data.publicUrl),img=imgs[0]||null;
+    return{id:r.id,paths,imgs,img,t:r.title,p:r.price,c:c[0],loc:cityById[r.city_id],d:r.description,ago:agoText(hrs),hrs,e:c[1],h:c[2],
       sid:r.seller_id,sn:r.profiles&&r.profiles.display_name,sy:r.profiles&&new Date(r.profiles.created_at).getFullYear()}
   }).filter(i=>i.loc);
   // Fill the city suggestions and the category list in the Post form.
