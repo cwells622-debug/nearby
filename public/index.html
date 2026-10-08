@@ -4,6 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>ChadAds – Local classifieds</title>
+<meta name="description" content="Buy and sell vehicles, motorcycles, campers, equipment and more with people near you.">
+<!-- Link previews when the site is shared (Facebook, X, WhatsApp, iMessage...) -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="ChadAds">
+<meta property="og:title" content="ChadAds – Local classifieds">
+<meta property="og:description" content="Buy and sell vehicles, motorcycles, campers, equipment and more with people near you.">
+<meta property="og:image" content="https://chadads.netlify.app/logo.webp">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3CclipPath id='c'%3E%3Ccircle cx='32' cy='32' r='27'/%3E%3C/clipPath%3E%3C/defs%3E%3Ccircle cx='32' cy='32' r='29' fill='%231d1d1f'/%3E%3Ccircle cx='32' cy='32' r='27' fill='%23f3ead8'/%3E%3Cg clip-path='url(%23c)'%3E%3Cpath d='M0 17 H64 V25 H0z' fill='%23174e7a'/%3E%3Cpath d='M0 27 H64 V35 H0z' fill='%23f06a14'/%3E%3Cpath d='M0 37 H64 V45 H0z' fill='%23f0b014'/%3E%3C/g%3E%3C/svg%3E">
 <style>
 /* ChadAds look: black and white, one bright accent (--acc). Change --acc to restyle the whole site. */
@@ -130,6 +138,11 @@ dialog.wide{width:min(1020px,96vw)}
  .adi{overflow-y:auto;max-height:92vh;padding:30px 28px}
  .gal{aspect-ratio:auto;height:calc(92vh - 92px);min-height:380px}
 }
+.share{display:flex;flex-direction:column;gap:8px;margin-top:6px;padding-top:14px;border-top:1px solid var(--line)}
+.share .sh{font-size:13px;font-weight:600;color:var(--mute);text-transform:uppercase;letter-spacing:.05em}
+.sharerow{display:flex;gap:8px;flex-wrap:wrap}
+.spill{border:0;background:var(--soft);color:var(--ink);border-radius:999px;padding:8px 15px;font-weight:500;font-size:14px;text-decoration:none;display:inline-block;transition:background .15s}
+.spill:hover{background:var(--line)}
 .thumbs{display:flex;gap:8px;flex-wrap:wrap}
 .thumbs img{width:64px;height:64px;object-fit:cover;border-radius:12px;border:2px solid transparent;display:block}
 .thumbs button{padding:0;border:0;background:none;border-radius:12px}
@@ -296,6 +309,19 @@ function render(){
   main.innerHTML=nb+`<div class="bar"><h1>${q?`Results for “${esc(q)}”`:cur==="All"?"All listings":cur==="Saved"?"Saved listings":esc(cur)}</h1><select id="sort" aria-label="Sort"><option value="new">Newest first</option><option value="old">Oldest first</option><option value="near">Nearest</option><option value="low">Price: low to high</option><option value="high">Price: high to low</option></select></div><div class="grid">${list.map(card).join("")}</div>`;
   $("#sort").value=sort;
 }
+// ---- Sharing: every ad has its own link, like  https://chadads.netlify.app/?ad=26 ----
+const adUrl=id=>location.origin+location.pathname+"?ad="+id;
+function shareHtml(i){
+  const url=adUrl(i.id),txt=i.t+" – "+fmt(i.p)+" on ChadAds",u=encodeURIComponent(url),t=encodeURIComponent(txt);
+  const link=(href,label,tab)=>`<a class="spill" href="${esc(href)}"${tab?` target="_blank" rel="noopener noreferrer"`:""}>${label}</a>`;
+  return `<div class="share"><span class="sh">Share this ad</span><div class="sharerow">
+    ${navigator.share?`<button class="spill" type="button" data-nshare="${i.id}">Share…</button>`:""}
+    ${link("https://www.facebook.com/sharer/sharer.php?u="+u,"Facebook",1)}
+    ${link("https://twitter.com/intent/tweet?url="+u+"&text="+t,"X",1)}
+    ${link("https://wa.me/?text="+encodeURIComponent(txt+" "+url),"WhatsApp",1)}
+    ${link("mailto:?subject="+t+"&body="+encodeURIComponent(txt+"\n"+url),"Email",0)}
+    <button class="spill" type="button" data-copy="${i.id}">Copy link</button></div></div>`;
+}
 // ---- Ad pop-up: photo gallery ----
 let gi=0,gId=null;
 function showPhoto(n){
@@ -328,9 +354,13 @@ function open(id){
     ${mine?(i.sid?`<div class="ctas"><button class="btn lg" data-edit="${i.id}">Edit this ad</button><button class="btn ghost lg" data-del="${i.id}">Delete this ad</button></div>`:""):
       `<div class="ctas"><button class="btn lg" id="msgBtn">Message ${esc(s.n)}</button><div id="offer">${offerHtml(i,s)}</div></div>
        <div id="msg" hidden><label>Your message<textarea id="mt" rows="3">Hi, is this still available?</textarea></label><button class="btn lg" style="margin-top:10px" id="send">Send message</button></div>`}
+    ${shareHtml(i)}
   </div></div>`;
+  try{history.replaceState(null,"","?ad="+i.id)}catch(e){}   // so the address bar can be copied too
   {const d=$("#dView");if(!d.open)d.showModal()}
 }
+// When the pop-up closes, take "?ad=..." back out of the address.
+$("#dView").addEventListener("close",()=>{try{history.replaceState(null,"",location.pathname)}catch(e){}});
 // Arrow keys flip photos; swiping left or right on the photo does too.
 document.addEventListener("keydown",e=>{
   if(!$("#dView").open||!$("#gal")||/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName))return;
@@ -349,6 +379,14 @@ document.addEventListener("click",e=>{
     if(!confirm("Warning: this link leaves ChadAds.\n\nYou are going to "+new URL(ext.href).hostname+", a website we don't control. Only continue if you trust it, and never enter passwords or payment details you aren't sure about.\n\nContinue?"))e.preventDefault();
     return}
   const up=t.closest("[data-unpick]");if(up){picked.splice(+up.dataset.unpick,1);showPicked();return}
+  const ns=t.closest("[data-nshare]");if(ns){
+    const i=items.find(x=>x.id===+ns.dataset.nshare);
+    if(i&&navigator.share)navigator.share({title:i.t,text:i.t+" – "+fmt(i.p)+" on ChadAds",url:adUrl(i.id)}).catch(()=>{});return}
+  const cp=t.closest("[data-copy]");if(cp){
+    const url=adUrl(+cp.dataset.copy);
+    (navigator.clipboard?navigator.clipboard.writeText(url):Promise.reject()).catch(()=>{
+      const ta=document.createElement("textarea");ta.value=url;document.body.appendChild(ta);ta.select();try{document.execCommand("copy")}catch(e){}ta.remove()
+    }).then(()=>{cp.textContent="Copied ✓";setTimeout(()=>{cp.textContent="Copy link"},1800)});return}
   const gn=t.closest("[data-gnav]");if(gn){showPhoto(gi+ +gn.dataset.gnav);return}
   const gt=t.closest("[data-gi]");if(gt){showPhoto(+gt.dataset.gi);return}
   if(t.id==="msgBtn"){t.hidden=true;$("#msg").hidden=false;$("#mt").focus();$("#mt").select();return}
@@ -381,7 +419,7 @@ $("#fl").addEventListener("input",e=>e.target.setCustomValidity(""));
 /* ---------- Accounts (Supabase Auth) ---------- */
 // "sb" is our connection to Supabase, like an ADO connection object in classic ASP.
 // Its settings come from config.js.
-let sb=null,user=null,signup=false,editId=null;
+let sb=null,user=null,signup=false,editId=null,deepDone=false;
 const BUCKET="listing-photos",cityIds={};   // cityIds: "Albany, NY" -> the city's id in the database
 const PHOTO_TYPES={"image/jpeg":"jpg","image/png":"png","image/webp":"webp"},MAX_PHOTO=5*1024*1024,MAX_PHOTOS=5;   // MAX_PHOTOS must match the limit in step4_photos_and_limits.sql
 const cfgOk=typeof NEARBY_CONFIG!=="undefined"&&/^https?:\/\//.test(NEARBY_CONFIG.supabaseUrl)&&!NEARBY_CONFIG.supabaseAnonKey.startsWith("PASTE");
@@ -636,6 +674,8 @@ async function loadData(){
   $("#cl").innerHTML=Object.keys(T).sort().map(n=>`<option value="${esc(n)}">`).join("");
   $("#fc").innerHTML=cats.map(c=>`<option>${esc(c[0])}</option>`).join("");
   render();
+  // Someone arrived through a shared link like ?ad=26: show that ad straight away.
+  if(!deepDone){deepDone=true;const id=+new URLSearchParams(location.search).get("ad");if(id&&items.some(x=>x.id===id))open(id)}
 }
 loadData();
 </script>
