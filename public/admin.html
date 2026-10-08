@@ -124,10 +124,10 @@ async function start(){
   const {data:isAdmin,error}=await sb.rpc("is_admin");
   if(error)return say("Admin setup missing","Run step8_admin.sql in the Supabase SQL Editor. ("+esc(error.message)+")");
   if(!isAdmin)return say("Not an admin","This account is not an administrator.");
-  const rc=await sb.from("categories").select("id,name").order("id");
+  const rc=await sb.from("categories").select("*").order("id");
   if(rc.error)return say("Couldn't load",esc(rc.error.message));
   cats=rc.data;
-  $("#ec").innerHTML=cats.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join("");
+  $("#ec").innerHTML=cats.map(c=>`<option value="${c.id}">${esc(c.name)}${c.active===false?" (hidden)":""}</option>`).join("");
   $("#main").innerHTML=`<div class="filters">
       <input type="search" id="fq" placeholder="Search titles" aria-label="Search titles">
       <select id="fs" aria-label="Status"><option value="">All statuses</option><option value="active">Active</option><option value="sold">Sold</option></select>

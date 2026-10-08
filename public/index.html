@@ -609,7 +609,7 @@ async function loadData(){
   // "profiles!seller_id" says which link to follow: listings and profiles are
   // also connected through favorites, so Supabase needs to be told.
   const [rc,rt,rl]=await Promise.all([
-    sb.from("categories").select("id,name,icon").order("id"),
+    sb.from("categories").select("*").order("id"),
     fetchAll("cities","id,name,state,lat,lng"),
     sb.from("listings").select("id,seller_id,category_id,city_id,title,description,price,link,created_at,profiles!seller_id(display_name,created_at),listing_photos(id,storage_path)")
       .eq("status","active").order("created_at",{ascending:false}).limit(500)
@@ -619,11 +619,13 @@ async function loadData(){
   if(err){main.innerHTML=`<div class="empty"><h2>Couldn't load listings</h2><p>${esc(err.message)}</p></div>`;return}
 
   const catById={},cityById={};
-  cats=rc.data.map(c=>{const r=[c.name,c.icon,HUES[c.name]||200,c.id];catById[c.id]=r;return r});
+  // Hidden categories (active = false) are left out of the menus, the Post form and the listings.
+  rc.data.forEach(c=>{catById[c.id]=[c.name,c.icon,HUES[c.name]||200,c.id,c.active!==false]});
+  cats=Object.values(catById).filter(r=>r[4]);
   rt.data.forEach(c=>{const k=c.name+", "+c.state;T[k]=[c.lat,c.lng];cityById[c.id]=k;cityIds[k]=c.id});
   if(!T[me])me=Object.keys(T).sort()[0];
   const now=Date.now();
-  items=rl.data.map(r=>{
+  items=rl.data.filter(r=>catById[r.category_id]&&catById[r.category_id][4]).map(r=>{
     const c=catById[r.category_id],hrs=Math.max(0,Math.floor((now-new Date(r.created_at))/36e5));
     const paths=(r.listing_photos||[]).map(p=>p.storage_path);
     const imgs=paths.map(p=>sb.storage.from(BUCKET).getPublicUrl(p).data.publicUrl),img=imgs[0]||null;
