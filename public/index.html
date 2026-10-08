@@ -621,7 +621,7 @@ async function loadData(){
   const catById={},cityById={};
   // Hidden categories (active = false) are left out of the menus, the Post form and the listings.
   rc.data.forEach(c=>{catById[c.id]=[c.name,c.icon,HUES[c.name]||200,c.id,c.active!==false]});
-  cats=Object.values(catById).filter(r=>r[4]);
+  cats=Object.values(catById).filter(r=>r[4]).sort((a,b)=>a[0].localeCompare(b[0]));   // A to Z
   rt.data.forEach(c=>{const k=c.name+", "+c.state;T[k]=[c.lat,c.lng];cityById[c.id]=k;cityIds[k]=c.id});
   if(!T[me])me=Object.keys(T).sort()[0];
   const now=Date.now();
