@@ -4,6 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>ChadAds – Local classifieds</title>
+<!-- Retro logo font (Shrikhand). Only the letters in "ChadAds" are downloaded, a few KB. -->
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shrikhand&text=ChadAds&display=block">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 90'%3E%3Cpath d='M8 68 C3 36 24 12 52 12 C75 12 92 29 92 52 L92 60 C92 62 90 63 88 63 L52 63 C46 72 31 76 19 74 C13 73 9 71 8 68 Z' fill='%231d1d1f'/%3E%3Cpath d='M60 42 C72 39 86 43 92 51 L92 60 L58 60 C54 54 55 46 60 42 Z' fill='white'/%3E%3Cpath d='M54 37 C70 29 92 33 101 46 L93 49 C86 40 70 38 58 42 Z' fill='%230071e3'/%3E%3Cpath d='M10 40 C22 14 60 8 90 38' fill='none' stroke='%230071e3' stroke-width='8'/%3E%3C/svg%3E">
 <style>
 /* ChadAds look: black and white, one bright accent (--acc). Change --acc to restyle the whole site. */
 :root{--bg:#fff;--panel:#fff;--ink:#1d1d1f;--mute:#6e6e73;--line:#e5e5ea;--acc:#0071e3;--acc-ink:#fff;--soft:#f5f5f7;--glass:rgba(255,255,255,.78);
@@ -19,7 +23,9 @@ button,input,select,textarea{font:inherit;color:inherit}
 button{cursor:pointer}
 :focus-visible{outline:3px solid var(--acc);outline-offset:2px}
 header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--glass);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid var(--line);display:flex;gap:14px;align-items:center;padding:12px 20px}
-.logo{font-weight:700;font-size:21px;letter-spacing:-.03em;color:var(--ink);white-space:nowrap}
+.logo{display:flex;align-items:center;color:var(--ink);text-decoration:none;white-space:nowrap}
+.logo svg{height:42px;width:auto;display:block;overflow:visible}
+.logo .t{font-family:Shrikhand,"Arial Black",Georgia,serif}
 .search{flex:1 1 0;min-width:0;border:0;background:var(--soft);border-radius:999px;padding:11px 18px}
 .search::placeholder{color:var(--mute)}
 .btn{border:0;background:var(--acc);color:var(--acc-ink);font-weight:600;border-radius:999px;padding:10px 20px;white-space:nowrap;transition:opacity .15s}
@@ -114,8 +120,8 @@ label input:focus,label select:focus,label textarea:focus{outline:none;border-co
  .logo{flex:1}
  .search{order:3;flex:1 1 100%}
  .wrap{padding:12px 14px 48px}
- .logo{font-size:20px}
- .btn{padding:9px 16px}
+ .logo svg{height:30px}
+ .btn{padding:8px 13px;font-size:15px}
  h1{font-size:25px}
  .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:22px 12px}
  .dlg{padding:20px}
@@ -125,7 +131,23 @@ label input:focus,label select:focus,label textarea:focus{outline:none;border-co
 </head>
 <body>
 <header>
-  <div class="logo">ChadAds</div>
+  <a class="logo" href="./" aria-label="ChadAds home">
+    <svg viewBox="0 0 340 96" role="img" aria-hidden="true" focusable="false">
+      <defs><clipPath id="lg-shell"><path d="M8 68 C3 36 24 12 52 12 C75 12 92 29 92 52 L92 60 C92 62 90 63 88 63 L52 63 C46 72 31 76 19 74 C13 73 9 71 8 68 Z"/></clipPath></defs>
+      <path d="M8 68 C3 36 24 12 52 12 C75 12 92 29 92 52 L92 60 C92 62 90 63 88 63 L52 63 C46 72 31 76 19 74 C13 73 9 71 8 68 Z" fill="currentColor"/>
+      <g clip-path="url(#lg-shell)" fill="none">
+        <path d="M-4 40 C20 6 70 2 100 40" stroke="var(--acc)" stroke-width="9"/>
+        <path d="M-4 54 C20 20 70 16 100 54" stroke="var(--bg)" stroke-width="3"/>
+      </g>
+      <path d="M60 42 C72 39 86 43 92 51 L92 60 L58 60 C54 54 55 46 60 42 Z" fill="var(--bg)"/>
+      <path d="M54 37 C70 29 92 33 101 46 L93 49 C86 40 70 38 58 42 Z" fill="var(--acc)"/>
+      <circle cx="34" cy="54" r="11" fill="none" stroke="var(--bg)" stroke-width="3"/>
+      <circle cx="34" cy="54" r="3" fill="var(--bg)"/>
+      <text x="112" y="70" class="t" font-size="50" fill="currentColor" letter-spacing="-.5">Chad<tspan fill="var(--acc)">Ads</tspan></text>
+      <path d="M112 82 H334" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+      <path d="M118 89 H328" stroke="var(--acc)" stroke-width="3" stroke-linecap="round"/>
+    </svg>
+  </a>
   <input class="search" id="q" type="search" placeholder="Search listings" aria-label="Search listings">
   <div class="hdr-r">
     <span class="who" id="who"></span>
