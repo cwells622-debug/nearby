@@ -18,6 +18,7 @@
 7. `step8_admin.sql` (admin role; edit the email inside it to your own before running). Admin page: /admin.html
 8. `step9_hide_categories.sql` (hides Jobs, Property, Real Estate, Furniture, Clothing, Appliances, Electronics; deletes their demo ads. Run BEFORE pushing the matching page update)
 9. `hide_categories_2.sql` (hides Medical and Antiques)
+10. `add_categories_3.sql` (Farm Equipment, Trailers, Tools)
 
 ## Step 6: publishing
 - Code is on GitHub: https://github.com/cwells622-debug/nearby (branch `main`).
