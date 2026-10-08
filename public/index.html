@@ -236,7 +236,7 @@ async function toggleSave(id){
 }
 
 function side(){
-  const row=(n,e,k)=>`<button class="cat" data-cat="${n}" aria-pressed="${cur===n}"><span class="ic">${e}</span>${n}<span class="n">${k}</span></button>`;
+  const row=(n,e,k)=>`<button class="cat" data-cat="${n}" aria-pressed="${cur===n}">${n}<span class="n">${k}</span></button>`;
   const box=$("#cats"),sl=box.scrollLeft,st=box.scrollTop;
   box.innerHTML=row("All","🏷️",items.length)+row("Saved","♥",items.filter(i=>saved.has(i.id)).length)+cats.map(c=>row(c[0],c[1],items.filter(i=>i.c===c[0]).length)).join("");
   box.scrollLeft=sl;box.scrollTop=st;   // keep the list where the visitor scrolled it
@@ -257,7 +257,7 @@ function render(){
   if(!list.length){main.innerHTML=nb+`<div class="empty">${cur==="Saved"?user?`<h2>Nothing saved yet</h2><p>Tap the heart on any ad to save it here.</p>`:`<h2>Log in to see your saved ads</h2><p>Saved ads are kept in your account, so you can see them on any device.</p>`:`<h2>No listings found</h2><p>Try a wider distance, a different search, or post an ad.</p>`}</div>`;return}
   if(cur==="All"&&!q&&view==="cat"){
     main.innerHTML=nb+cats.map(c=>{const l=items.filter(i=>i.c===c[0]&&inR(i)).sort((a,b)=>dist(a)-dist(b));if(!l.length)return"";
-      return `<section class="sec"><div class="hd"><h2>${c[1]} ${c[0]}</h2><button class="link" data-cat="${c[0]}">See all ${l.length}</button></div><div class="grid">${l.slice(0,4).map(card).join("")}</div></section>`}).join("");
+      return `<section class="sec"><div class="hd"><h2>${c[0]}</h2><button class="link" data-cat="${c[0]}">See all ${l.length}</button></div><div class="grid">${l.slice(0,4).map(card).join("")}</div></section>`}).join("");
     return;
   }
   if(sort==="low")list.sort((a,b)=>a.p-b.p);else if(sort==="high")list.sort((a,b)=>b.p-a.p);else if(sort==="near")list.sort((a,b)=>dist(a)-dist(b));else if(sort==="old")list.sort((a,b)=>b.hrs-a.hrs||a.id-b.id);else list.sort((a,b)=>a.hrs-b.hrs||b.id-a.id);
