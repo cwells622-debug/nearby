@@ -236,7 +236,7 @@ function open(id){
   <div class="price">${fmt(i.p)}</div><h2>${esc(i.t)}</h2>
   <div class="m" style="color:var(--mute)">${esc(i.loc)} · ${dd(i)} · Posted ${i.ago==="Just now"?"just now":i.ago+" ago"}</div>
   <p style="margin:0">${esc(i.d)}</p>
-  ${safeUrl(i.link)?`<p style="margin:0"><a href="${esc(safeUrl(i.link))}" target="_blank" rel="noopener noreferrer nofollow ugc" style="color:var(--acc);font-weight:600">🔗 ${esc(new URL(i.link).hostname)}</a></p>`:""}
+  ${safeUrl(i.link)?`<p style="margin:0"><a href="${esc(safeUrl(i.link))}" data-ext target="_blank" rel="noopener noreferrer nofollow ugc" style="color:var(--acc);font-weight:600">🔗 ${esc(new URL(i.link).hostname)}</a></p>`:""}
   <button class="seller sbtn" data-prof="${i.id}"><div class="av">${esc(s.n[0])}</div><span><b>${esc(s.n)}</b><br>${rate(s)} · View profile</span></button>
   <div id="msg"><label>Message ${esc(s.n)}<textarea id="mt" rows="2">Hi, is this still available?</textarea></label><button class="btn" style="margin-top:10px" id="send">Send message</button></div>
   <div id="offer">${offerHtml(i,s)}</div>
@@ -245,6 +245,10 @@ function open(id){
 }
 document.addEventListener("click",e=>{
   const t=e.target;
+  // Seller-supplied links: warn first, and only open the site if the visitor agrees.
+  const ext=t.closest("a[data-ext]");if(ext){
+    if(!confirm("Warning: this link leaves ChadAds.\n\nYou are going to "+new URL(ext.href).hostname+", a website we don't control. Only continue if you trust it, and never enter passwords or payment details you aren't sure about.\n\nContinue?"))e.preventDefault();
+    return}
   const up=t.closest("[data-unpick]");if(up){picked.splice(+up.dataset.unpick,1);showPicked();return}
   const ph=t.closest("[data-photo]");if(ph){
     $("#bigph").innerHTML=`<img src="${esc(ph.dataset.photo)}" alt="">`;
