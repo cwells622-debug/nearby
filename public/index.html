@@ -99,6 +99,37 @@ label input:focus,label select:focus,label textarea:focus{outline:none;border-co
 .seller{display:flex;gap:10px;align-items:center;color:var(--mute)}
 .av{width:36px;height:36px;border-radius:50%;background:var(--ink);color:var(--bg);display:grid;place-items:center;font-weight:700}
 .ok{background:var(--soft);padding:12px 14px;border-radius:14px;font-weight:500}
+/* Ad pop-up: big gallery on the left, details on the right (stacked on phones) */
+dialog.wide{width:min(1020px,96vw)}
+.dlg.ad{padding:0;gap:0}
+.adg{display:grid;grid-template-columns:minmax(0,1fr)}
+.gwrap{min-width:0}
+.gal{position:relative;aspect-ratio:4/3;background:var(--soft);overflow:hidden;touch-action:pan-y;outline-offset:-3px}
+.gal .gimg{width:100%;height:100%;display:grid;place-items:center;font-size:96px;background:var(--soft)}
+.gal .gimg img{width:100%;height:100%;object-fit:cover;display:block}
+.gnav{position:absolute;top:50%;transform:translateY(-50%);width:42px;height:42px;border-radius:50%;border:0;background:rgba(255,255,255,.9);color:#1d1d1f;font-size:26px;line-height:1;display:grid;place-items:center;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);box-shadow:0 2px 10px rgba(0,0,0,.2);transition:transform .15s}
+.gnav:hover{transform:translateY(-50%) scale(1.07)}
+.gnav.prev{left:12px}.gnav.next{right:12px}
+.gcount{position:absolute;bottom:12px;right:12px;background:rgba(0,0,0,.55);color:#fff;font-size:13px;font-weight:500;padding:3px 10px;border-radius:999px}
+.gx{position:absolute;top:12px;right:12px;background:rgba(255,255,255,.9);color:#1d1d1f;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);box-shadow:0 2px 10px rgba(0,0,0,.2);z-index:2}
+.gthumbs{display:flex;gap:8px;padding:12px 16px 4px;overflow-x:auto}
+.gthumbs button{flex:none;padding:0;border:0;background:none;border-radius:12px;opacity:.6;transition:opacity .15s}
+.gthumbs button[aria-pressed="true"]{opacity:1}
+.gthumbs img{width:64px;height:64px;object-fit:cover;border-radius:12px;display:block;border:2px solid transparent}
+.gthumbs button[aria-pressed="true"] img{border-color:var(--ink)}
+.adi{padding:22px 24px 26px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.prow{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.adt{font-size:22px;line-height:1.25}
+.adi .d{margin:0;white-space:pre-line;overflow-wrap:anywhere}
+.ctas{display:flex;flex-direction:column;gap:8px;margin-top:4px}
+.btn.lg{width:100%;padding:14px 20px;font-size:17px}
+.savebtn{border:0;background:var(--soft);border-radius:999px;padding:8px 16px;font-weight:600;white-space:nowrap}
+.savebtn[aria-pressed="true"]{color:var(--acc)}
+@media (min-width:860px){
+ .adg{grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);max-height:92vh}
+ .adi{overflow-y:auto;max-height:92vh;padding:30px 28px}
+ .gal{aspect-ratio:auto;height:calc(92vh - 92px);min-height:380px}
+}
 .thumbs{display:flex;gap:8px;flex-wrap:wrap}
 .thumbs img{width:64px;height:64px;object-fit:cover;border-radius:12px;border:2px solid transparent;display:block}
 .thumbs button{padding:0;border:0;background:none;border-radius:12px}
@@ -186,6 +217,7 @@ const isMine=i=>!!(i.you||(user&&i.sid&&i.sid===user.id));
 const sel=i=>{if(isMine(i))return{n:"You",y:"today",r:0,rv:0,rt:""};if(i.sn)return{n:i.sn,y:i.sy,r:0,rv:0,rt:""};const a=SL[i.loc]||["Local seller",2023,0,0,"within a day"];return{n:a[0],y:a[1],r:a[2],rv:a[3],rt:a[4]}};
 const rate=s=>s.r?`★ ${s.r} (${s.rv} reviews)`:"No reviews yet";
 function prof(id){
+  $("#view").className="dlg";$("#dView").classList.remove("wide");
   const i=items.find(x=>x.id==id),s=sel(i),l=items.filter(x=>isMine(i)?isMine(x):i.sid?x.sid===i.sid:(!x.sid&&!isMine(x)&&x.loc===i.loc));
   $("#view").innerHTML=`<div class="top"><button class="link" data-back="${i.id}">← Back to listing</button><button class="x" data-close aria-label="Close">✕</button></div>
   <div class="seller"><div class="av" style="width:56px;height:56px;font-size:22px">${esc(s.n[0])}</div><div><h2 style="color:var(--ink)">${esc(s.n)}</h2><span>${esc(i.loc)} · Member since ${s.y}</span></div></div>
@@ -264,21 +296,52 @@ function render(){
   main.innerHTML=nb+`<div class="bar"><h1>${q?`Results for “${esc(q)}”`:cur==="All"?"All listings":cur==="Saved"?"Saved listings":esc(cur)}</h1><select id="sort" aria-label="Sort"><option value="new">Newest first</option><option value="old">Oldest first</option><option value="near">Nearest</option><option value="low">Price: low to high</option><option value="high">Price: high to low</option></select></div><div class="grid">${list.map(card).join("")}</div>`;
   $("#sort").value=sort;
 }
+// ---- Ad pop-up: photo gallery ----
+let gi=0,gId=null;
+function showPhoto(n){
+  const i=items.find(x=>x.id===gId);if(!i||!i.imgs||!i.imgs.length)return;
+  gi=(n+i.imgs.length)%i.imgs.length;
+  $("#gal .gimg").innerHTML=`<img src="${esc(i.imgs[gi])}" alt="Photo ${gi+1} of ${i.imgs.length}">`;
+  const ct=$("#gal .gcount");if(ct)ct.textContent=(gi+1)+" / "+i.imgs.length;
+  document.querySelectorAll(".gthumbs button").forEach((b,k)=>b.setAttribute("aria-pressed",k===gi));
+}
 function open(id){
-  const i=items.find(x=>x.id==id),s=sel(i);
-  $("#view").innerHTML=`<div class="top"><span class="tag">${esc(i.c)}</span><button class="btn ghost" data-save="${i.id}" aria-pressed="${saved.has(i.id)}">${saved.has(i.id)?"♥ Saved":"♡ Save"}</button><button class="x" data-close aria-label="Close">✕</button></div>
-  <div class="ph big" id="bigph" style="--h:${i.h}">${i.img?`<img src="${esc(i.img)}" alt="">`:`<span>${i.e}</span>`}</div>
-  ${i.imgs&&i.imgs.length>1?`<div class="thumbs">${i.imgs.map((u,n)=>`<button type="button" data-photo="${esc(u)}" aria-pressed="${n===0}" aria-label="Show photo ${n+1}"><img src="${esc(u)}" alt=""></button>`).join("")}</div>`:""}
-  <div class="price">${fmt(i.p)}</div><h2>${esc(i.t)}</h2>
-  <div class="m" style="color:var(--mute)">${esc(i.loc)} · ${dd(i)} · Posted ${i.ago==="Just now"?"just now":i.ago+" ago"}</div>
-  <p style="margin:0">${esc(i.d)}</p>
-  ${safeUrl(i.link)?`<p style="margin:0"><a href="${esc(safeUrl(i.link))}" data-ext target="_blank" rel="noopener noreferrer nofollow ugc" style="color:var(--acc);font-weight:600">🔗 ${esc(new URL(i.link).hostname)}</a></p>`:""}
-  <button class="seller sbtn" data-prof="${i.id}"><div class="av">${esc(s.n[0])}</div><span><b>${esc(s.n)}</b><br>${rate(s)} · View profile</span></button>
-  <div id="msg"><label>Message ${esc(s.n)}<textarea id="mt" rows="2">Hi, is this still available?</textarea></label><button class="btn" style="margin-top:10px" id="send">Send message</button></div>
-  <div id="offer">${offerHtml(i,s)}</div>
-  ${i.sid&&isMine(i)?`<div class="qa"><button class="btn ghost" data-edit="${i.id}">Edit this ad</button><button class="btn ghost" data-del="${i.id}">Delete this ad</button></div>`:""}`;
+  const i=items.find(x=>x.id==id),s=sel(i),n=(i.imgs||[]).length,mine=isMine(i);
+  gId=i.id;gi=0;
+  $("#view").className="dlg ad";$("#dView").classList.add("wide");
+  $("#view").innerHTML=`<div class="adg"><div class="gwrap">
+    <div class="gal" id="gal" tabindex="0" aria-label="Photos of ${esc(i.t)}">
+      <div class="gimg">${i.img?`<img src="${esc(i.img)}" alt="Photo 1 of ${n}">`:`<span>${i.e}</span>`}</div>
+      ${n>1?`<button class="gnav prev" data-gnav="-1" aria-label="Previous photo">‹</button><button class="gnav next" data-gnav="1" aria-label="Next photo">›</button><span class="gcount">1 / ${n}</span>`:""}
+      <button class="x gx" data-close aria-label="Close">✕</button>
+    </div>
+    ${n>1?`<div class="gthumbs">${i.imgs.map((u,k)=>`<button type="button" data-gi="${k}" aria-pressed="${k===0}" aria-label="Show photo ${k+1}"><img src="${esc(u)}" alt=""></button>`).join("")}</div>`:""}
+  </div>
+  <div class="adi">
+    <span class="tag">${esc(i.c)}</span>
+    <div class="prow"><div class="price">${fmt(i.p)}</div><button class="savebtn" data-save="${i.id}" aria-pressed="${saved.has(i.id)}">${saved.has(i.id)?"♥ Saved":"♡ Save"}</button></div>
+    <h2 class="adt">${esc(i.t)}</h2>
+    <div class="m" style="color:var(--mute)">${esc(i.loc)} · ${dd(i)} · Posted ${i.ago==="Just now"?"just now":i.ago+" ago"}</div>
+    <p class="d">${esc(i.d)}</p>
+    ${safeUrl(i.link)?`<p style="margin:0"><a href="${esc(safeUrl(i.link))}" data-ext target="_blank" rel="noopener noreferrer nofollow ugc" style="color:var(--acc);font-weight:600">🔗 ${esc(new URL(i.link).hostname)}</a></p>`:""}
+    <button class="seller sbtn" data-prof="${i.id}"><div class="av">${esc(s.n[0])}</div><span><b>${esc(s.n)}</b><br>${rate(s)} · View profile</span></button>
+    ${mine?(i.sid?`<div class="ctas"><button class="btn lg" data-edit="${i.id}">Edit this ad</button><button class="btn ghost lg" data-del="${i.id}">Delete this ad</button></div>`:""):
+      `<div class="ctas"><button class="btn lg" id="msgBtn">Message ${esc(s.n)}</button><div id="offer">${offerHtml(i,s)}</div></div>
+       <div id="msg" hidden><label>Your message<textarea id="mt" rows="3">Hi, is this still available?</textarea></label><button class="btn lg" style="margin-top:10px" id="send">Send message</button></div>`}
+  </div></div>`;
   {const d=$("#dView");if(!d.open)d.showModal()}
 }
+// Arrow keys flip photos; swiping left or right on the photo does too.
+document.addEventListener("keydown",e=>{
+  if(!$("#dView").open||!$("#gal")||/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName))return;
+  if(e.key==="ArrowRight"){showPhoto(gi+1);e.preventDefault()}else if(e.key==="ArrowLeft"){showPhoto(gi-1);e.preventDefault()}
+});
+let sx=null;
+document.addEventListener("touchstart",e=>{sx=e.target.closest("#gal")?e.touches[0].clientX:null},{passive:true});
+document.addEventListener("touchend",e=>{
+  if(sx===null)return;const dx=e.changedTouches[0].clientX-sx;sx=null;
+  if(Math.abs(dx)>40)showPhoto(gi+(dx<0?1:-1));
+},{passive:true});
 document.addEventListener("click",e=>{
   const t=e.target;
   // Seller-supplied links: warn first, and only open the site if the visitor agrees.
@@ -286,9 +349,9 @@ document.addEventListener("click",e=>{
     if(!confirm("Warning: this link leaves ChadAds.\n\nYou are going to "+new URL(ext.href).hostname+", a website we don't control. Only continue if you trust it, and never enter passwords or payment details you aren't sure about.\n\nContinue?"))e.preventDefault();
     return}
   const up=t.closest("[data-unpick]");if(up){picked.splice(+up.dataset.unpick,1);showPicked();return}
-  const ph=t.closest("[data-photo]");if(ph){
-    $("#bigph").innerHTML=`<img src="${esc(ph.dataset.photo)}" alt="">`;
-    document.querySelectorAll("[data-photo]").forEach(b=>b.setAttribute("aria-pressed",b===ph));return}
+  const gn=t.closest("[data-gnav]");if(gn){showPhoto(gi+ +gn.dataset.gnav);return}
+  const gt=t.closest("[data-gi]");if(gt){showPhoto(+gt.dataset.gi);return}
+  if(t.id==="msgBtn"){t.hidden=true;$("#msg").hidden=false;$("#mt").focus();$("#mt").select();return}
   const sv=t.closest("[data-save]");if(sv){toggleSave(sv.dataset.save);return}
   const od=t.closest("[data-offer]");if(od){offerForm(od.dataset.offer);return}
   const am=t.closest("[data-amt]");if(am){$("#oa").value=am.dataset.amt;ow=false;return}
