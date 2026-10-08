@@ -146,8 +146,8 @@ async function start(){
 async function load(reset){
   if(busy)return;busy=true;
   if(reset){from=0;rows=[]}
-  let q=sb.from("listings").select("id,seller_id,title,description,price,link,status,is_demo,created_at,category_id,city_id,video_link,categories(name),cities(name,state),profiles!seller_id(display_name),listing_photos(id,storage_path),listing_videos(id,storage_path)")
-    .order("created_at",{ascending:false}).range(from,from+PAGE-1);
+  let q=sb.from("listings").select("id,seller_id,title,description,price,link,status,is_demo,created_at,category_id,city_id,video_link,categories(name),cities(name,state),profiles!seller_id(display_name),listing_photos(id,storage_path,position),listing_videos(id,storage_path)")
+    .order("created_at",{ascending:false}).order("position",{referencedTable:"listing_photos"}).range(from,from+PAGE-1);
   const text=($("#fq").value||"").replace(/[%_*,()]/g," ").trim(),st=$("#fs").value,src=$("#fd").value;
   if(text)q=q.ilike("title","%"+text+"%");
   if(st)q=q.eq("status",st);

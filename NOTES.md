@@ -20,6 +20,7 @@
 9. `hide_categories_2.sql` (hides Medical and Antiques)
 10. `add_categories_3.sql` (Farm Equipment, Trailers, Tools)
 11. `step11_video.sql` (video: uploaded clips up to 50 MB + YouTube/Vimeo links). Run BEFORE pushing the matching page update. Supabase free plan: 50 MB file cap and ~5 GB/month bandwidth, so watch usage.
+12. `step12_cover_photo.sql` (cover photo choice + framing for the Marketplace-style grid). Run BEFORE pushing the matching page update.
 
 ## Step 6: publishing
 - Code is on GitHub: https://github.com/cwells622-debug/nearby (branch `main`).
