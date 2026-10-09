@@ -45,3 +45,6 @@
 
 ## Search engines
 - Stage 1 done (titles, robots.txt, sitemap, structured data, About/Terms/Privacy, 404). Plan and to-do list: `SEO.md`.
+
+## Video upload
+- Video file upload is switched off in the form (October 2026). The YouTube/Vimeo link stays. Run `disable_video_upload.sql` to close it in the database too. To restore: run `step11_video.sql` again and remove `hidden` from `#vidUploadRow` in `public/index.html`.

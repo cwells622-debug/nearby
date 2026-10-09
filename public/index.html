@@ -271,9 +271,10 @@ dialog.wide{width:min(1020px,96vw)}
     <label>Cover photo (the picture on the home page). Slide to choose which part shows.<input type="range" id="cy" name="cy" min="0" max="100" value="50" aria-label="Cover photo framing"></label>
   </div>
   <div id="curVideo" class="vrow" hidden></div>
-  <label><span id="videoLbl">Video clip (optional, MP4, MOV or WebM, up to 50 MB)</span><input id="fvid" type="file" accept="video/mp4,video/quicktime,video/webm"></label>
+  <!-- Video upload is switched off for now (remove the word "hidden" below to bring it back; the rest of the code is still in place). The YouTube/Vimeo link below stays. -->
+  <label id="vidUploadRow" hidden><span id="videoLbl">Video clip (optional, MP4, MOV or WebM, up to 50 MB)</span><input id="fvid" type="file" accept="video/mp4,video/quicktime,video/webm"></label>
   <div id="newVideo" class="vrow" hidden></div>
-  <label>Or a video link (YouTube or Vimeo, optional)<input name="vlink" type="url" maxlength="200" placeholder="https://www.youtube.com/watch?v=..." autocomplete="off"></label>
+  <label>Video link (YouTube or Vimeo, optional)<input name="vlink" type="url" maxlength="200" placeholder="https://www.youtube.com/watch?v=..." autocomplete="off"></label>
   <p class="autherr" id="postMsg" role="alert"></p>
   <button class="btn" type="submit" id="postGo">Publish ad</button>
 </form></dialog>
