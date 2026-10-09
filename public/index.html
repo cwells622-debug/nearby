@@ -297,7 +297,7 @@ dialog.wide{width:min(1020px,96vw)}
 <script>
 // Filled in from Supabase by loadData() at the bottom of the page.
 // cats: [name, icon, hue]   items: the listings   T: "City, ST" -> [lat, lng]
-const HUES={Vehicles:210,Property:150,Electronics:190,Furniture:30,Clothing:330,Sports:100,Jobs:260,ATV:20,Appliances:170,Campers:120,"Real Estate":140,Medical:350,Motorcycles:0,Antiques:40,"Lawn and Garden":90,"Heavy Machinery":50};
+const HUES={"Autos Cars":210,"Autos Trucks":220,Vehicles:210,Property:150,Electronics:190,Furniture:30,Clothing:330,Sports:100,Jobs:260,ATV:20,Appliances:170,Campers:120,"Real Estate":140,Medical:350,Motorcycles:0,Antiques:40,"Lawn and Garden":90,"Heavy Machinery":50};
 let cats=[],items=[];
 const T={};
 let cur="All",q="",sort="new",me="Saratoga Springs, NY",rad=50,view="all",showLoc=false,geoMsg="",ow=false;
@@ -622,8 +622,9 @@ function startPost(id){
   showLinkField();showPicked();
   $("#dView").close();$("#dPost").showModal();
 }
-// The "Link" box only appears when the category is Vehicles.
-function showLinkField(){$("#linkRow").hidden=$("#fc").value!=="Vehicles"}
+// The "Link" box only appears for these categories (the database enforces the same list; see step13_autos_categories.sql).
+const LINK_CATS=["Autos Cars","Autos Trucks"];
+function showLinkField(){$("#linkRow").hidden=!LINK_CATS.includes($("#fc").value)}
 $("#fc").addEventListener("change",showLinkField);
 // Only web addresses starting with http:// or https:// are allowed (never javascript: and similar).
 function safeUrl(u){try{const x=new URL(u);return x.protocol==="https:"||x.protocol==="http:"?x.href:null}catch(e){return null}}
@@ -772,8 +773,8 @@ $("#f").addEventListener("submit",async e=>{
   const coverOld=!coverIsNew&&kept.length?(kept.includes(f.get("cover"))?f.get("cover"):kept[0]):null;
   const coverY=Math.min(100,Math.max(0,Math.round(+f.get("cy")||50)));
   const catName=f.get("c");
-  // Link: Vehicles only. Any other category saves an empty link.
-  const rawLink=catName==="Vehicles"?String(f.get("link")||"").trim():"";
+  // Link: cars and trucks only. Any other category saves an empty link.
+  const rawLink=LINK_CATS.includes(catName)?String(f.get("link")||"").trim():"";
   const link=rawLink?safeUrl(rawLink):null;
   if(rawLink&&(!link||link.length>500)){msg.textContent="The link must be a web address starting with http:// or https:// (500 characters at most).";return}
   // Video link: YouTube or Vimeo only.

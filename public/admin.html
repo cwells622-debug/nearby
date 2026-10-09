@@ -80,7 +80,7 @@ label input:focus,label select:focus,label textarea:focus{outline:none;border-co
   </div>
   <datalist id="cl"></datalist>
   <label>Description<textarea name="d" rows="4" required maxlength="2000"></textarea></label>
-  <label>Link (Vehicles only)<input name="link" type="url" maxlength="500" placeholder="https://"></label>
+  <label>Link (cars and trucks only)<input name="link" type="url" maxlength="500" placeholder="https://"></label>
   <label>Video link (YouTube or Vimeo)<input name="vlink" type="url" maxlength="200" placeholder="https://www.youtube.com/watch?v=..."></label>
   <label id="eVidRow" style="flex-direction:row;align-items:center;gap:8px;color:var(--ink)" hidden><input type="checkbox" name="rmv"> Remove the uploaded video file</label>
   <div id="ePhotos" class="thumbs"></div>
@@ -209,7 +209,7 @@ $("#fe").addEventListener("submit",async ev=>{
   const catName=(cats.find(c=>String(c.id)===e.c.value)||{}).name;
   let link=e.link.value.trim()?safeUrl(e.link.value.trim()):null;
   if(e.link.value.trim()&&!link){err.textContent="The link must start with http:// or https://";return}
-  if(catName!=="Vehicles")link=null;   // the database only allows links on Vehicles ads
+  if(!["Autos Cars","Autos Trucks"].includes(catName))link=null;   // the database only allows links on these categories
   const vl=e.vlink.value.trim();
   if(vl&&!VIDEO_LINK_OK.test(vl)){err.textContent="The video link must be a YouTube or Vimeo address starting with https://";return}
   const removed=[...ev.target.querySelectorAll('[name=rm]:checked')].map(x=>x.value);

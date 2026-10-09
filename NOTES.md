@@ -48,3 +48,6 @@
 
 ## Video upload
 - Video file upload is switched off in the form (October 2026). The YouTube/Vimeo link stays. Run `disable_video_upload.sql` to close it in the database too. To restore: run `step11_video.sql` again and remove `hidden` from `#vidUploadRow` in `public/index.html`.
+
+## Categories
+- `step13_autos_categories.sql`: 'Vehicles' renamed to 'Autos Cars' and 'Autos Trucks' added; the vehicle link box now works for both. The list of link-enabled categories lives in 3 places: `LINK_CATS` in `public/index.html`, the list in `public/admin.html`, and the trigger in `step13_autos_categories.sql`.
