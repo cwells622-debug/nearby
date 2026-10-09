@@ -349,7 +349,7 @@ dialog .dlg.msgs{padding:0;gap:0}
 const HUES={"Autos Cars":210,"Autos Trucks":220,Vehicles:210,Property:150,Electronics:190,Furniture:30,Clothing:330,Sports:100,Jobs:260,ATV:20,Appliances:170,Campers:120,"Real Estate":140,Medical:350,Motorcycles:0,Antiques:40,"Lawn and Garden":90,"Heavy Machinery":50};
 let cats=[],items=[];
 const T={};
-let cur="All",q="",sort="new",me="Saratoga Springs, NY",rad=50,view="all",showLoc=false,geoMsg="",ow=false;
+let cur="All",q="",sort="new",me="Saratoga Springs, NY",rad=0,view="all"   /* rad: miles from "me"; 0 = any distance. Set back to 50 (or 25) once there are plenty of ads. */,showLoc=false,geoMsg="",ow=false;
 // Category / region pages (/for-sale/autos-trucks, /in/capital-district) arrive with a note from the server (window.__LANDING__)
 // saying which filter they represent. regionSlug filters by the database's region lists instead of by distance.
 const LAND=window.__LANDING__||null;
@@ -568,7 +568,7 @@ document.addEventListener("click",e=>{
   const bk=t.closest("[data-back]");if(bk){open(bk.dataset.back);return}
   const ct=t.closest("[data-city]");if(ct){me=ct.dataset.city;render();return}
   if(t.closest("#locToggle")){showLoc=!showLoc;render();return}
-  if(t.closest("#clearRegion")){regionSlug=null;rad=50;try{history.replaceState(null,"","/")}catch(e){};render();return}
+  if(t.closest("#clearRegion")){regionSlug=null;rad=0;try{history.replaceState(null,"","/")}catch(e){};render();return}
   if(t.id==="geo"){locate();return}
   const vw=t.closest("[data-view]");if(vw){view=vw.dataset.view;render();return}
   const cat=t.closest("[data-cat]");if(cat){cur=cat.dataset.cat;q="";$("#q").value="";render();window.scrollTo({top:0});return}
