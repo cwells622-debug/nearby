@@ -12,14 +12,14 @@
 <meta property="og:description" content="Buy and sell vehicles, motorcycles, campers, equipment and more with people near you.">
 <meta property="og:image" content="https://chadads.netlify.app/logo.webp">
 <meta name="twitter:card" content="summary_large_image">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3CclipPath id='c'%3E%3Ccircle cx='32' cy='32' r='27'/%3E%3C/clipPath%3E%3C/defs%3E%3Ccircle cx='32' cy='32' r='29' fill='%231d1d1f'/%3E%3Ccircle cx='32' cy='32' r='27' fill='%23f3ead8'/%3E%3Cg clip-path='url(%23c)'%3E%3Cpath d='M0 17 H64 V25 H0z' fill='%23174e7a'/%3E%3Cpath d='M0 27 H64 V35 H0z' fill='%23f06a14'/%3E%3Cpath d='M0 37 H64 V45 H0z' fill='%23f0b014'/%3E%3C/g%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3CclipPath id='c'%3E%3Ccircle cx='32' cy='32' r='27'/%3E%3C/clipPath%3E%3C/defs%3E%3Ccircle cx='32' cy='32' r='29' fill='%231e1c19'/%3E%3Ccircle cx='32' cy='32' r='27' fill='%23f6e9d2'/%3E%3Cg clip-path='url(%23c)'%3E%3Cpath d='M0 17 H64 V25 H0z' fill='%23164663'/%3E%3Cpath d='M0 27 H64 V35 H0z' fill='%23e95e0d'/%3E%3Cpath d='M0 37 H64 V45 H0z' fill='%23e9a70d'/%3E%3C/g%3E%3C/svg%3E">
 <style>
-/* ChadAds look: black and white, one bright accent (--acc). Change --acc to restyle the whole site. */
-:root{--bg:#fff;--panel:#fff;--ink:#1d1d1f;--mute:#6e6e73;--line:#e5e5ea;--acc:#0071e3;--acc-ink:#fff;--soft:#f5f5f7;--glass:rgba(255,255,255,.78);
+/* ChadAds look, taken from the logo: warm cream and black, an orange accent (--acc) for buttons, navy (--link) for links, mustard for small touches. */
+:root{--bg:#fbf7ef;--panel:#fffdf8;--ink:#1e1c19;--mute:#6d6558;--line:#e8dfcc;--acc:#e95e0d;--acc-ink:#1e1c19;--acc-text:#b8460a;--link:#164663;--navy:#164663;--mustard:#e9a70d;--soft:#f3eadb;--glass:rgba(251,247,239,.82);
 --shadow:0 2px 4px rgba(0,0,0,.04),0 12px 28px rgba(0,0,0,.08);
 box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#000;--panel:#1c1c1e;--ink:#f5f5f7;--mute:#98989d;--line:#38383a;--acc:#2997ff;--acc-ink:#fff;--soft:#2c2c2e;--glass:rgba(0,0,0,.72);--shadow:0 2px 4px rgba(0,0,0,.4),0 12px 28px rgba(0,0,0,.5)}}
-:root[data-theme="dark"]{--bg:#000;--panel:#1c1c1e;--ink:#f5f5f7;--mute:#98989d;--line:#38383a;--acc:#2997ff;--acc-ink:#fff;--soft:#2c2c2e;--glass:rgba(0,0,0,.72);--shadow:0 2px 4px rgba(0,0,0,.4),0 12px 28px rgba(0,0,0,.5)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15120e;--panel:#201c16;--ink:#f6e9d2;--mute:#a99f8d;--line:#3b342a;--acc:#f26a1b;--acc-ink:#1a120a;--acc-text:#ff8a45;--link:#7fb6dc;--navy:#2c6a93;--mustard:#e9a70d;--soft:#2b261e;--glass:rgba(21,18,14,.78);--shadow:0 2px 4px rgba(0,0,0,.4),0 12px 28px rgba(0,0,0,.5)}}
+:root[data-theme="dark"]{--bg:#15120e;--panel:#201c16;--ink:#f6e9d2;--mute:#a99f8d;--line:#3b342a;--acc:#f26a1b;--acc-ink:#1a120a;--acc-text:#ff8a45;--link:#7fb6dc;--navy:#2c6a93;--mustard:#e9a70d;--soft:#2b261e;--glass:rgba(21,18,14,.78);--shadow:0 2px 4px rgba(0,0,0,.4),0 12px 28px rgba(0,0,0,.5)}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 html{scroll-padding-top:env(safe-area-inset-top,0px);-webkit-text-size-adjust:100%}
@@ -28,6 +28,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 button{cursor:pointer}
 :focus-visible{outline:3px solid var(--acc);outline-offset:2px}
 header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--glass);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid var(--line);display:flex;gap:14px;align-items:center;padding:12px 20px}
+header::after{content:"";position:absolute;left:0;right:0;bottom:-6px;height:6px;background:linear-gradient(var(--navy) 0 2px,var(--acc) 2px 4px,var(--mustard) 4px 6px);pointer-events:none}
 .logo{display:flex;align-items:center;color:var(--ink);text-decoration:none;white-space:nowrap}
 .logo img{height:62px;width:auto;display:block}
 .search{flex:1 1 0;min-width:0;border:0;background:var(--soft);border-radius:999px;padding:11px 18px}
@@ -61,7 +62,7 @@ h2{font-size:21px;font-weight:600}
 select{border:0;background:var(--soft);border-radius:12px;padding:9px 12px}
 .sec{margin-bottom:36px}
 .sec .hd{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px}
-.link{border:0;background:none;color:var(--acc);font-weight:500;padding:4px}
+.link{border:0;background:none;color:var(--link);font-weight:500;padding:4px}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(220px,100%),1fr));gap:28px 20px}
 .card{border:0;background:none;border-radius:0;padding:0;text-align:left;overflow:visible;display:block;width:100%}
 .card .ph{transition:transform .25s ease,box-shadow .25s ease}
@@ -77,7 +78,7 @@ select{border:0;background:var(--soft);border-radius:12px;padding:9px 12px}
 .coverbox input[type=range]{padding:0;background:none;border:0;accent-color:var(--acc);width:100%}
 .cprev{width:112px;aspect-ratio:4/3;border-radius:12px;overflow:hidden;background:var(--panel);flex:none;position:relative}
 .cprev img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-.thumbs .cvr{font-size:11px;font-weight:600;color:var(--acc)}
+.thumbs .cvr{font-size:11px;font-weight:600;color:var(--acc-text)}
 .blurbg{position:absolute;inset:-24px;background:var(--pbg) center/cover no-repeat;filter:blur(22px) saturate(1.15) brightness(.93)}   /* soft backdrop made from the photo itself, fills the empty sides */
 .cb{padding:12px 2px 0;display:flex;flex-direction:column;gap:2px}
 .cb b{font-size:17px;font-weight:600}
@@ -114,7 +115,7 @@ label input:focus,label select:focus,label textarea:focus{outline:none;border-co
 .qa{display:flex;gap:8px;flex-wrap:wrap}.qa button{border:0;background:var(--soft);border-radius:999px;padding:8px 16px;font-weight:500}.qa button:hover{background:var(--line)}.offer{display:flex;flex-direction:column;gap:10px;background:var(--soft);border-radius:16px;padding:14px}
 .cw{position:relative;min-width:0}.heart{position:absolute;top:10px;right:10px;width:36px;height:36px;border-radius:50%;border:0;background:rgba(255,255,255,.88);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);color:#1d1d1f;font-size:18px;display:grid;place-items:center;transition:transform .15s}
 .heart:hover{transform:scale(1.08)}
-.heart[aria-pressed="true"],.btn[aria-pressed="true"]{color:var(--acc)}
+.heart[aria-pressed="true"],.btn[aria-pressed="true"]{color:var(--acc-text)}
 .seller{display:flex;gap:10px;align-items:center;color:var(--mute)}
 .av{width:36px;height:36px;border-radius:50%;background:var(--ink);color:var(--bg);display:grid;place-items:center;font-weight:700}
 .ok{background:var(--soft);padding:12px 14px;border-radius:14px;font-weight:500}
@@ -143,7 +144,7 @@ dialog.wide{width:min(1020px,96vw)}
 .ctas{display:flex;flex-direction:column;gap:8px;margin-top:4px}
 .btn.lg{width:100%;padding:14px 20px;font-size:17px}
 .savebtn{border:0;background:var(--soft);border-radius:999px;padding:8px 16px;font-weight:600;white-space:nowrap}
-.savebtn[aria-pressed="true"]{color:var(--acc)}
+.savebtn[aria-pressed="true"]{color:var(--acc-text)}
 @media (min-width:860px){
  .adg{grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);max-height:92vh}
  .adi{overflow-y:auto;max-height:92vh;padding:30px 28px}
@@ -382,7 +383,7 @@ function open(id){
     <h2 class="adt">${esc(i.t)}</h2>
     <div class="m" style="color:var(--mute)">${esc(i.loc)} · ${dd(i)} · Posted ${i.ago==="Just now"?"just now":i.ago+" ago"}</div>
     <p class="d">${esc(i.d)}</p>
-    ${safeUrl(i.link)?`<p style="margin:0"><a href="${esc(safeUrl(i.link))}" data-ext target="_blank" rel="noopener noreferrer nofollow ugc" style="color:var(--acc);font-weight:600">🔗 ${esc(new URL(i.link).hostname)}</a></p>`:""}
+    ${safeUrl(i.link)?`<p style="margin:0"><a href="${esc(safeUrl(i.link))}" data-ext target="_blank" rel="noopener noreferrer nofollow ugc" style="color:var(--link);font-weight:600">🔗 ${esc(new URL(i.link).hostname)}</a></p>`:""}
     <button class="seller sbtn" data-prof="${i.id}"><div class="av">${esc(s.n[0])}</div><span><b>${esc(s.n)}</b><br>${rate(s)} · View profile</span></button>
     ${mine?(i.sid?`<div class="ctas"><button class="btn lg" data-edit="${i.id}">Edit this ad</button><button class="btn ghost lg" data-del="${i.id}">Delete this ad</button></div>`:""):
       `<div class="ctas"><button class="btn lg" id="msgBtn">Message ${esc(s.n)}</button><div id="offer">${offerHtml(i,s)}</div></div>
