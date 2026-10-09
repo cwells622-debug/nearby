@@ -135,11 +135,14 @@ async function start(){
       <input type="search" id="fq" placeholder="Search titles" aria-label="Search titles">
       <select id="fs" aria-label="Status"><option value="">All statuses</option><option value="active">Active</option><option value="sold">Sold</option></select>
       <select id="fd" aria-label="Source"><option value="">User and demo ads</option><option value="user">User ads only</option><option value="demo">Demo ads only</option></select>
-      <button class="btn ghost" id="fr">Refresh</button></div>
+      <button class="btn ghost" id="fr">Refresh</button>
+      <button class="btn ghost" id="fb" title="Makes the small copy of every photo that does not have one yet (needs step16_admin_photo_upload.sql)">Create small photo copies</button></div>
+    <p class="sub" id="fbMsg" role="status"></p>
     <div id="list"></div>`;
   let t;$("#fq").addEventListener("input",()=>{clearTimeout(t);t=setTimeout(()=>load(true),300)});
   $("#fs").addEventListener("change",()=>load(true));$("#fd").addEventListener("change",()=>load(true));
   $("#fr").addEventListener("click",()=>load(true));
+  $("#fb").addEventListener("click",backfillThumbs);
   load(true);
 }
 
@@ -158,12 +161,15 @@ async function load(reset){
 }
 
 const photoUrl=p=>sb.storage.from(BUCKET).getPublicUrl(p).data.publicUrl;
+// Every photo has a small copy next to it ("abc.jpg" -> "abc_t.jpg"). MUST match thumbPath() in public/index.html.
+const thumbPath=p=>p.replace(/\.[A-Za-z0-9]+$/,"_t.jpg");
+const withThumbs=ps=>ps.concat(ps.map(thumbPath));
 function draw(){
   if(!rows.length){$("#list").innerHTML=`<div class="msg"><h2>No ads found</h2><p>Try a different search or filter.</p></div>`;return}
   $("#list").innerHTML=`<div class="wrapx"><table><thead><tr><th></th><th>Ad</th><th>Seller</th><th>Category</th><th>City</th><th>Price</th><th>Status</th><th>Posted</th><th></th></tr></thead><tbody>`+
   rows.map(r=>{
     const ph=(r.listing_photos||[])[0],when=new Date(r.created_at).toLocaleDateString(undefined,{year:"numeric",month:"short",day:"numeric"});
-    return `<tr><td class="th">${ph?`<img src="${esc(photoUrl(ph.storage_path))}" alt="" loading="lazy">`:`<span>none</span>`}</td>
+    return `<tr><td class="th">${ph?`<img src="${esc(photoUrl(thumbPath(ph.storage_path)))}" data-full="${esc(photoUrl(ph.storage_path))}" onerror="this.onerror=null;this.src=this.dataset.full" alt="" loading="lazy">`:`<span>none</span>`}</td>
       <td><div class="ttl" title="${esc(r.title)}">${esc(r.title)}</div><div class="sub">#${r.id}${(r.listing_photos||[]).length>1?` · ${r.listing_photos.length} photos`:""}${(r.listing_videos||[]).length?" · video":""}${r.video_link?" · video link":""}</div></td>
       <td>${r.is_demo?`<span class="pill demo">Demo</span>`:esc(r.profiles?r.profiles.display_name:"(unknown)")}</td>
       <td>${esc(r.categories?r.categories.name:"")}</td>
@@ -220,7 +226,7 @@ $("#fe").addEventListener("submit",async ev=>{
   if(removed.length){
     const d=await sb.from("listing_photos").delete().eq("listing_id",editing.id).in("storage_path",removed);
     if(d.error){go.disabled=false;err.textContent="Saved, but photos were not removed: "+d.error.message;return}
-    await sb.storage.from(BUCKET).remove(removed);
+    await sb.storage.from(BUCKET).remove(withThumbs(removed));
   }
   const vid=(editing.listing_videos||[])[0];
   if(vid&&e.rmv.checked){
@@ -231,6 +237,37 @@ $("#fe").addEventListener("submit",async ev=>{
   go.disabled=false;$("#dEdit").close();
   const keep=from;from=0;rows=[];await loadKeep(keep);
 });
+// One-time (and any-time) tool: makes the small copy for every photo that lacks one. Safe to run again; it skips photos that already have one.
+async function backfillThumbs(){
+  const btn=$("#fb"),msg=$("#fbMsg");btn.disabled=true;msg.textContent="Looking at all photos…";
+  let made=0,had=0,failed=0,lastErr="";
+  try{
+    const paths=[];
+    for(let f=0;;f+=1000){
+      const {data,error}=await sb.from("listing_photos").select("storage_path").order("id").range(f,f+999);
+      if(error)throw error;paths.push(...data.map(r=>r.storage_path));if(data.length<1000)break;
+    }
+    let n=0;
+    for(const p of paths){
+      n++;msg.textContent=`Checking photo ${n} of ${paths.length}…`;
+      const t=thumbPath(p);
+      const head=await fetch(photoUrl(t),{method:"HEAD"}).catch(()=>null);
+      if(head&&head.ok){had++;continue}
+      try{
+        const blob=await (await fetch(photoUrl(p))).blob();
+        const bmp=await createImageBitmap(blob,{imageOrientation:"from-image"});
+        const s=Math.min(1,600/Math.max(bmp.width,bmp.height)),c=document.createElement("canvas");
+        c.width=Math.max(1,Math.round(bmp.width*s));c.height=Math.max(1,Math.round(bmp.height*s));
+        const g=c.getContext("2d");g.fillStyle="#fff";g.fillRect(0,0,c.width,c.height);g.drawImage(bmp,0,0,c.width,c.height);bmp.close();
+        const out=await new Promise(r=>c.toBlob(r,"image/jpeg",0.8));
+        const {error}=await sb.storage.from(BUCKET).upload(t,out,{contentType:"image/jpeg"});
+        if(error)throw error;made++;
+      }catch(e){failed++;lastErr=e&&e.message||String(e)}
+    }
+    msg.textContent=`Done. ${made} small cop${made===1?"y":"ies"} created, ${had} already existed${failed?`, ${failed} failed (${lastErr})`:""}.`+(failed&&/row-level|policy|permission/i.test(lastErr)?" Run step16_admin_photo_upload.sql in Supabase first.":"");
+  }catch(e){msg.textContent="Couldn't finish: "+(e&&e.message||e)}
+  btn.disabled=false;
+}
 // Reload the same number of rows that were showing, so the list doesn't jump back to the top.
 async function loadKeep(n){
   const pages=Math.max(1,Math.ceil(n/PAGE));from=0;rows=[];
@@ -243,7 +280,7 @@ async function deleteAd(id){
   const {data,error}=await sb.from("listings").delete().eq("id",id).select("id");
   if(error||!data.length){alert(error?error.message:"Not deleted. Are you still an admin?");return}
   const paths=(r.listing_photos||[]).map(p=>p.storage_path);
-  if(paths.length)await sb.storage.from(BUCKET).remove(paths);
+  if(paths.length)await sb.storage.from(BUCKET).remove(withThumbs(paths));
   const vpaths=(r.listing_videos||[]).map(p=>p.storage_path);
   if(vpaths.length)await sb.storage.from(VBUCKET).remove(vpaths);
   rows=rows.filter(x=>x.id!==id);draw();

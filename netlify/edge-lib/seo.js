@@ -30,6 +30,8 @@ const clip = (s, n) => {
   return s.length > n ? s.slice(0, n - 1).trimEnd() + "…" : s;
 };
 const photoUrl = (p) => `${SB_URL}/storage/v1/object/public/listing-photos/${p}`;
+// The small copy saved next to each photo ("abc.jpg" -> "abc_t.jpg"). MUST match thumbPath() in public/index.html.
+export const thumbPath = (p) => p.replace(/\.[A-Za-z0-9]+$/, "_t.jpg");
 export const sortedPhotos = (ad) =>
   [...(ad.listing_photos || [])].sort((a, b) => (a.position - b.position) || (a.id - b.id));
 
@@ -225,8 +227,10 @@ export function buildListPage(shell, { catName, region, ads, total, cats }) {
   h = h.replace("</head>", () => headExtra + "</head>");
 
   const items = ads.map((a) => {
-    const ph = photos(a)[0], city = a.cities ? `${a.cities.name}, ${a.cities.state}` : "";
-    return `<li><a href="${esc(adPath(a.id, a.title))}">${ph ? `<img src="${esc(ph)}" alt="${esc(a.title)}" loading="lazy" width="200" height="150" style="width:100%;height:auto;aspect-ratio:4/3;object-fit:cover;border-radius:12px">` : ""}` +
+    const first = sortedPhotos(a)[0], ph = first ? photoUrl(first.storage_path) : "", th = first ? photoUrl(thumbPath(first.storage_path)) : "";
+    const city = a.cities ? `${a.cities.name}, ${a.cities.state}` : "";
+    // small copy in the list; older ads without one fall back to the full photo
+    return `<li><a href="${esc(adPath(a.id, a.title))}">${ph ? `<img src="${esc(th)}" data-full="${esc(ph)}" onerror="this.onerror=null;this.src=this.dataset.full" alt="${esc(a.title)}" loading="lazy" width="200" height="150" style="width:100%;height:auto;aspect-ratio:4/3;object-fit:cover;border-radius:12px">` : ""}` +
       `<strong>${esc(money(a.price))}</strong> ${esc(a.title)}<br><small>${esc(city)}</small></a></li>`;
   }).join("\n");
   const catLinks = (cats || []).map((c) => `<a href="${browsePath(c.name, null)}">${esc(catLabel(c.name))}</a>`).join(" · ");

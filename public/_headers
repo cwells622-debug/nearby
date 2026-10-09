@@ -8,6 +8,9 @@
 /logo.webp
   Cache-Control: public, max-age=604800
 
+/logo-sm.webp
+  Cache-Control: public, max-age=604800
+
 /page.css
   Cache-Control: public, max-age=86400
 

@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <base href="/">
+<link rel="preload" as="image" href="logo-sm.webp" type="image/webp">
 <title>ChadAds | Local Classifieds in the Capital Region &amp; Upstate NY</title>
 <meta name="description" content="Buy and sell vehicles, campers, trailers and equipment in the Capital District, Albany, Saratoga, Troy, Adirondacks, Hudson Valley and Upstate NY.">
 <!-- Every address of the home page (including ?ad=26 pop-up links) counts as this one page for Google. -->
@@ -274,7 +275,7 @@ dialog .dlg.msgs{padding:0;gap:0}
 </head>
 <body>
 <header>
-  <a class="logo" href="./" aria-label="ChadAds home"><img src="logo.webp" alt="ChadAds" width="96" height="64"><span class="tag3" aria-hidden="true">List<i>•</i>Sell<i>•</i>Local</span></a>
+  <a class="logo" href="./" aria-label="ChadAds home"><img src="logo-sm.webp" alt="ChadAds" width="96" height="64" fetchpriority="high"><span class="tag3" aria-hidden="true">List<i>•</i>Sell<i>•</i>Local</span></a>
   <input class="search" id="q" type="search" placeholder="Search listings" aria-label="Search listings">
   <div class="hdr-r">
     <span class="who" id="who"></span>
@@ -401,7 +402,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt=p=>p===0?"Free":"$"+p.toLocaleString();
 const saved=new Set();
-const card=i=>`<div class="cw"><button class="card" data-id="${i.id}"><div class="ph" style="--h:${i.h}">${i.img?`<img src="${esc(i.img)}" alt="${esc(i.t)}" loading="lazy" decoding="async" style="object-position:50% ${+i.coverY||50}%">`:`<span>${i.e}</span>`}${i.hasVideo?`<span class="vbadge">▶ Video</span>`:""}</div><div class="cb"><b>${fmt(i.p)}</b><span class="t">${esc(i.t)}</span><span class="m">${where2(i)}</span></div></button><button class="heart" data-save="${i.id}" aria-pressed="${saved.has(i.id)}" aria-label="Save listing">${saved.has(i.id)?"♥":"♡"}</button></div>`;
+const card=i=>`<div class="cw"><button class="card" data-id="${i.id}"><div class="ph" style="--h:${i.h}">${i.img?`<img src="${esc(i.thumb||i.img)}" data-full="${esc(i.img)}" ${FALLBACK} alt="${esc(i.t)}" loading="lazy" decoding="async" style="object-position:50% ${+i.coverY||50}%">`:`<span>${i.e}</span>`}${i.hasVideo?`<span class="vbadge">▶ Video</span>`:""}</div><div class="cb"><b>${fmt(i.p)}</b><span class="t">${esc(i.t)}</span><span class="m">${where2(i)}</span></div></button><button class="heart" data-save="${i.id}" aria-pressed="${saved.has(i.id)}" aria-label="Save listing">${saved.has(i.id)?"♥":"♡"}</button></div>`;
 // Saved ads live in the database (favorites table), private to the signed-in user.
 // The page keeps a copy in "saved" so hearts can be drawn instantly.
 function paintHearts(id,on){
@@ -451,6 +452,10 @@ function render(){
 // ---- Sharing: every ad has its own page address, like  https://chadads.com/ad/38-2017-jeep-rubicon ----
 // slugify() must stay identical to slugify() in netlify/edge-lib/seo.js (the server builds the same address).
 const slugify=t=>String(t||"").toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"").slice(0,60).replace(/-+$/,"")||"ad";
+// Every photo has a small copy saved next to it ("abc.jpg" -> "abc_t.jpg", about 600 px wide) for grids and strips. MUST match thumbPath() in netlify/edge-lib/seo.js.
+const thumbPath=p=>p.replace(/\.[A-Za-z0-9]+$/,"_t.jpg");
+const withThumbs=ps=>ps.concat(ps.map(thumbPath));   // for deleting: the photo and its small copy
+const FALLBACK='onerror="this.onerror=null;this.src=this.dataset.full"';   // old photos without a small copy fall back to the full photo
 const adPath=i=>"/ad/"+i.id+"-"+slugify(i.t);
 const adUrl=i=>location.origin+adPath(i);
 // Simple one-colour icons for the share buttons. Facebook, X and WhatsApp shapes are from the public-domain Simple Icons set.
@@ -500,7 +505,7 @@ function open(id){
       ${n>1?`<button class="gnav prev" data-gnav="-1" aria-label="Previous">‹</button><button class="gnav next" data-gnav="1" aria-label="Next">›</button><span class="gcount">1 / ${n}</span>`:""}
       <button class="x gx" data-close aria-label="Close">✕</button>
     </div>
-    ${n>1?`<div class="gthumbs">${i.media.map((m,k)=>`<button type="button" data-gi="${k}" aria-pressed="${k===0}" aria-label="Show ${m.t==="img"?"photo":"video"} ${k+1}">${m.t==="img"?`<img src="${esc(m.u)}" alt="">`:`<span class="vt">▶</span>`}</button>`).join("")}</div>`:""}
+    ${n>1?`<div class="gthumbs">${i.media.map((m,k)=>`<button type="button" data-gi="${k}" aria-pressed="${k===0}" aria-label="Show ${m.t==="img"?"photo":"video"} ${k+1}">${m.t==="img"?`<img src="${esc(m.th||m.u)}" data-full="${esc(m.u)}" ${FALLBACK} alt="">`:`<span class="vt">▶</span>`}</button>`).join("")}</div>`:""}
   </div>
   <div class="adi">
     <span class="tag">${esc(i.c)}</span>
@@ -948,11 +953,25 @@ async function cleanPhoto(file){
     return best;
   }finally{bmp.close()}
 }// Photos go in a folder named after the user's id, so storage rules can check ownership.
+// The small copy: about 600 px wide JPEG (roughly 30 to 60 KB), used in grids so the home page loads fast.
+async function makeThumb(file){
+  const bmp=await createImageBitmap(file,{imageOrientation:"from-image"});
+  try{
+    const s=Math.min(1,600/Math.max(bmp.width,bmp.height)),c=document.createElement("canvas");
+    c.width=Math.max(1,Math.round(bmp.width*s));c.height=Math.max(1,Math.round(bmp.height*s));
+    const g=c.getContext("2d");g.fillStyle="#fff";g.fillRect(0,0,c.width,c.height);g.drawImage(bmp,0,0,c.width,c.height);
+    return await new Promise(r=>c.toBlob(r,"image/jpeg",0.8));
+  }finally{bmp.close()}
+}
 async function uploadPhoto(file){
   const blob=await cleanPhoto(file);   // never upload the original file
   const path=user.id+"/"+crypto.randomUUID()+"."+PHOTO_TYPES[blob.type];
   const {error}=await sb.storage.from(BUCKET).upload(path,blob,{contentType:blob.type});
   if(error)throw error;
+  try{                                  // the small copy is a bonus: if it fails, pages simply use the full photo
+    const th=await makeThumb(blob);
+    if(th)await sb.storage.from(BUCKET).upload(thumbPath(path),th,{contentType:"image/jpeg"});
+  }catch(e){}
   return path;
 }
 $("#f").addEventListener("submit",async e=>{
@@ -1032,11 +1051,11 @@ $("#f").addEventListener("submit",async e=>{
       if(error)throw error;
     }
     // 4. Only now delete the removed files from storage.
-    if(removed.length)await sb.storage.from(BUCKET).remove(removed);
+    if(removed.length)await sb.storage.from(BUCKET).remove(withThumbs(removed));
     if(dropVid)await sb.storage.from(VBUCKET).remove([oldVid]);
   }catch(err){
     // Undo a half-finished save so nothing is left behind.
-    if(newPaths.length)await sb.storage.from(BUCKET).remove(newPaths);
+    if(newPaths.length)await sb.storage.from(BUCKET).remove(withThumbs(newPaths));
     if(newVid)await sb.storage.from(VBUCKET).remove([newVid]);
     if(vidRowGone)await sb.from("listing_videos").insert({listing_id:editId,storage_path:oldVid});
     if(removedRows)await sb.from("listing_photos").insert(removed.map(p=>({listing_id:editId,storage_path:p})));
@@ -1053,7 +1072,7 @@ async function deleteAd(id){
   if(!confirm("Delete this ad? This can't be undone."))return;
   const {data,error}=await sb.from("listings").delete().eq("id",id).select("id");
   if(error||!data.length){alert(error?error.message:"You can only delete your own ads.");return}
-  if(i.paths.length)await sb.storage.from(BUCKET).remove(i.paths);
+  if(i.paths.length)await sb.storage.from(BUCKET).remove(withThumbs(i.paths));
   if(i.vpath)await sb.storage.from(VBUCKET).remove([i.vpath]);
   $("#dView").close();await loadData();
 }
@@ -1101,11 +1120,12 @@ async function loadData(){
     const c=catById[r.category_id],hrs=Math.max(0,Math.floor((now-new Date(r.created_at))/36e5));
     const paths=(r.listing_photos||[]).map(p=>p.storage_path);
     const imgs=paths.map(p=>sb.storage.from(BUCKET).getPublicUrl(p).data.publicUrl),img=imgs[0]||null;
+    const thumbs=paths.map(p=>sb.storage.from(BUCKET).getPublicUrl(thumbPath(p)).data.publicUrl),thumb=thumbs[0]||null;
     // Everything shown in the ad's gallery: photos first, then the uploaded video, then a YouTube/Vimeo player.
     const vpath=(r.listing_videos&&r.listing_videos[0])?r.listing_videos[0].storage_path:null;
     const vurl=vpath?sb.storage.from(VBUCKET).getPublicUrl(vpath).data.publicUrl:null,emb=videoEmbed(r.video_link);
-    const media=[...imgs.map(u=>({t:"img",u,alt:r.title})),...(vurl?[{t:"vid",u:vurl}]:[]),...(emb?[{t:"emb",u:emb}]:[])];
-    return{id:r.id,paths,imgs,img,coverY:r.cover_y,media,vpath,vlink:r.video_link,hasVideo:!!(vurl||emb),link:r.link,t:r.title,p:r.price,c:c[0],loc:cityById[r.city_id],reg:cityRegions[cityById[r.city_id]]||[],d:r.description,ago:agoText(hrs),hrs,e:c[1],h:c[2],
+    const media=[...imgs.map((u,k)=>({t:"img",u,th:thumbs[k],alt:r.title})),...(vurl?[{t:"vid",u:vurl}]:[]),...(emb?[{t:"emb",u:emb}]:[])];
+    return{id:r.id,paths,imgs,img,thumb,coverY:r.cover_y,media,vpath,vlink:r.video_link,hasVideo:!!(vurl||emb),link:r.link,t:r.title,p:r.price,c:c[0],loc:cityById[r.city_id],reg:cityRegions[cityById[r.city_id]]||[],d:r.description,ago:agoText(hrs),hrs,e:c[1],h:c[2],
       sid:r.seller_id,sn:r.profiles&&r.profiles.display_name,sy:r.profiles&&new Date(r.profiles.created_at).getFullYear()}
   }).filter(i=>i.loc);
   // Fill the city suggestions and the category list in the Post form.

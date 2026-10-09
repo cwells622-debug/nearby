@@ -57,3 +57,8 @@
 
 ## Regions and category pages
 - `step15_regions.sql` (run AFTER `seed_cities_us.sql`, and BEFORE pushing the matching page change): county codes and regions on cities, plus small NY towns and nearby VT/MA towns. Details and how to change a region: `SEO.md` (Stage 3).
+
+## Photo speed
+- Every photo has a small copy (~600 px JPEG) saved beside it: `abc.jpg` -> `abc_t.jpg` (`thumbPath()` in `public/index.html`, `public/admin.html` and `netlify/edge-lib/seo.js` must stay identical). Grids, strips and lists use it and fall back to the full photo if it is missing. New uploads make it automatically; deleting a photo or ad removes both.
+- Photos uploaded before this need copies: run `step16_admin_photo_upload.sql`, then press 'Create small photo copies' on the admin page (safe to press again).
+- Logo: `public/logo-sm.webp` (27 KB) is used in headers; `public/logo.webp` (254 KB) is only used for link previews.
