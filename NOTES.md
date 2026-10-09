@@ -42,3 +42,6 @@
 - Demo sellers use made-up names and ratings. Delete demo ads with `delete from public.listings where is_demo;`.
 - No bot protection (CAPTCHA) on sign-up yet (Phase 4).
 - Site name, launch area and domain are still undecided (see PROJECT.md).
+
+## Search engines
+- Stage 1 done (titles, robots.txt, sitemap, structured data, About/Terms/Privacy, 404). Plan and to-do list: `SEO.md`.
