@@ -3,8 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>ChadAds | Local Classifieds for Vehicles, Campers &amp; Equipment</title>
-<meta name="description" content="Buy and sell vehicles, motorcycles, ATVs, campers, trailers, farm and heavy equipment, and tools near you. Free to list on ChadAds.">
+<base href="/">
+<title>ChadAds | Local Classifieds in the Capital Region &amp; Upstate NY</title>
+<meta name="description" content="Buy and sell vehicles, campers, trailers and equipment in the Capital District, Albany, Saratoga, Troy, Adirondacks, Hudson Valley and Upstate NY.">
 <!-- Every address of the home page (including ?ad=26 pop-up links) counts as this one page for Google. -->
 <link rel="canonical" href="https://chadads.com/">
 <meta name="theme-color" content="#fbf7ef" media="(prefers-color-scheme: light)">
@@ -16,21 +17,21 @@
 <meta property="og:site_name" content="ChadAds">
 <meta property="og:locale" content="en_US">
 <meta property="og:url" content="https://chadads.com/">
-<meta property="og:title" content="ChadAds | Local Classifieds for Vehicles, Campers &amp; Equipment">
-<meta property="og:description" content="Buy and sell vehicles, motorcycles, ATVs, campers, trailers, farm and heavy equipment, and tools near you.">
+<meta property="og:title" content="ChadAds | Local Classifieds in the Capital Region &amp; Upstate NY">
+<meta property="og:description" content="Buy and sell vehicles, campers, trailers and equipment in the Capital District, Albany, Saratoga, Troy, Adirondacks, Hudson Valley and Upstate NY.">
 <meta property="og:image" content="https://chadads.com/logo.webp">
 <meta property="og:image:width" content="1536">
 <meta property="og:image:height" content="1024">
 <meta property="og:image:alt" content="ChadAds logo: a vintage helmet with racing stripes">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="ChadAds | Local Classifieds for Vehicles, Campers &amp; Equipment">
-<meta name="twitter:description" content="Buy and sell vehicles, motorcycles, ATVs, campers, trailers, farm and heavy equipment, and tools near you.">
+<meta name="twitter:title" content="ChadAds | Local Classifieds in the Capital Region &amp; Upstate NY">
+<meta name="twitter:description" content="Buy and sell vehicles, campers, trailers and equipment in the Capital District, Albany, Saratoga, Troy, Adirondacks, Hudson Valley and Upstate NY.">
 <meta name="twitter:image" content="https://chadads.com/logo.webp">
 <!-- Tells Google what this site is (and how to search it) in a form it reads directly -->
 <script type="application/ld+json">
 {"@context":"https://schema.org","@graph":[
- {"@type":"Organization","@id":"https://chadads.com/#org","name":"ChadAds","url":"https://chadads.com/","logo":"https://chadads.com/logo.webp","slogan":"List. Sell. Local."},
- {"@type":"WebSite","@id":"https://chadads.com/#site","url":"https://chadads.com/","name":"ChadAds","description":"Local classifieds for vehicles, campers, equipment and more.","publisher":{"@id":"https://chadads.com/#org"},
+ {"@type":"Organization","@id":"https://chadads.com/#org","name":"ChadAds","url":"https://chadads.com/","logo":"https://chadads.com/logo.webp","slogan":"List. Sell. Local.","areaServed":["Capital District, NY","Albany, NY","Saratoga Springs, NY","Troy, NY","Adirondacks, NY","Hudson Valley, NY","Upstate New York"]},
+ {"@type":"WebSite","@id":"https://chadads.com/#site","url":"https://chadads.com/","name":"ChadAds","description":"Local classifieds for vehicles, campers, trailers and equipment in the Capital District, Albany, Saratoga, Troy, the Adirondacks, Hudson Valley and Upstate New York.","publisher":{"@id":"https://chadads.com/#org"},
   "potentialAction":{"@type":"SearchAction","target":{"@type":"EntryPoint","urlTemplate":"https://chadads.com/?q={search_term_string}"},"query-input":"required name=search_term_string"}}
 ]}
 </script>
@@ -244,9 +245,9 @@ dialog.wide{width:min(1020px,96vw)}
   <aside id="cats" aria-label="Categories"></aside>
   <main id="main">
     <!-- This text is visible to search engines before any script runs; the page replaces it with the listings once loaded. -->
-    <h1 class="seo-intro">Local classifieds: vehicles, campers, equipment and more</h1>
+    <h1 class="seo-intro">Local classifieds in the Capital District, Albany, Saratoga, Troy, the Adirondacks, Hudson Valley and Upstate New York</h1>
     <p class="note">Loading listings…</p>
-    <noscript><p>ChadAds needs JavaScript to show listings. Browse vehicles, motorcycles, ATVs, campers, trailers, farm equipment, heavy machinery, tools and lawn and garden items for sale near you, and list your own for free.</p></noscript>
+    <noscript><p>ChadAds needs JavaScript to show listings. Browse vehicles, motorcycles, ATVs, campers, trailers, farm equipment, heavy machinery, tools and lawn and garden items for sale in the Capital District, Albany, Saratoga, Troy, the Adirondacks, Hudson Valley and Upstate New York, and list your own for free.</p></noscript>
   </main>
 </div>
 
@@ -385,8 +386,11 @@ function render(){
   main.innerHTML=nb+`<div class="bar"><h1>${q?`Results for “${esc(q)}”`:cur==="All"?"All listings":cur==="Saved"?"Saved listings":esc(cur)}</h1><select id="sort" aria-label="Sort"><option value="new">Newest first</option><option value="old">Oldest first</option><option value="near">Nearest</option><option value="low">Price: low to high</option><option value="high">Price: high to low</option></select></div><div class="grid">${list.map(card).join("")}</div>`;
   $("#sort").value=sort;
 }
-// ---- Sharing: every ad has its own link, like  https://chadads.netlify.app/?ad=26 ----
-const adUrl=id=>location.origin+location.pathname+"?ad="+id;
+// ---- Sharing: every ad has its own page address, like  https://chadads.com/ad/38-2017-jeep-rubicon ----
+// slugify() must stay identical to slugify() in netlify/edge-lib/seo.js (the server builds the same address).
+const slugify=t=>String(t||"").toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"").slice(0,60).replace(/-+$/,"")||"ad";
+const adPath=i=>"/ad/"+i.id+"-"+slugify(i.t);
+const adUrl=i=>location.origin+adPath(i);
 // Simple one-colour icons for the share buttons. Facebook, X and WhatsApp shapes are from the public-domain Simple Icons set.
 const SVGO='<svg viewBox="0 0 24 24" aria-hidden="true" ';
 const ICON={
@@ -399,7 +403,7 @@ const ICON={
   check:SVGO+'fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>'
 };
 function shareHtml(i){
-  const url=adUrl(i.id),txt=i.t+" – "+fmt(i.p)+" on ChadAds",u=encodeURIComponent(url),t=encodeURIComponent(txt);
+  const url=adUrl(i),txt=i.t+" – "+fmt(i.p)+" on ChadAds",u=encodeURIComponent(url),t=encodeURIComponent(txt);
   const link=(href,name,icon,tab)=>`<a class="sico" href="${esc(href)}"${tab?` target="_blank" rel="noopener noreferrer"`:""} aria-label="${name}" title="${name}">${icon}</a>`;
   return `<div class="share"><span class="sh">Share this ad</span><div class="sharerow">
     ${navigator.share?`<button class="sico" type="button" data-nshare="${i.id}" aria-label="Share" title="Share">${ICON.share}</button>`:""}
@@ -449,12 +453,12 @@ function open(id){
        <div id="msg" hidden><label>Your message<textarea id="mt" rows="3">Hi, is this still available?</textarea></label><button class="btn lg" style="margin-top:10px" id="send">Send message</button></div>`}
     ${shareHtml(i)}
   </div></div>`;
-  try{history.replaceState(null,"","?ad="+i.id)}catch(e){}   // so the address bar can be copied too
+  try{history.replaceState(null,"",adPath(i))}catch(e){}   // so the address bar can be copied too
   {const d=$("#dView");if(!d.open)d.showModal()}
 }
-// When the pop-up closes, take "?ad=..." back out of the address.
+// When the pop-up closes, go back to the plain home address.
 $("#dView").addEventListener("close",()=>{
-  try{history.replaceState(null,"",location.pathname)}catch(e){}
+  try{history.replaceState(null,"","/")}catch(e){}
   $("#view").innerHTML="";   // empties the pop-up, which also stops any video still playing
 });
 // Header shrinks after scrolling down, and grows back near the top.
@@ -484,9 +488,9 @@ document.addEventListener("click",e=>{
     document.querySelectorAll('#curPhotos [name=cover]').forEach(r=>{r.checked=false});showPicked();return}
   const ns=t.closest("[data-nshare]");if(ns){
     const i=items.find(x=>x.id===+ns.dataset.nshare);
-    if(i&&navigator.share)navigator.share({title:i.t,text:i.t+" – "+fmt(i.p)+" on ChadAds",url:adUrl(i.id)}).catch(()=>{});return}
+    if(i&&navigator.share)navigator.share({title:i.t,text:i.t+" – "+fmt(i.p)+" on ChadAds",url:adUrl(i)}).catch(()=>{});return}
   const cp=t.closest("[data-copy]");if(cp){
-    const url=adUrl(+cp.dataset.copy);
+    const url=adUrl(items.find(x=>x.id===+cp.dataset.copy));
     (navigator.clipboard?navigator.clipboard.writeText(url):Promise.reject()).catch(()=>{
       const ta=document.createElement("textarea");ta.value=url;document.body.appendChild(ta);ta.select();try{document.execCommand("copy")}catch(e){}ta.remove()
     }).then(()=>{cp.innerHTML=ICON.check;cp.title="Copied";setTimeout(()=>{cp.innerHTML=ICON.link;cp.title="Copy link"},1800)});return}
@@ -904,8 +908,8 @@ async function loadData(){
   $("#fc").innerHTML=cats.map(c=>`<option>${esc(c[0])}</option>`).join("");
   if(!deepDone){const sq=new URLSearchParams(location.search).get("q");if(sq&&sq.trim()){q=sq.trim().toLowerCase();$("#q").value=sq.trim()}}
   render();
-  // Someone arrived through a shared link like ?ad=26: show that ad straight away.
-  if(!deepDone){deepDone=true;const id=+new URLSearchParams(location.search).get("ad");if(id&&items.some(x=>x.id===id))open(id)}
+  // Someone arrived through a shared link like /ad/38-2017-jeep-rubicon (or the older ?ad=38): show that ad straight away.
+  if(!deepDone){deepDone=true;const pm=location.pathname.match(/^\/ad\/(\d+)/),id=pm?+pm[1]:+new URLSearchParams(location.search).get("ad");if(id&&items.some(x=>x.id===id))open(id)}
 }
 loadData();
 </script>
