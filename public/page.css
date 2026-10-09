@@ -1,0 +1,20 @@
+/* Shared look for the plain pages (About, Terms, Privacy, 404). Same palette as the main site. */
+:root{--bg:#fbf7ef;--panel:#fffdf8;--ink:#1e1c19;--mute:#6d6558;--line:#e8dfcc;--acc:#e95e0d;--acc-ink:#1e1c19;--link:#164663;--navy:#164663;--mustard:#e9a70d;--soft:#f3eadb}
+@media (prefers-color-scheme:dark){:root{--bg:#15120e;--panel:#201c16;--ink:#f6e9d2;--mute:#a99f8d;--line:#3b342a;--acc:#f26a1b;--acc-ink:#1a120a;--link:#7fb6dc;--navy:#2c6a93;--soft:#2b261e}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 17px/1.6 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Inter,Roboto,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:var(--link)}
+:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+header{position:relative;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 20px;border-bottom:1px solid var(--line);margin-bottom:6px}
+header::after{content:"";position:absolute;left:0;right:0;bottom:-7px;height:6px;background:linear-gradient(var(--navy) 0 2px,var(--acc) 2px 4px,var(--mustard) 4px 6px)}
+header img{height:56px;width:auto;display:block}
+.btn{display:inline-block;background:var(--acc);color:var(--acc-ink);font-weight:600;border-radius:999px;padding:10px 20px;text-decoration:none}
+main{max-width:720px;margin:0 auto;padding:36px 20px 60px}
+h1{font-size:34px;line-height:1.15;letter-spacing:-.02em;margin:0 0 8px}
+h2{font-size:22px;letter-spacing:-.01em;margin:34px 0 8px}
+.lead{font-size:20px;color:var(--mute);margin:0 0 20px}
+.updated{color:var(--mute);font-size:14px}
+ul{padding-left:22px}li{margin:6px 0}
+footer{border-top:1px solid var(--line);padding:22px 20px;text-align:center;color:var(--mute);font-size:14px}
+footer a{margin:0 10px;color:var(--mute)}
+@media (max-width:600px){h1{font-size:28px}header img{height:46px}}

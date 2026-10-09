@@ -2,3 +2,19 @@
 # so SQL files, notes and the spec stay private in GitHub.
 [build]
   publish = "public"
+
+# Clean addresses for the plain pages: chadads.com/about instead of /about.html
+[[redirects]]
+  from = "/about"
+  to = "/about.html"
+  status = 200
+
+[[redirects]]
+  from = "/terms"
+  to = "/terms.html"
+  status = 200
+
+[[redirects]]
+  from = "/privacy"
+  to = "/privacy.html"
+  status = 200

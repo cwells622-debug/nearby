@@ -3,15 +3,37 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>ChadAds – Local classifieds</title>
-<meta name="description" content="Buy and sell vehicles, motorcycles, campers, equipment and more with people near you.">
+<title>ChadAds | Local Classifieds for Vehicles, Campers &amp; Equipment</title>
+<meta name="description" content="Buy and sell vehicles, motorcycles, ATVs, campers, trailers, farm and heavy equipment, and tools near you. Free to list on ChadAds.">
+<!-- Every address of the home page (including ?ad=26 pop-up links) counts as this one page for Google. -->
+<link rel="canonical" href="https://chadads.com/">
+<meta name="theme-color" content="#fbf7ef" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#15120e" media="(prefers-color-scheme: dark)">
+<!-- Start the connection to the database and photo storage early, so the page loads faster -->
+<link rel="preconnect" href="https://xhjybpostmfgwidqipgc.supabase.co" crossorigin>
 <!-- Link previews when the site is shared (Facebook, X, WhatsApp, iMessage...) -->
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="ChadAds">
-<meta property="og:title" content="ChadAds – Local classifieds">
-<meta property="og:description" content="Buy and sell vehicles, motorcycles, campers, equipment and more with people near you.">
+<meta property="og:locale" content="en_US">
+<meta property="og:url" content="https://chadads.com/">
+<meta property="og:title" content="ChadAds | Local Classifieds for Vehicles, Campers &amp; Equipment">
+<meta property="og:description" content="Buy and sell vehicles, motorcycles, ATVs, campers, trailers, farm and heavy equipment, and tools near you.">
 <meta property="og:image" content="https://chadads.com/logo.webp">
+<meta property="og:image:width" content="1536">
+<meta property="og:image:height" content="1024">
+<meta property="og:image:alt" content="ChadAds logo: a vintage helmet with racing stripes">
 <meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="ChadAds | Local Classifieds for Vehicles, Campers &amp; Equipment">
+<meta name="twitter:description" content="Buy and sell vehicles, motorcycles, ATVs, campers, trailers, farm and heavy equipment, and tools near you.">
+<meta name="twitter:image" content="https://chadads.com/logo.webp">
+<!-- Tells Google what this site is (and how to search it) in a form it reads directly -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+ {"@type":"Organization","@id":"https://chadads.com/#org","name":"ChadAds","url":"https://chadads.com/","logo":"https://chadads.com/logo.webp","slogan":"List. Sell. Local."},
+ {"@type":"WebSite","@id":"https://chadads.com/#site","url":"https://chadads.com/","name":"ChadAds","description":"Local classifieds for vehicles, campers, equipment and more.","publisher":{"@id":"https://chadads.com/#org"},
+  "potentialAction":{"@type":"SearchAction","target":{"@type":"EntryPoint","urlTemplate":"https://chadads.com/?q={search_term_string}"},"query-input":"required name=search_term_string"}}
+]}
+</script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3CclipPath id='c'%3E%3Ccircle cx='32' cy='32' r='27'/%3E%3C/clipPath%3E%3C/defs%3E%3Ccircle cx='32' cy='32' r='29' fill='%231e1c19'/%3E%3Ccircle cx='32' cy='32' r='27' fill='%23f6e9d2'/%3E%3Cg clip-path='url(%23c)'%3E%3Cpath d='M0 17 H64 V25 H0z' fill='%23164663'/%3E%3Cpath d='M0 27 H64 V35 H0z' fill='%23e95e0d'/%3E%3Cpath d='M0 37 H64 V45 H0z' fill='%23e9a70d'/%3E%3C/g%3E%3C/svg%3E">
 <style>
 /* ChadAds look, taken from the logo: warm cream and black, an orange accent (--acc) for buttons, navy (--link) for links, mustard for small touches. */
@@ -167,6 +189,9 @@ dialog.wide{width:min(1020px,96vw)}
 .vrow{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--soft);border-radius:12px;padding:10px 12px;font-size:14px}
 .vrow span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .card .ph{position:relative}
+.seo-intro{font-size:22px;margin:0 0 8px}
+.site-foot{max-width:1200px;margin:0 auto;padding:18px 20px 40px;color:var(--mute);font-size:14px;display:flex;gap:18px;flex-wrap:wrap;border-top:1px solid var(--line)}
+.site-foot a{color:var(--mute)}
 .share{display:flex;flex-direction:column;gap:8px;margin-top:6px;padding-top:14px;border-top:1px solid var(--line)}
 .share .sh{font-size:13px;font-weight:600;color:var(--mute);text-transform:uppercase;letter-spacing:.05em}
 .sharerow{display:flex;gap:10px;flex-wrap:wrap}
@@ -217,8 +242,15 @@ dialog.wide{width:min(1020px,96vw)}
 </header>
 <div class="wrap">
   <aside id="cats" aria-label="Categories"></aside>
-  <main id="main"><p class="note">Loading listings…</p></main>
+  <main id="main">
+    <!-- This text is visible to search engines before any script runs; the page replaces it with the listings once loaded. -->
+    <h1 class="seo-intro">Local classifieds: vehicles, campers, equipment and more</h1>
+    <p class="note">Loading listings…</p>
+    <noscript><p>ChadAds needs JavaScript to show listings. Browse vehicles, motorcycles, ATVs, campers, trailers, farm equipment, heavy machinery, tools and lawn and garden items for sale near you, and list your own for free.</p></noscript>
+  </main>
 </div>
+
+<footer class="site-foot"><a href="/about">About</a><a href="/terms">Terms</a><a href="/privacy">Privacy</a><span>© 2026 ChadAds</span></footer>
 
 <dialog id="dPost"><form class="dlg" id="f">
   <div class="top"><h2 id="postTitle">Post an ad</h2><button type="button" class="x" data-close aria-label="Close">✕</button></div>
@@ -308,7 +340,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt=p=>p===0?"Free":"$"+p.toLocaleString();
 const saved=new Set();
-const card=i=>`<div class="cw"><button class="card" data-id="${i.id}"><div class="ph" style="--h:${i.h}">${i.img?`<img src="${esc(i.img)}" alt="" style="object-position:50% ${+i.coverY||50}%">`:`<span>${i.e}</span>`}${i.hasVideo?`<span class="vbadge">▶ Video</span>`:""}</div><div class="cb"><b>${fmt(i.p)}</b><span class="t">${esc(i.t)}</span><span class="m">${esc(i.loc)} · ${dd(i)}</span></div></button><button class="heart" data-save="${i.id}" aria-pressed="${saved.has(i.id)}" aria-label="Save listing">${saved.has(i.id)?"♥":"♡"}</button></div>`;
+const card=i=>`<div class="cw"><button class="card" data-id="${i.id}"><div class="ph" style="--h:${i.h}">${i.img?`<img src="${esc(i.img)}" alt="${esc(i.t)}" loading="lazy" decoding="async" style="object-position:50% ${+i.coverY||50}%">`:`<span>${i.e}</span>`}${i.hasVideo?`<span class="vbadge">▶ Video</span>`:""}</div><div class="cb"><b>${fmt(i.p)}</b><span class="t">${esc(i.t)}</span><span class="m">${esc(i.loc)} · ${dd(i)}</span></div></button><button class="heart" data-save="${i.id}" aria-pressed="${saved.has(i.id)}" aria-label="Save listing">${saved.has(i.id)?"♥":"♡"}</button></div>`;
 // Saved ads live in the database (favorites table), private to the signed-in user.
 // The page keeps a copy in "saved" so hearts can be drawn instantly.
 function paintHearts(id,on){
@@ -383,7 +415,7 @@ let gi=0,gId=null;
 function slideHtml(m,k,n){
   if(m.t==="vid")return `<video src="${esc(m.u)}" controls playsinline preload="metadata"></video>`;
   if(m.t==="emb")return `<iframe src="${esc(m.u)}" title="Video" loading="lazy" allowfullscreen referrerpolicy="strict-origin-when-cross-origin" allow="encrypted-media; picture-in-picture; fullscreen" sandbox="allow-scripts allow-same-origin allow-presentation allow-popups"></iframe>`;
-  return `<div class="blurbg" style="--pbg:url('${esc(m.u)}')"></div><img src="${esc(m.u)}" alt="Photo ${k+1} of ${n}">`;
+  return `<div class="blurbg" style="--pbg:url('${esc(m.u)}')"></div><img src="${esc(m.u)}" alt="${esc(m.alt||"Photo")} (photo ${k+1} of ${n})">`;
 }
 function showPhoto(n){
   const i=items.find(x=>x.id===gId);if(!i||!i.media||!i.media.length)return;
@@ -863,13 +895,14 @@ async function loadData(){
     // Everything shown in the ad's gallery: photos first, then the uploaded video, then a YouTube/Vimeo player.
     const vpath=(r.listing_videos&&r.listing_videos[0])?r.listing_videos[0].storage_path:null;
     const vurl=vpath?sb.storage.from(VBUCKET).getPublicUrl(vpath).data.publicUrl:null,emb=videoEmbed(r.video_link);
-    const media=[...imgs.map(u=>({t:"img",u})),...(vurl?[{t:"vid",u:vurl}]:[]),...(emb?[{t:"emb",u:emb}]:[])];
+    const media=[...imgs.map(u=>({t:"img",u,alt:r.title})),...(vurl?[{t:"vid",u:vurl}]:[]),...(emb?[{t:"emb",u:emb}]:[])];
     return{id:r.id,paths,imgs,img,coverY:r.cover_y,media,vpath,vlink:r.video_link,hasVideo:!!(vurl||emb),link:r.link,t:r.title,p:r.price,c:c[0],loc:cityById[r.city_id],d:r.description,ago:agoText(hrs),hrs,e:c[1],h:c[2],
       sid:r.seller_id,sn:r.profiles&&r.profiles.display_name,sy:r.profiles&&new Date(r.profiles.created_at).getFullYear()}
   }).filter(i=>i.loc);
   // Fill the city suggestions and the category list in the Post form.
   $("#cl").innerHTML=Object.keys(T).sort().map(n=>`<option value="${esc(n)}">`).join("");
   $("#fc").innerHTML=cats.map(c=>`<option>${esc(c[0])}</option>`).join("");
+  if(!deepDone){const sq=new URLSearchParams(location.search).get("q");if(sq&&sq.trim()){q=sq.trim().toLowerCase();$("#q").value=sq.trim()}}
   render();
   // Someone arrived through a shared link like ?ad=26: show that ad straight away.
   if(!deepDone){deepDone=true;const id=+new URLSearchParams(location.search).get("ad");if(id&&items.some(x=>x.id===id))open(id)}

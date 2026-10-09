@@ -1,0 +1,7 @@
+# ChadAds: search engines are welcome everywhere except the admin screen.
+User-agent: *
+Allow: /
+Disallow: /admin.html
+Disallow: /admin
+
+Sitemap: https://chadads.com/sitemap.xml

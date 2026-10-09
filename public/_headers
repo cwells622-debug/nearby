@@ -1,0 +1,15 @@
+# Netlify reads this file. It adds safety headers to every page and lets browsers keep the logo for a week.
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Frame-Options: SAMEORIGIN
+  Permissions-Policy: camera=(), microphone=(), geolocation=(self)
+
+/logo.webp
+  Cache-Control: public, max-age=604800
+
+/page.css
+  Cache-Control: public, max-age=86400
+
+/admin.html
+  X-Robots-Tag: noindex, nofollow
