@@ -190,6 +190,46 @@ dialog.wide{width:min(1020px,96vw)}
 .vrow{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--soft);border-radius:12px;padding:10px 12px;font-size:14px}
 .vrow span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .card .ph{position:relative}
+/* Messages: inbox on the left, conversation on the right (one at a time on phones) */
+.badge{background:var(--acc);color:var(--acc-ink);border-radius:999px;font-size:12px;font-weight:700;padding:1px 7px;margin-left:6px}
+dialog .dlg.msgs{padding:0;gap:0}
+.mwrap{display:grid;grid-template-columns:320px minmax(0,1fr);height:min(82vh,660px)}
+.mlist{border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+.mlist .top{padding:18px 18px 10px}
+#mlist{overflow-y:auto;flex:1}
+.citem{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid var(--line);background:none;padding:12px 18px}
+.citem:hover,.citem[aria-current="true"]{background:var(--soft)}
+.citem .ct{display:flex;justify-content:space-between;gap:8px;font-weight:600}
+.citem .cn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.citem .cw2{color:var(--mute);font-size:13px;font-weight:400;white-space:nowrap}
+.citem .cp{color:var(--mute);font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.citem.unread .cp{color:var(--ink);font-weight:600}
+.udot{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--acc);margin-right:6px}
+.mthread{display:flex;flex-direction:column;min-height:0;min-width:0}
+.mhead{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--line)}
+.mhead .mt1{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mhead .mt2{color:var(--mute);font-size:13px}
+.mback{display:none}
+.mscroll{flex:1;overflow-y:auto;padding:14px 18px;display:flex;flex-direction:column;gap:8px}
+.bub{max-width:82%;padding:9px 13px;border-radius:18px;white-space:pre-wrap;overflow-wrap:anywhere}
+.bub small{display:block;opacity:.7;font-size:11px;margin-top:3px}
+.bub.mine{align-self:flex-end;background:var(--acc);color:var(--acc-ink);border-bottom-right-radius:6px}
+.bub.theirs{align-self:flex-start;background:var(--soft);border-bottom-left-radius:6px}
+.bub .offr{font-weight:700;display:block;margin-bottom:2px}
+.mempty{margin:auto;text-align:center;color:var(--mute);padding:20px}
+.mcomp{display:flex;gap:8px;align-items:flex-end;padding:12px 14px;border-top:1px solid var(--line)}
+.mcomp textarea{flex:1;border:0;background:var(--soft);border-radius:18px;padding:10px 14px;resize:none;max-height:120px;font-weight:400}
+.mcomp textarea:focus{outline:2px solid var(--acc)}
+.merr{color:#d70015;font-size:13px;padding:0 18px 6px;margin:0}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .merr{color:#ff6961}}
+@media (max-width:760px){
+ .msgsbtn .lbl{display:none}
+ .mwrap{grid-template-columns:1fr;height:84vh}
+ .mwrap .mthread{display:none}
+ .mwrap.thread-open .mlist{display:none}
+ .mwrap.thread-open .mthread{display:flex}
+ .mback{display:inline-block}
+}
 .seo-intro{font-size:22px;margin:0 0 8px}
 .site-foot{max-width:1200px;margin:0 auto;padding:18px 20px 40px;color:var(--mute);font-size:14px;display:flex;gap:18px;flex-wrap:wrap;border-top:1px solid var(--line)}
 .site-foot a{color:var(--mute)}
@@ -237,6 +277,7 @@ dialog.wide{width:min(1020px,96vw)}
   <input class="search" id="q" type="search" placeholder="Search listings" aria-label="Search listings">
   <div class="hdr-r">
     <span class="who" id="who"></span>
+    <button class="btn ghost msgsbtn" id="msgsBtn" hidden aria-label="Messages"><span aria-hidden="true">✉</span><span class="lbl"> Messages</span><span class="badge" id="msgBadge" hidden>0</span></button>
     <button class="btn ghost" id="auth">Log in</button>
     <button class="btn" id="post">Post an ad</button>
   </div>
@@ -279,6 +320,13 @@ dialog.wide{width:min(1020px,96vw)}
   <button class="btn" type="submit" id="postGo">Publish ad</button>
 </form></dialog>
 
+<dialog id="dMsg" class="wide"><div class="dlg msgs">
+  <div class="mwrap" id="mwrap">
+    <div class="mlist"><div class="top"><h2>Messages</h2><button type="button" class="x" data-close aria-label="Close">✕</button></div><div id="mlist"></div></div>
+    <div class="mthread" id="mthread"></div>
+  </div>
+</div></dialog>
+
 <dialog id="dView"><div class="dlg" id="view"></div></dialog>
 
 <dialog id="dAuth"><form class="dlg" id="fa">
@@ -316,7 +364,7 @@ function prof(id){
   <div style="display:flex;gap:8px;flex-wrap:wrap">${isMine(i)||i.sn?`<span class="tag">New seller</span>`:`<span class="tag">Email verified</span><span class="tag">Phone verified</span>`}</div>
   <h2>Listings (${l.length})</h2><div class="grid">${l.map(card).join("")}</div>`;
 }
-const offerHtml=(i,s)=>isMine(i)||i.p<2?"":offers[i.id]?`<div class="ok">You offered ${fmt(offers[i.id])}. ${esc(s.n)} will reply by email.</div>`:`<button class="btn ghost" data-offer="${i.id}">Make an offer</button>`;
+const offerHtml=(i,s)=>isMine(i)||i.p<2?"":offers[i.id]?`<div class="ok">You offered ${fmt(offers[i.id])}. Check your Messages for ${esc(s.n)}'s reply.</div>`:`<button class="btn ghost" data-offer="${i.id}">Make an offer</button>`;
 function offerForm(id){
   const i=items.find(x=>x.id==id),amts=[...new Set([.9,.8,.7].map(f=>Math.max(1,Math.round(i.p*f))))].filter(a=>a<i.p);
   $("#offer").innerHTML=`<div class="offer"><b>Your offer</b><span style="color:var(--mute)">Asking price: ${fmt(i.p)}</span><div class="qa">${amts.map(a=>`<button type="button" data-amt="${a}">${fmt(a)}</button>`).join("")}</div><label>Offer amount ($)<input id="oa" type="number" min="1" value="${amts[0]||1}"></label><p id="oerr" class="note" role="alert" style="margin:0"></p><button class="btn" data-sendoffer="${i.id}">Send offer</button></div>`;
@@ -326,8 +374,11 @@ function sendOffer(id){
   if(!(n>=1))return err("Enter an offer of $1 or more.");
   if(n>=i.p)return err("That's the asking price or higher. Send a message to buy at the asking price.");
   if(n<i.p*.5&&!ow){ow=true;return err("Offers under half the asking price are rarely accepted. Press Send offer again to send it anyway.")}
-  offers[i.id]=n;ow=false;
-  $("#offer").innerHTML=`<div class="ok">Offer of ${fmt(n)} sent to ${esc(s.n)}. They'll reply by email${s.rt?", usually "+s.rt:""}.</div>`;
+  if(!user){needLogin("Please log in or create an account to make an offer.");return}
+  if(!i.sid)return err("This is a sample ad, so offers can't be sent.");
+  ow=false;
+  const btn=document.querySelector("[data-sendoffer]");if(btn)btn.disabled=true;
+  sendOfferNow(i,n).then(()=>{offers[i.id]=n}).catch(e=>{err(e&&e.message||"Couldn't send your offer. Please try again.");if(btn)btn.disabled=false});
 }
 const pa=i=>i.ago==="Just now"?"Posted just now":"Posted "+i.ago+" ago";
 const dc=(a,b)=>{const r=x=>x*Math.PI/180,dl=r(b[0]-a[0]),dn=r(b[1]-a[1]),h=Math.sin(dl/2)**2+Math.cos(r(a[0]))*Math.cos(r(b[0]))*Math.sin(dn/2)**2;return 3959*2*Math.asin(Math.sqrt(h))};
@@ -450,8 +501,7 @@ function open(id){
     ${safeUrl(i.link)?`<p style="margin:0"><a href="${esc(safeUrl(i.link))}" data-ext target="_blank" rel="noopener noreferrer nofollow ugc" style="color:var(--link);font-weight:600">🔗 ${esc(new URL(i.link).hostname)}</a></p>`:""}
     <button class="seller sbtn" data-prof="${i.id}"><div class="av">${esc(s.n[0])}</div><span><b>${esc(s.n)}</b><br>${rate(s)} · View profile</span></button>
     ${mine?(i.sid?`<div class="ctas"><button class="btn lg" data-edit="${i.id}">Edit this ad</button><button class="btn ghost lg" data-del="${i.id}">Delete this ad</button></div>`:""):
-      `<div class="ctas"><button class="btn lg" id="msgBtn">Message ${esc(s.n)}</button><div id="offer">${offerHtml(i,s)}</div></div>
-       <div id="msg" hidden><label>Your message<textarea id="mt" rows="3">Hi, is this still available?</textarea></label><button class="btn lg" style="margin-top:10px" id="send">Send message</button></div>`}
+      `<div class="ctas"><button class="btn lg" data-msg="${i.id}">Message ${esc(s.n)}</button><div id="offer">${offerHtml(i,s)}</div></div>`}
     ${shareHtml(i)}
   </div></div>`;
   try{history.replaceState(null,"",adPath(i))}catch(e){}   // so the address bar can be copied too
@@ -497,7 +547,12 @@ document.addEventListener("click",e=>{
     }).then(()=>{cp.innerHTML=ICON.check;cp.title="Copied";setTimeout(()=>{cp.innerHTML=ICON.link;cp.title="Copy link"},1800)});return}
   const gn=t.closest("[data-gnav]");if(gn){showPhoto(gi+ +gn.dataset.gnav);return}
   const gt=t.closest("[data-gi]");if(gt){showPhoto(+gt.dataset.gi);return}
-  if(t.id==="msgBtn"){t.hidden=true;$("#msg").hidden=false;$("#mt").focus();$("#mt").select();return}
+  const mg=t.closest("[data-msg]");if(mg){startConversation(+mg.dataset.msg);return}
+  const mc2=t.closest("[data-conv]");if(mc2){openThread(+mc2.dataset.conv);return}
+  if(t.closest("[data-mback]")){backToList();return}
+  const va=t.closest("[data-viewad]");if(va){$("#dMsg").close();open(+va.dataset.viewad);return}
+  if(t.id==="msend"){sendFromComposer();return}
+  if(t.closest("#msgsBtn")){openMessages();return}
   const sv=t.closest("[data-save]");if(sv){toggleSave(sv.dataset.save);return}
   const od=t.closest("[data-offer]");if(od){offerForm(od.dataset.offer);return}
   const am=t.closest("[data-amt]");if(am){$("#oa").value=am.dataset.amt;ow=false;return}
@@ -511,7 +566,6 @@ document.addEventListener("click",e=>{
   const cat=t.closest("[data-cat]");if(cat){cur=cat.dataset.cat;q="";$("#q").value="";render();window.scrollTo({top:0});return}
   const c=t.closest(".card");if(c){open(c.dataset.id);return}
   if(t.closest("[data-close]")){t.closest("dialog").close();return}
-  if(t.id==="send"){$("#msg").innerHTML=`<div class="ok">Message sent. The seller will reply by email.</div>`;return}
   if(t.id==="post"){startPost();return}
   const ed=t.closest("[data-edit]");if(ed){startPost(+ed.dataset.edit);return}
   const dl=t.closest("[data-del]");if(dl){deleteAd(+dl.dataset.del);return}
@@ -559,7 +613,11 @@ async function loadFavorites(){
 function showUser(u){
   const changed=(u?u.id:null)!==(user?user.id:null);
   user=u;
+  $("#msgsBtn").hidden=!u;
   if(changed){
+    convos=[];curConv=null;updateBadge();stopPolling();
+    if(u)setTimeout(()=>{loadConvos();startPolling()},0);
+    else if($("#dMsg").open)$("#dMsg").close();
     saved.clear();
     // Wait a tick: Supabase must finish its login work before we ask it for more data.
     if(u)setTimeout(loadFavorites,0);
@@ -596,8 +654,127 @@ $("#fa").addEventListener("submit",async e=>{
 // Runs on page load and every time someone logs in or out.
 if(sb)sb.auth.onAuthStateChange((event,session)=>showUser(session?session.user:null));
 
-/* ---------- Post, edit and delete ads ---------- */
-// Opens the form: empty for a new ad, or filled in when editing ad number "id".
+/* ---------- Messages (private, between a buyer and a seller) ---------- */
+// The database (step14_messaging.sql) makes sure only the two people in a conversation can read it.
+let convos=[],curConv=null,pendingAd=null,pollTimer=null,shownLast=null;
+const otherName=c=>c.buyer_id===user.id?((c.seller&&c.seller.display_name)||"Seller"):((c.buyer&&c.buyer.display_name)||"Buyer");
+const myRead=c=>c.buyer_id===user.id?c.buyer_last_read_at:c.seller_last_read_at;
+const isUnread=c=>!!user&&!!c.last_sender_id&&c.last_sender_id!==user.id&&(!myRead(c)||new Date(c.last_message_at)>new Date(myRead(c)));
+const ago2=iso=>{const s=Math.max(0,(Date.now()-new Date(iso))/1000);return s<60?"now":s<3600?Math.floor(s/60)+"m":s<86400?Math.floor(s/3600)+"h":Math.floor(s/86400)+"d"};
+const clock=iso=>new Date(iso).toLocaleString(undefined,{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"});
+
+async function loadConvos(){
+  if(!user||!sb)return;
+  const {data,error}=await sb.from("conversations").select("*,buyer:profiles!buyer_id(display_name),seller:profiles!seller_id(display_name)").order("last_message_at",{ascending:false}).limit(100);
+  if(error)return;
+  convos=data;updateBadge();
+  if($("#dMsg").open){drawList();
+    // someone replied in the conversation we are looking at: refresh it
+    const c=convos.find(x=>x.id===curConv);if(c&&c.last_message_at!==shownLast)openThread(c.id,true);}
+}
+function updateBadge(){
+  const n=user?convos.filter(isUnread).length:0,b=$("#msgBadge");
+  b.hidden=!n;b.textContent=n>9?"9+":n;
+  $("#msgsBtn").setAttribute("aria-label",n?`Messages, ${n} unread`:"Messages");
+}
+// Check for new messages every 30 seconds (every 10 while the inbox is open), but only while the tab is visible.
+function startPolling(){stopPolling();pollTimer=setInterval(()=>{if(document.visibilityState==="visible")loadConvos()},$("#dMsg").open?10000:30000)}
+function stopPolling(){if(pollTimer){clearInterval(pollTimer);pollTimer=null}}
+
+function drawList(){
+  const box=$("#mlist");
+  if(!convos.length){box.innerHTML=`<div class="mempty">No messages yet.<br>Open an ad and tap <b>Message</b> to start one.</div>`;return}
+  box.innerHTML=convos.map(c=>`<button type="button" class="citem${isUnread(c)?" unread":""}" data-conv="${c.id}" aria-current="${c.id===curConv}">
+    <div class="ct"><span class="cn">${isUnread(c)?`<span class="udot" aria-label="Unread"></span>`:""}${esc(otherName(c))}</span><span class="cw2">${esc(ago2(c.last_message_at))}</span></div>
+    <div class="cp">${esc(c.listing_title||"Ad removed")}</div><div class="cp">${esc(c.last_preview)}</div></button>`).join("");
+}
+function threadShell(head,body,composerText){
+  $("#mthread").innerHTML=`<div class="mhead"><button type="button" class="x mback" data-mback aria-label="Back to messages">‹</button><div style="min-width:0">${head}</div></div>
+    <div class="mscroll" id="mscroll">${body}</div><p class="merr" id="merr" role="alert"></p>
+    <div class="mcomp"><textarea id="mtxt" rows="1" maxlength="2000" placeholder="Write a message" aria-label="Write a message">${esc(composerText||"")}</textarea><button class="btn" id="msend" type="button">Send</button></div>`;
+  $("#mwrap").classList.add("thread-open");
+  const t=$("#mtxt");t.addEventListener("keydown",e=>{if(e.key==="Enter"&&(e.ctrlKey||e.metaKey)){e.preventDefault();sendFromComposer()}});
+}
+function bubble(m){
+  const mine=m.sender_id===user.id;
+  return `<div class="bub ${mine?"mine":"theirs"}">${m.offer_amount?`<span class="offr">Offer: ${esc(fmt(m.offer_amount))}</span>`:""}${esc(m.body)}<small>${esc(clock(m.created_at))}</small></div>`;
+}
+async function openThread(id,quiet){
+  const c=convos.find(x=>x.id===id);if(!c)return;
+  curConv=id;pendingAd=null;
+  const {data,error}=await sb.from("messages").select("*").eq("conversation_id",id).order("created_at",{ascending:true}).limit(500);
+  if(error){threadShell(`<div class="mt1">${esc(otherName(c))}</div>`,`<div class="mempty">Couldn't load this conversation.</div>`);return}
+  const adLive=c.listing_id&&items.some(x=>x.id===c.listing_id);
+  const keepText=quiet&&$("#mtxt")?$("#mtxt").value:"";
+  threadShell(`<div class="mt1">${esc(otherName(c))}</div><div class="mt2">${esc(c.listing_title||"Ad removed")}${adLive?` · <a href="${esc(adPath(items.find(x=>x.id===c.listing_id)))}" data-viewad="${c.listing_id}">View ad</a>`:""}</div>`,
+    data.map(bubble).join("")||`<div class="mempty">No messages yet.</div>`,keepText);
+  const sc=$("#mscroll");sc.scrollTop=sc.scrollHeight;
+  shownLast=c.last_message_at;
+  drawList();
+  if(isUnread(c)){                                       // mark it read for me
+    await sb.rpc("mark_conversation_read",{cid:id});
+    const mine=c.buyer_id===user.id?"buyer_last_read_at":"seller_last_read_at";c[mine]=new Date().toISOString();updateBadge();drawList();
+  }
+  if(!quiet&&window.matchMedia("(min-width:761px)").matches)$("#mtxt").focus();
+}
+function backToList(){curConv=null;pendingAd=null;$("#mwrap").classList.remove("thread-open");drawList()}
+async function openMessages(){
+  if(!user){needLogin("Please log in to see your messages.");return}
+  $("#dView").close();
+  if(!$("#dMsg").open)$("#dMsg").showModal();
+  $("#mwrap").classList.remove("thread-open");$("#mthread").innerHTML=`<div class="mempty">Choose a conversation.</div>`;
+  await loadConvos();drawList();startPolling();
+}
+$("#dMsg").addEventListener("close",()=>{curConv=null;pendingAd=null;startPolling()});
+
+// "Message [seller]" on an ad: continue the existing conversation, or start a blank one (nothing is saved until you send).
+async function startConversation(adId){
+  const i=items.find(x=>x.id===adId);if(!i)return;
+  if(!user){needLogin("Please log in or create an account to message the seller.");return}
+  if(!i.sid){alert("This is a sample ad, so messages can't be sent.");return}
+  if(isMine(i))return;
+  await openMessages();
+  const have=convos.find(c=>c.listing_id===i.id&&c.buyer_id===user.id);
+  if(have){await openThread(have.id);return}
+  curConv=null;pendingAd=i;
+  threadShell(`<div class="mt1">${esc(sel(i).n)}</div><div class="mt2">${esc(i.t)} · ${esc(fmt(i.p))}</div>`,
+    `<div class="mempty">Say hello to ${esc(sel(i).n)}. They'll see your message in their ChadAds inbox.</div>`,"Hi, is this still available?");
+  const t=$("#mtxt");t.focus();t.select();
+}
+async function getOrCreateConversation(ad){
+  const own=await sb.from("conversations").select("id").eq("listing_id",ad.id).eq("buyer_id",user.id).maybeSingle();
+  if(own.data)return own.data.id;
+  const ins=await sb.from("conversations").insert({listing_id:ad.id,buyer_id:user.id,seller_id:ad.sid}).select("id").single();
+  if(ins.error){
+    if(ins.error.code==="23505"){const again=await sb.from("conversations").select("id").eq("listing_id",ad.id).eq("buyer_id",user.id).maybeSingle();if(again.data)return again.data.id}
+    throw ins.error;
+  }
+  return ins.data.id;
+}
+async function sendFromComposer(){
+  const t=$("#mtxt"),btn=$("#msend"),err=$("#merr");if(!t)return;
+  const body=t.value.trim();if(!body)return;
+  err.textContent="";btn.disabled=true;
+  try{
+    let cid=curConv;
+    if(!cid&&pendingAd)cid=await getOrCreateConversation(pendingAd);
+    if(!cid)throw new Error("Choose a conversation first.");
+    const {error}=await sb.from("messages").insert({conversation_id:cid,sender_id:user.id,body});
+    if(error)throw error;
+    await loadConvos();await openThread(cid,true);
+    const t2=$("#mtxt");if(t2){t2.value="";t2.focus()}
+  }catch(e){err.textContent=e&&e.message?e.message:"Couldn't send. Please try again.";}
+  btn.disabled=false;
+}
+// "Make an offer" on an ad: an offer is a message with an amount, shown highlighted in the conversation.
+async function sendOfferNow(ad,amount){
+  const cid=await getOrCreateConversation(ad);
+  const {error}=await sb.from("messages").insert({conversation_id:cid,sender_id:user.id,body:"I'd like to offer "+fmt(amount)+" for this.",offer_amount:amount});
+  if(error)throw error;
+  await openMessages();await openThread(cid);
+}
+
+/* ---------- Post, edit and delete ads ---------- */// Opens the form: empty for a new ad, or filled in when editing ad number "id".
 function startPost(id){
   if(!user){needLogin("Please log in or create an account to post an ad.");return}
   const form=$("#f"),i=id?items.find(x=>x.id===id):null;

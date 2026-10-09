@@ -51,3 +51,6 @@
 
 ## Categories
 - `step13_autos_categories.sql`: 'Vehicles' renamed to 'Autos Cars' and 'Autos Trucks' added; the vehicle link box now works for both. The list of link-enabled categories lives in 3 places: `LINK_CATS` in `public/index.html`, the list in `public/admin.html`, and the trigger in `step13_autos_categories.sql`.
+
+## Messaging
+- `step14_messaging.sql`: conversations + messages (offers are messages with an amount), private to the two people, with spam limits (60 messages/hour, 20 new conversations/day). In-app only; the page checks for new messages every 30 s (10 s while the inbox is open). Email alerts need a sender address, so they are not built yet. Moderation/reports and admin access to threads are not built yet (Phase 4).
