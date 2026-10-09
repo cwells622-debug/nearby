@@ -349,7 +349,7 @@ dialog .dlg.msgs{padding:0;gap:0}
 const HUES={"Autos Cars":210,"Autos Trucks":220,Vehicles:210,Property:150,Electronics:190,Furniture:30,Clothing:330,Sports:100,Jobs:260,ATV:20,Appliances:170,Campers:120,"Real Estate":140,Medical:350,Motorcycles:0,Antiques:40,"Lawn and Garden":90,"Heavy Machinery":50};
 let cats=[],items=[];
 const T={};
-let cur="All",q="",sort="new",me="Saratoga Springs, NY",rad=0,view="all"   /* rad: miles from "me"; 0 = any distance. Set back to 50 (or 25) once there are plenty of ads. */,showLoc=false,geoMsg="",ow=false;
+let cur="All",q="",sort="new",me="",rad=0,view="all"   /* me: the visitor's city (empty = no city chosen yet; set it to e.g. "Saratoga Springs, NY" for a default). rad: miles from "me"; 0 = any distance. Use 50 or 25 once there are plenty of ads. */,showLoc=false,geoMsg="",ow=false;
 // Category / region pages (/for-sale/autos-trucks, /in/capital-district) arrive with a note from the server (window.__LANDING__)
 // saying which filter they represent. regionSlug filters by the database's region lists instead of by distance.
 const LAND=window.__LANDING__||null;
@@ -389,18 +389,19 @@ function sendOffer(id){
 }
 const pa=i=>i.ago==="Just now"?"Posted just now":"Posted "+i.ago+" ago";
 const dc=(a,b)=>{const r=x=>x*Math.PI/180,dl=r(b[0]-a[0]),dn=r(b[1]-a[1]),h=Math.sin(dl/2)**2+Math.cos(r(a[0]))*Math.cos(r(b[0]))*Math.sin(dn/2)**2;return 3959*2*Math.asin(Math.sqrt(h))};
-const dist=i=>dc(T[me],T[i.loc]);
+const dist=i=>T[me]?dc(T[me],T[i.loc]):0;   // 0 when no city is chosen, so sorting and filtering ignore distance
 function locate(){
   if(!navigator.geolocation){geoMsg="Location isn't available here. Type your city instead.";render();return}
   navigator.geolocation.getCurrentPosition(p=>{const c=[p.coords.latitude,p.coords.longitude];me=Object.keys(T).sort((a,b)=>dc(c,T[a])-dc(c,T[b]))[0];geoMsg="Set to the closest city we have: "+me+".";render()},()=>{geoMsg="Couldn't get your location. Type your city instead.";render()},{timeout:8000});
 }
-const dd=i=>{const d=dist(i);return d<1?"Under 1 mi":Math.round(d)+" mi away"};
-const inR=i=>regionSlug?(i.reg||[]).includes(regionSlug):(!rad||dist(i)<=rad);
+const dd=i=>{if(!T[me])return"";const d=dist(i);return d<1?"Under 1 mi":Math.round(d)+" mi away"};
+const inR=i=>regionSlug?(i.reg||[]).includes(regionSlug):(!rad||!T[me]||dist(i)<=rad);
+const where2=i=>esc(i.loc)+(dd(i)?" · "+dd(i):"");   // "Albany, NY · 12 mi away", or just the city when no city is chosen
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt=p=>p===0?"Free":"$"+p.toLocaleString();
 const saved=new Set();
-const card=i=>`<div class="cw"><button class="card" data-id="${i.id}"><div class="ph" style="--h:${i.h}">${i.img?`<img src="${esc(i.img)}" alt="${esc(i.t)}" loading="lazy" decoding="async" style="object-position:50% ${+i.coverY||50}%">`:`<span>${i.e}</span>`}${i.hasVideo?`<span class="vbadge">▶ Video</span>`:""}</div><div class="cb"><b>${fmt(i.p)}</b><span class="t">${esc(i.t)}</span><span class="m">${esc(i.loc)} · ${dd(i)}</span></div></button><button class="heart" data-save="${i.id}" aria-pressed="${saved.has(i.id)}" aria-label="Save listing">${saved.has(i.id)?"♥":"♡"}</button></div>`;
+const card=i=>`<div class="cw"><button class="card" data-id="${i.id}"><div class="ph" style="--h:${i.h}">${i.img?`<img src="${esc(i.img)}" alt="${esc(i.t)}" loading="lazy" decoding="async" style="object-position:50% ${+i.coverY||50}%">`:`<span>${i.e}</span>`}${i.hasVideo?`<span class="vbadge">▶ Video</span>`:""}</div><div class="cb"><b>${fmt(i.p)}</b><span class="t">${esc(i.t)}</span><span class="m">${where2(i)}</span></div></button><button class="heart" data-save="${i.id}" aria-pressed="${saved.has(i.id)}" aria-label="Save listing">${saved.has(i.id)?"♥":"♡"}</button></div>`;
 // Saved ads live in the database (favorites table), private to the signed-in user.
 // The page keeps a copy in "saved" so hearts can be drawn instantly.
 function paintHearts(id,on){
@@ -428,10 +429,12 @@ function render(){
   let list=items.filter(match);
   const main=$("#main");
   const gm=geoMsg;geoMsg="";
-  const near=Object.keys(T).filter(k=>k!==me).sort((a,b)=>dc(T[me],T[a])-dc(T[me],T[b])).slice(0,4);
+  const counts={};items.forEach(i=>{counts[i.loc]=(counts[i.loc]||0)+1});
+  const near=T[me]?Object.keys(T).filter(k=>k!==me).sort((a,b)=>dc(T[me],T[a])-dc(T[me],T[b])).slice(0,4)
+                  :Object.keys(counts).sort((a,b)=>counts[b]-counts[a]).slice(0,4);
   if(gm)showLoc=true;
-  const bar=`<div class="locpanel"><div class="near"><label>City<input id="me" list="cl" value="${esc(me)}" placeholder="Start typing a city" autocomplete="off"></label><label>Within<select id="rad">${[[0,"Any distance"],[5,"5 miles"],[10,"10 miles"],[25,"25 miles"],[50,"50 miles"],[100,"100 miles"]].map(r=>`<option value="${r[0]}"${r[0]===rad?" selected":""}>${r[1]}</option>`).join("")}</select></label><button class="btn ghost" id="geo" type="button">Use my location</button></div><div class="chips">Nearby: ${near.map(n=>`<button data-city="${esc(n)}">${esc(n)}</button>`).join("")}</div>${gm?`<p class="note" style="margin:12px 0 0">${esc(gm)}</p>`:""}</div>`;
-  const pill=regionSlug?`<button class="locpill" id="clearRegion" type="button" title="Show everywhere again">📍 ${esc(regionName)} ✕</button>`:`<button class="locpill" id="locToggle" type="button" aria-expanded="${showLoc}">📍 ${esc(me)} · ${rad?rad+" mi":"Any distance"}</button>`;
+  const bar=`<div class="locpanel"><div class="near"><label>City<input id="me" list="cl" value="${esc(me)}" placeholder="Start typing a city" autocomplete="off"></label><label>Within<select id="rad"${T[me]?"":" disabled"}>${[[0,"Any distance"],[5,"5 miles"],[10,"10 miles"],[25,"25 miles"],[50,"50 miles"],[100,"100 miles"]].map(r=>`<option value="${r[0]}"${r[0]===rad?" selected":""}>${r[1]}</option>`).join("")}</select></label><button class="btn ghost" id="geo" type="button">Use my location</button></div><div class="chips">${T[me]?"Nearby":"Cities with ads"}: ${near.map(n=>`<button data-city="${esc(n)}">${esc(n)}</button>`).join("")}</div>${gm?`<p class="note" style="margin:12px 0 0">${esc(gm)}</p>`:""}</div>`;
+  const pill=regionSlug?`<button class="locpill" id="clearRegion" type="button" title="Show everywhere again">📍 ${esc(regionName)} ✕</button>`:`<button class="locpill" id="locToggle" type="button" aria-expanded="${showLoc}">${me?`📍 ${esc(me)} · ${rad?rad+" mi":"Any distance"}`:"📍 Anywhere · choose your city"}</button>`;
   const tog=cur==="All"&&!q?`<div class="tog"><button data-view="cat" aria-pressed="${view==="cat"}">By category</button><button data-view="all" aria-pressed="${view==="all"}">View all</button></div>`:"";
   // One slim row (location + view switch); the full location controls open underneath on demand.
   const nb=cur==="Saved"?"":`<div class="toolbar">${pill}${tog}</div>`+(showLoc&&!regionSlug?bar:"");
@@ -442,7 +445,7 @@ function render(){
     return;
   }
   if(sort==="low")list.sort((a,b)=>a.p-b.p);else if(sort==="high")list.sort((a,b)=>b.p-a.p);else if(sort==="near")list.sort((a,b)=>dist(a)-dist(b));else if(sort==="old")list.sort((a,b)=>b.hrs-a.hrs||a.id-b.id);else list.sort((a,b)=>a.hrs-b.hrs||b.id-a.id);
-  main.innerHTML=nb+`<div class="bar"><h1>${landActive()?esc(LAND.h1):q?`Results for “${esc(q)}”`:cur==="All"?"All listings":cur==="Saved"?"Saved listings":esc(cur)}</h1><select id="sort" aria-label="Sort"><option value="new">Newest first</option><option value="old">Oldest first</option><option value="near">Nearest</option><option value="low">Price: low to high</option><option value="high">Price: high to low</option></select></div>${landActive()?`<p class="note">${esc(LAND.intro)}</p>`:""}<div class="grid">${list.map(card).join("")}</div>`;
+  main.innerHTML=nb+`<div class="bar"><h1>${landActive()?esc(LAND.h1):q?`Results for “${esc(q)}”`:cur==="All"?"All listings":cur==="Saved"?"Saved listings":esc(cur)}</h1><select id="sort" aria-label="Sort"><option value="new">Newest first</option><option value="old">Oldest first</option>${T[me]?`<option value="near">Nearest</option>`:""}<option value="low">Price: low to high</option><option value="high">Price: high to low</option></select></div>${landActive()?`<p class="note">${esc(LAND.intro)}</p>`:""}<div class="grid">${list.map(card).join("")}</div>`;
   $("#sort").value=sort;
 }
 // ---- Sharing: every ad has its own page address, like  https://chadads.com/ad/38-2017-jeep-rubicon ----
@@ -503,7 +506,7 @@ function open(id){
     <span class="tag">${esc(i.c)}</span>
     <div class="prow"><div class="price">${fmt(i.p)}</div><button class="savebtn" data-save="${i.id}" aria-pressed="${saved.has(i.id)}">${saved.has(i.id)?"♥ Saved":"♡ Save"}</button></div>
     <h2 class="adt">${esc(i.t)}</h2>
-    <div class="m" style="color:var(--mute)">${esc(i.loc)} · ${dd(i)} · Posted ${i.ago==="Just now"?"just now":i.ago+" ago"}</div>
+    <div class="m" style="color:var(--mute)">${where2(i)} · Posted ${i.ago==="Just now"?"just now":i.ago+" ago"}</div>
     <p class="d">${esc(i.d)}</p>
     ${safeUrl(i.link)?`<p style="margin:0"><a href="${esc(safeUrl(i.link))}" data-ext target="_blank" rel="noopener noreferrer nofollow ugc" style="color:var(--link);font-weight:600">🔗 ${esc(new URL(i.link).hostname)}</a></p>`:""}
     <button class="seller sbtn" data-prof="${i.id}"><div class="av">${esc(s.n[0])}</div><span><b>${esc(s.n)}</b><br>${rate(s)} · View profile</span></button>
@@ -580,7 +583,7 @@ document.addEventListener("click",e=>{
   if(t.tagName==="DIALOG")t.close();
 });
 document.addEventListener("change",e=>{const t=e.target;if(t.id==="sort")sort=t.value;else if(t.id==="rad")rad=+t.value;else return;render()});
-document.addEventListener("input",e=>{const t=e.target;if(t.id==="oa")ow=false;if(t.id==="me"){const k=Object.keys(T).find(n=>n.toLowerCase()===t.value.trim().toLowerCase());if(k&&k!==me){me=k;render()}}});
+document.addEventListener("input",e=>{const t=e.target;if(t.id==="oa")ow=false;if(t.id==="me"){const k=Object.keys(T).find(n=>n.toLowerCase()===t.value.trim().toLowerCase());if(k&&k!==me){me=k;render()}else if(!t.value.trim()&&me){me="";render()}}});
 $("#q").addEventListener("input",e=>{q=e.target.value.trim().toLowerCase();render()});
 $("#fl").addEventListener("input",e=>e.target.setCustomValidity(""));
 </script>
@@ -1092,7 +1095,7 @@ async function loadData(){
   rc.data.forEach(c=>{catById[c.id]=[c.name,c.icon,HUES[c.name]||200,c.id,c.active!==false]});
   cats=Object.values(catById).filter(r=>r[4]).sort((a,b)=>a[0].localeCompare(b[0]));   // A to Z
   rt.data.forEach(c=>{const k=c.name+", "+c.state;T[k]=[c.lat,c.lng];cityById[c.id]=k;cityIds[k]=c.id;cityRegions[k]=c.regions||[]});
-  if(!T[me])me=Object.keys(T).sort()[0];
+  if(!T[me])me="";   // no default city until there are more ads (see "me" at the top of the script)
   const now=Date.now();
   items=rl.data.filter(r=>catById[r.category_id]&&catById[r.category_id][4]).map(r=>{
     const c=catById[r.category_id],hrs=Math.max(0,Math.floor((now-new Date(r.created_at))/36e5));
