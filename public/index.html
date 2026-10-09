@@ -233,6 +233,7 @@ dialog .dlg.msgs{padding:0;gap:0}
 .seo-intro{font-size:22px;margin:0 0 8px}
 .site-foot{max-width:1200px;margin:0 auto;padding:18px 20px 40px;color:var(--mute);font-size:14px;display:flex;gap:18px;flex-wrap:wrap;border-top:1px solid var(--line)}
 .site-foot a{color:var(--mute)}
+.seo-nav{width:100%;display:flex;flex-wrap:wrap;gap:6px 14px}
 .share{display:flex;flex-direction:column;gap:8px;margin-top:6px;padding-top:14px;border-top:1px solid var(--line)}
 .share .sh{font-size:13px;font-weight:600;color:var(--mute);text-transform:uppercase;letter-spacing:.05em}
 .sharerow{display:flex;gap:10px;flex-wrap:wrap}
@@ -292,7 +293,7 @@ dialog .dlg.msgs{padding:0;gap:0}
   </main>
 </div>
 
-<footer class="site-foot"><a href="/about">About</a><a href="/terms">Terms</a><a href="/privacy">Privacy</a><span>© 2026 ChadAds</span></footer>
+<footer class="site-foot"><a href="/about">About</a><a href="/terms">Terms</a><a href="/privacy">Privacy</a><span>© 2026 ChadAds</span><nav class="seo-nav" id="seoNav" aria-label="Browse categories and regions"></nav></footer>
 
 <dialog id="dPost"><form class="dlg" id="f">
   <div class="top"><h2 id="postTitle">Post an ad</h2><button type="button" class="x" data-close aria-label="Close">✕</button></div>
@@ -349,6 +350,12 @@ const HUES={"Autos Cars":210,"Autos Trucks":220,Vehicles:210,Property:150,Electr
 let cats=[],items=[];
 const T={};
 let cur="All",q="",sort="new",me="Saratoga Springs, NY",rad=50,view="all",showLoc=false,geoMsg="",ow=false;
+// Category / region pages (/for-sale/autos-trucks, /in/capital-district) arrive with a note from the server (window.__LANDING__)
+// saying which filter they represent. regionSlug filters by the database's region lists instead of by distance.
+const LAND=window.__LANDING__||null;
+let regionSlug=null,regionName="",landDone=false;
+const basePath=location.pathname.startsWith("/ad/")?"/":location.pathname;   // where the address bar goes back to when a pop-up closes
+const landActive=()=>!!LAND&&!q&&cur===(LAND.cat||"All")&&(LAND.region?regionSlug===LAND.region:true);
 const offers={};
 const SL={"Saratoga Springs, NY":["Dana R.",2021,4.9,41,"within an hour"],"Ballston Spa, NY":["Hannah K.",2022,4.7,12,"within a few hours"],"Clifton Park, NY":["Priya S.",2020,4.8,63,"within an hour"],"Schenectady, NY":["Tom W.",2023,4.5,6,"within a day"],"Albany, NY":["Marcus T.",2019,4.9,88,"within an hour"],"Troy, NY":["Leo B.",2021,4.6,27,"within a few hours"],"Glens Falls, NY":["Gail P.",2022,4.8,15,"within a day"],"Queensbury, NY":["Rick M.",2018,4.7,34,"within a few hours"],"Boston, MA":["Alex C.",2020,4.8,52,"within an hour"],"Burlington, VT":["Sam H.",2022,4.9,19,"within a few hours"],"Hartford, CT":["Jo L.",2021,4.4,9,"within a day"],"New York, NY":["Chris D.",2019,4.7,71,"within an hour"],"Pittsburgh, PA":["Nina V.",2023,5,4,"within a few hours"],"Syracuse, NY":["Omar F.",2022,4.6,11,"within a day"]};
 // Is this ad mine? (i.you = posted this session; sid = seller's account id from the database)
@@ -388,7 +395,7 @@ function locate(){
   navigator.geolocation.getCurrentPosition(p=>{const c=[p.coords.latitude,p.coords.longitude];me=Object.keys(T).sort((a,b)=>dc(c,T[a])-dc(c,T[b]))[0];geoMsg="Set to the closest city we have: "+me+".";render()},()=>{geoMsg="Couldn't get your location. Type your city instead.";render()},{timeout:8000});
 }
 const dd=i=>{const d=dist(i);return d<1?"Under 1 mi":Math.round(d)+" mi away"};
-const inR=i=>!rad||dist(i)<=rad;
+const inR=i=>regionSlug?(i.reg||[]).includes(regionSlug):(!rad||dist(i)<=rad);
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt=p=>p===0?"Free":"$"+p.toLocaleString();
@@ -424,10 +431,10 @@ function render(){
   const near=Object.keys(T).filter(k=>k!==me).sort((a,b)=>dc(T[me],T[a])-dc(T[me],T[b])).slice(0,4);
   if(gm)showLoc=true;
   const bar=`<div class="locpanel"><div class="near"><label>City<input id="me" list="cl" value="${esc(me)}" placeholder="Start typing a city" autocomplete="off"></label><label>Within<select id="rad">${[[0,"Any distance"],[5,"5 miles"],[10,"10 miles"],[25,"25 miles"],[50,"50 miles"],[100,"100 miles"]].map(r=>`<option value="${r[0]}"${r[0]===rad?" selected":""}>${r[1]}</option>`).join("")}</select></label><button class="btn ghost" id="geo" type="button">Use my location</button></div><div class="chips">Nearby: ${near.map(n=>`<button data-city="${esc(n)}">${esc(n)}</button>`).join("")}</div>${gm?`<p class="note" style="margin:12px 0 0">${esc(gm)}</p>`:""}</div>`;
-  const pill=`<button class="locpill" id="locToggle" type="button" aria-expanded="${showLoc}">📍 ${esc(me)} · ${rad?rad+" mi":"Any distance"}</button>`;
+  const pill=regionSlug?`<button class="locpill" id="clearRegion" type="button" title="Show everywhere again">📍 ${esc(regionName)} ✕</button>`:`<button class="locpill" id="locToggle" type="button" aria-expanded="${showLoc}">📍 ${esc(me)} · ${rad?rad+" mi":"Any distance"}</button>`;
   const tog=cur==="All"&&!q?`<div class="tog"><button data-view="cat" aria-pressed="${view==="cat"}">By category</button><button data-view="all" aria-pressed="${view==="all"}">View all</button></div>`:"";
   // One slim row (location + view switch); the full location controls open underneath on demand.
-  const nb=cur==="Saved"?"":`<div class="toolbar">${pill}${tog}</div>`+(showLoc?bar:"");
+  const nb=cur==="Saved"?"":`<div class="toolbar">${pill}${tog}</div>`+(showLoc&&!regionSlug?bar:"");
   if(!list.length){main.innerHTML=nb+`<div class="empty">${cur==="Saved"?user?`<h2>Nothing saved yet</h2><p>Tap the heart on any ad to save it here.</p>`:`<h2>Log in to see your saved ads</h2><p>Saved ads are kept in your account, so you can see them on any device.</p>`:`<h2>No listings found</h2><p>Try a wider distance, a different search, or post an ad.</p>`}</div>`;return}
   if(cur==="All"&&!q&&view==="cat"){
     main.innerHTML=nb+cats.map(c=>{const l=items.filter(i=>i.c===c[0]&&inR(i)).sort((a,b)=>dist(a)-dist(b));if(!l.length)return"";
@@ -435,7 +442,7 @@ function render(){
     return;
   }
   if(sort==="low")list.sort((a,b)=>a.p-b.p);else if(sort==="high")list.sort((a,b)=>b.p-a.p);else if(sort==="near")list.sort((a,b)=>dist(a)-dist(b));else if(sort==="old")list.sort((a,b)=>b.hrs-a.hrs||a.id-b.id);else list.sort((a,b)=>a.hrs-b.hrs||b.id-a.id);
-  main.innerHTML=nb+`<div class="bar"><h1>${q?`Results for “${esc(q)}”`:cur==="All"?"All listings":cur==="Saved"?"Saved listings":esc(cur)}</h1><select id="sort" aria-label="Sort"><option value="new">Newest first</option><option value="old">Oldest first</option><option value="near">Nearest</option><option value="low">Price: low to high</option><option value="high">Price: high to low</option></select></div><div class="grid">${list.map(card).join("")}</div>`;
+  main.innerHTML=nb+`<div class="bar"><h1>${landActive()?esc(LAND.h1):q?`Results for “${esc(q)}”`:cur==="All"?"All listings":cur==="Saved"?"Saved listings":esc(cur)}</h1><select id="sort" aria-label="Sort"><option value="new">Newest first</option><option value="old">Oldest first</option><option value="near">Nearest</option><option value="low">Price: low to high</option><option value="high">Price: high to low</option></select></div>${landActive()?`<p class="note">${esc(LAND.intro)}</p>`:""}<div class="grid">${list.map(card).join("")}</div>`;
   $("#sort").value=sort;
 }
 // ---- Sharing: every ad has its own page address, like  https://chadads.com/ad/38-2017-jeep-rubicon ----
@@ -509,7 +516,7 @@ function open(id){
 }
 // When the pop-up closes, go back to the plain home address.
 $("#dView").addEventListener("close",()=>{
-  try{history.replaceState(null,"","/")}catch(e){}
+  try{history.replaceState(null,"",basePath)}catch(e){}
   $("#view").innerHTML="";   // empties the pop-up, which also stops any video still playing
 });
 // Header shrinks after scrolling down, and grows back near the top.
@@ -561,6 +568,7 @@ document.addEventListener("click",e=>{
   const bk=t.closest("[data-back]");if(bk){open(bk.dataset.back);return}
   const ct=t.closest("[data-city]");if(ct){me=ct.dataset.city;render();return}
   if(t.closest("#locToggle")){showLoc=!showLoc;render();return}
+  if(t.closest("#clearRegion")){regionSlug=null;rad=50;try{history.replaceState(null,"","/")}catch(e){};render();return}
   if(t.id==="geo"){locate();return}
   const vw=t.closest("[data-view]");if(vw){view=vw.dataset.view;render();return}
   const cat=t.closest("[data-cat]");if(cat){cur=cat.dataset.cat;q="";$("#q").value="";render();window.scrollTo({top:0});return}
@@ -1070,7 +1078,7 @@ async function loadData(){
   // also connected through favorites, so Supabase needs to be told.
   const [rc,rt,rl]=await Promise.all([
     sb.from("categories").select("*").order("id"),
-    fetchAll("cities","id,name,state,lat,lng"),
+    fetchAll("cities","id,name,state,lat,lng,regions"),
     sb.from("listings").select("id,seller_id,category_id,city_id,title,description,price,link,video_link,cover_y,created_at,profiles!seller_id(display_name,created_at),listing_photos(id,storage_path,position),listing_videos(id,storage_path)")
       .eq("status","active").order("created_at",{ascending:false}).limit(500)
       .order("position",{referencedTable:"listing_photos"})   // the cover photo first,
@@ -1079,11 +1087,11 @@ async function loadData(){
   const err=rc.error||rt.error||rl.error;
   if(err){main.innerHTML=`<div class="empty"><h2>Couldn't load listings</h2><p>${esc(err.message)}</p></div>`;return}
 
-  const catById={},cityById={};
+  const catById={},cityById={},cityRegions={};
   // Hidden categories (active = false) are left out of the menus, the Post form and the listings.
   rc.data.forEach(c=>{catById[c.id]=[c.name,c.icon,HUES[c.name]||200,c.id,c.active!==false]});
   cats=Object.values(catById).filter(r=>r[4]).sort((a,b)=>a[0].localeCompare(b[0]));   // A to Z
-  rt.data.forEach(c=>{const k=c.name+", "+c.state;T[k]=[c.lat,c.lng];cityById[c.id]=k;cityIds[k]=c.id});
+  rt.data.forEach(c=>{const k=c.name+", "+c.state;T[k]=[c.lat,c.lng];cityById[c.id]=k;cityIds[k]=c.id;cityRegions[k]=c.regions||[]});
   if(!T[me])me=Object.keys(T).sort()[0];
   const now=Date.now();
   items=rl.data.filter(r=>catById[r.category_id]&&catById[r.category_id][4]).map(r=>{
@@ -1094,12 +1102,14 @@ async function loadData(){
     const vpath=(r.listing_videos&&r.listing_videos[0])?r.listing_videos[0].storage_path:null;
     const vurl=vpath?sb.storage.from(VBUCKET).getPublicUrl(vpath).data.publicUrl:null,emb=videoEmbed(r.video_link);
     const media=[...imgs.map(u=>({t:"img",u,alt:r.title})),...(vurl?[{t:"vid",u:vurl}]:[]),...(emb?[{t:"emb",u:emb}]:[])];
-    return{id:r.id,paths,imgs,img,coverY:r.cover_y,media,vpath,vlink:r.video_link,hasVideo:!!(vurl||emb),link:r.link,t:r.title,p:r.price,c:c[0],loc:cityById[r.city_id],d:r.description,ago:agoText(hrs),hrs,e:c[1],h:c[2],
+    return{id:r.id,paths,imgs,img,coverY:r.cover_y,media,vpath,vlink:r.video_link,hasVideo:!!(vurl||emb),link:r.link,t:r.title,p:r.price,c:c[0],loc:cityById[r.city_id],reg:cityRegions[cityById[r.city_id]]||[],d:r.description,ago:agoText(hrs),hrs,e:c[1],h:c[2],
       sid:r.seller_id,sn:r.profiles&&r.profiles.display_name,sy:r.profiles&&new Date(r.profiles.created_at).getFullYear()}
   }).filter(i=>i.loc);
   // Fill the city suggestions and the category list in the Post form.
   $("#cl").innerHTML=Object.keys(T).sort().map(n=>`<option value="${esc(n)}">`).join("");
   $("#fc").innerHTML=cats.map(c=>`<option>${esc(c[0])}</option>`).join("");
+  if(!landDone){landDone=true;if(LAND){if(LAND.cat&&cats.some(c=>c[0]===LAND.cat))cur=LAND.cat;if(LAND.region){regionSlug=LAND.region;regionName=LAND.regionName||"";}}}
+  $("#seoNav").innerHTML=`<span>Browse:</span> `+cats.map(c=>`<a href="/for-sale/${slugify(c[0])}">${esc(c[0])}</a>`).join("")+` <span>Regions:</span> `+[["capital-district","Capital District"],["adirondacks","Adirondacks"],["hudson-valley","Hudson Valley"],["upstate-new-york","Upstate NY"]].map(([s,n])=>`<a href="/in/${s}">${n}</a>`).join("");
   if(!deepDone){const sq=new URLSearchParams(location.search).get("q");if(sq&&sq.trim()){q=sq.trim().toLowerCase();$("#q").value=sq.trim()}}
   render();
   // Someone arrived through a shared link like /ad/38-2017-jeep-rubicon (or the older ?ad=38): show that ad straight away.

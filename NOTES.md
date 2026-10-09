@@ -54,3 +54,6 @@
 
 ## Messaging
 - `step14_messaging.sql`: conversations + messages (offers are messages with an amount), private to the two people, with spam limits (60 messages/hour, 20 new conversations/day). In-app only; the page checks for new messages every 30 s (10 s while the inbox is open). Email alerts need a sender address, so they are not built yet. Moderation/reports and admin access to threads are not built yet (Phase 4).
+
+## Regions and category pages
+- `step15_regions.sql` (run AFTER `seed_cities_us.sql`, and BEFORE pushing the matching page change): county codes and regions on cities, plus small NY towns and nearby VT/MA towns. Details and how to change a region: `SEO.md` (Stage 3).

@@ -50,8 +50,31 @@ Things to remember:
   because `buildAdPage()` finds and replaces them by pattern. Test by loading `/ad/<id>-<anything>` after a deploy.
 - The home page `canonical` stays `https://chadads.com/`. Ad pages set their own.
 
-## Stage 3: next
-1. **City and category pages**, e.g. `/vehicles/saratoga-springs-ny`, `/vehicles/capital-district`: same pattern (a new edge function), with a list of the ads, unique text, and `ItemList` data. Add them to the sitemap.
+## Stage 3: category and region pages (built, October 2026)
+Addresses (built by `netlify/edge-functions/browse.js`, logic in `netlify/edge-lib/seo.js`):
+- `/for-sale/autos-trucks`: one category, everywhere. Category address = `slugify(category name)`.
+- `/in/capital-district`: everything in one region.
+- `/for-sale/autos-trucks/capital-district`: one category in one region. (`.../upstate-new-york` is treated as a duplicate of the plain category page: its canonical points there and it is kept out of the sitemap.)
+
+How regions work:
+- A region is a list of **counties**, stored per place in the database (`cities.county_fips`, `cities.regions`), set by `step15_regions.sql`.
+  To change a region, edit the lists in section 3 of that file and run it again. To add a NEW region, also add it to `REGIONS` in `netlify/edge-lib/seo.js`
+  (name, words, blurb), and to the footer/links list in `public/index.html` (`#seoNav` code in `loadData()`).
+- Capital District = Albany, Rensselaer, Saratoga, Schenectady counties + Bennington County VT + Berkshire County MA (nearby).
+  Adirondacks = Warren, Essex, Hamilton, Clinton + Saranac Lake, Tupper Lake, Hudson Falls (Malone and the North Country are not included).
+  Hudson Valley = Columbia, Greene, Dutchess, Ulster, Orange, Sullivan. Upstate New York = all NY except NYC, Long Island, Westchester, Rockland, Putnam.
+- Places with fewer than 1,000 people are not in the city list. A seller there picks a nearby bigger town.
+
+When a page is listed on Google (`INDEX_MIN` in `seo.js`): category 1+ ads, region 1+ ads, category-in-region 3+ ads. Other pages still work for visitors
+but carry `noindex` and are left out of the sitemap. Raise the numbers as the site grows, so thin pages stay out of Google.
+Page words: edit `CATEGORY_INFO` (a short label and one sentence per category) and `REGIONS` in `seo.js`. A new category works without an entry (it uses its own name).
+
+The app: the server adds `window.__LANDING__` (category, region, heading, intro) to the page. The app then filters the same way on screen
+(`regionSlug`, `landActive()` in `public/index.html`) and a "Capital District ✕" chip clears it.
+Ad pages link to their category and region pages, and the footer links to all categories and regions.
+
+## Stage 4: next
+1. **City pages**, e.g. `/in/saratoga-springs-ny` (same pattern; cities already in the database).
 2. **Speed:** smaller grid photos (600 px copies), a smaller logo file (254 KB now).
 3. **Analytics** that respects privacy (for example Plausible).
 4. **Content and links:** local Facebook groups, local directories, a Google Business Profile if there is a physical presence.
