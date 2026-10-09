@@ -30,7 +30,16 @@ button{cursor:pointer}
 header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--glass);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid var(--line);display:flex;gap:14px;align-items:center;padding:12px 20px}
 header::after{content:"";position:absolute;left:0;right:0;bottom:-6px;height:6px;background:linear-gradient(var(--navy) 0 2px,var(--acc) 2px 4px,var(--mustard) 4px 6px);pointer-events:none}
 .logo{display:flex;align-items:center;color:var(--ink);text-decoration:none;white-space:nowrap}
-.logo img{height:62px;width:auto;display:block}
+.logo{flex-direction:column;align-items:flex-start;gap:4px}
+.logo img{height:84px;width:auto;display:block;transition:height .22s ease}
+.tag3{font:700 12px/1 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Inter,Roboto,system-ui,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:var(--mute);max-height:16px;overflow:hidden;transition:max-height .22s ease,opacity .22s ease}
+.tag3 i{font-style:normal;color:var(--acc);margin:0 .4em}
+/* once the page is scrolled, the header shrinks so it doesn't take over the screen */
+header.compact .logo img{height:62px}
+ .tag3{font-size:9.5px;letter-spacing:.11em}
+ .tag3 i{margin:0 .3em}
+ header.compact .logo img{height:38px}
+header.compact .tag3{max-height:0;opacity:0}
 .search{flex:1 1 0;min-width:0;border:0;background:var(--soft);border-radius:999px;padding:11px 18px}
 .search::placeholder{color:var(--mute)}
 .btn{border:0;background:var(--acc);color:var(--acc-ink);font-weight:600;border-radius:999px;padding:10px 20px;white-space:nowrap;transition:opacity .15s}
@@ -180,8 +189,11 @@ dialog.wide{width:min(1020px,96vw)}
  .logo{flex:1}
  .search{order:3;flex:1 1 100%}
  .wrap{padding:12px 14px 48px}
- .logo img{height:46px}
- .btn{padding:8px 13px;font-size:15px}
+ .logo img{height:62px}
+ .tag3{font-size:9.5px;letter-spacing:.11em}
+ .tag3 i{margin:0 .3em}
+ header.compact .logo img{height:38px}
+ .btn{padding:7px 12px;font-size:14px}
  h1{font-size:25px}
  .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:22px 12px}
  .dlg{padding:20px}
@@ -191,7 +203,7 @@ dialog.wide{width:min(1020px,96vw)}
 </head>
 <body>
 <header>
-  <a class="logo" href="./" aria-label="ChadAds home"><img src="logo.webp" alt="ChadAds" width="96" height="64"></a>
+  <a class="logo" href="./" aria-label="ChadAds home"><img src="logo.webp" alt="ChadAds" width="96" height="64"><span class="tag3" aria-hidden="true">List<i>•</i>Sell<i>•</i>Local</span></a>
   <input class="search" id="q" type="search" placeholder="Search listings" aria-label="Search listings">
   <div class="hdr-r">
     <span class="who" id="who"></span>
@@ -398,6 +410,9 @@ $("#dView").addEventListener("close",()=>{
   try{history.replaceState(null,"",location.pathname)}catch(e){}
   $("#view").innerHTML="";   // empties the pop-up, which also stops any video still playing
 });
+// Header shrinks after scrolling down, and grows back near the top.
+{const h=document.querySelector("header");let small=false;
+ addEventListener("scroll",()=>{const y=scrollY;if(!small&&y>80){small=true;h.classList.add("compact")}else if(small&&y<8){small=false;h.classList.remove("compact")}},{passive:true})}
 // Arrow keys flip photos; swiping left or right on the photo does too.
 document.addEventListener("keydown",e=>{
   if(!$("#dView").open||!$("#gal")||/^(INPUT|TEXTAREA|SELECT|VIDEO|IFRAME)$/.test(e.target.tagName))return;
