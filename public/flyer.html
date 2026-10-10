@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>ChadAds flyer (print this page)</title>
+<style>
+/* A print-ready US Letter flyer. Open this page and choose Print (Ctrl+P). In the print window: Margins = None,
+   and turn ON "Background graphics" so the colours print. */
+@page{size:letter;margin:0}
+*{box-sizing:border-box}
+body{margin:0;background:#cfc8b8;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.bar{max-width:8.5in;margin:14px auto;padding:12px 16px;background:#fff;border-radius:12px;display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap;font-size:15px;color:#333}
+.bar button,.bar a{font:inherit;font-weight:600;background:#e95e0d;color:#1e1c19;border:0;border-radius:999px;padding:9px 20px;text-decoration:none;cursor:pointer}
+.bar a.alt{background:#eee;color:#222}
+.page{position:relative;width:8.5in;height:11in;margin:0 auto 24px;background:#fbf7ef;overflow:hidden;color:#1e1c19;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,.25)}
+.stripe{height:.42in;background:linear-gradient(#164663 0 33.3%,#e95e0d 33.3% 66.6%,#e9a70d 66.6%)}
+.stripe.bottom{position:absolute;left:0;right:0;bottom:0}
+.logo{display:block;width:2.3in;height:auto;margin:.34in auto 0}
+h1{margin:.16in .6in 0;font-size:.5in;line-height:1.05;letter-spacing:-.02em}
+.free{margin:.1in 0 0;font-size:.66in;line-height:1;font-weight:900;color:#e95e0d;letter-spacing:-.02em}
+.sub{margin:.1in .8in 0;font-size:.22in;color:#5b5446}
+.points{list-style:none;padding:0;margin:.2in auto 0;display:flex;justify-content:center;gap:.22in;font-size:.21in;font-weight:700}
+.points li{margin:0;padding:.06in .18in;background:#f3eadb;border-radius:999px}
+.qrbox{width:2.8in;margin:.22in auto 0;padding:.12in;background:#fff;border:.045in solid #1e1c19;border-radius:.18in}
+.qrbox img{display:block;width:100%;height:auto}
+.scan{margin:.12in 0 0;font-size:.26in;font-weight:800}
+.url{margin:.02in 0 0;font-size:.38in;font-weight:900;letter-spacing:-.01em}
+.area{position:absolute;left:.6in;right:.6in;bottom:.5in;font-size:.17in;color:#5b5446;line-height:1.3}
+@media print{body{background:none}.bar{display:none}.page{margin:0;box-shadow:none;page-break-after:always}}
+</style>
+</head>
+<body>
+<div class="bar"><span><b>Flyer</b> (US Letter). Print with <b>Margins: None</b> and <b>Background graphics: on</b>.</span><span><button onclick="window.print()">Print</button> <a class="alt" href="flyer-sheet.html">8 small cards instead</a></span></div>
+<div class="page">
+  <div class="stripe"></div>
+  <img class="logo" src="logo.webp" alt="ChadAds">
+  <h1>Got a truck, camper, ATV or equipment to sell?</h1>
+  <p class="free">List it FREE</p>
+  <p class="sub">Reach local buyers. Add photos, set your price, and answer messages from your phone.</p>
+  <ul class="points"><li>Free to list</li><li>Local buyers</li><li>Takes 2 minutes</li></ul>
+  <div class="qrbox"><img src="qr-sell.svg" alt="QR code for chadads.com/sell"></div>
+  <p class="scan">Scan with your phone's camera</p>
+  <p class="url">chadads.com/sell</p>
+  <p class="area">Serving the Capital District, Albany, Saratoga, Troy, the Adirondacks, the Hudson Valley and Upstate New York.</p>
+  <div class="stripe bottom"></div>
+</div>
+</body>
+</html>

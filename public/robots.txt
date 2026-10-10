@@ -1,7 +1,7 @@
-# ChadAds: search engines are welcome everywhere except the admin screen.
+# ChadAds: search engines are welcome everywhere except the admin screen and the print-only flyer pages.
 User-agent: *
 Allow: /
-Disallow: /admin.html
 Disallow: /admin
+Disallow: /flyer
 
 Sitemap: https://chadads.com/sitemap.xml

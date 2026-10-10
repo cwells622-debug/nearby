@@ -62,3 +62,9 @@
 - Every photo has a small copy (~600 px JPEG) saved beside it: `abc.jpg` -> `abc_t.jpg` (`thumbPath()` in `public/index.html`, `public/admin.html` and `netlify/edge-lib/seo.js` must stay identical). Grids, strips and lists use it and fall back to the full photo if it is missing. New uploads make it automatically; deleting a photo or ad removes both.
 - Photos uploaded before this need copies: run `step16_admin_photo_upload.sql`, then press 'Create small photo copies' on the admin page (safe to press again).
 - Logo: `public/logo-sm.webp` (27 KB) is used in headers; `public/logo.webp` (254 KB) is only used for link previews.
+
+## Getting sellers (Sell page and flyers)
+- `/sell` (`public/sell.html`): why list, how it works, tips, FAQ. Its buttons go to `/?post=1`, which opens the Post form (or asks the visitor to log in first, then opens it).
+- Print pieces: `/flyer` (one US Letter page) and `/flyer-sheet` (8 cut-out cards). Both are print-only pages (not indexed). Print with Margins: None and Background graphics: on.
+- Both use `public/qr-sell.svg`, a QR code for `https://chadads.com/sell` (error correction Q, checked with a decoder). If the web address ever changes, the QR code must be regenerated (it is just a picture of the address).
+- There is no analytics yet, so scans and visits can't be counted. Add privacy-friendly analytics (e.g. Plausible) before a big print run.

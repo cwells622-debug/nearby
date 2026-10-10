@@ -262,7 +262,7 @@ export function buildSitemap(ads, todayIso) {
       if (cat && r !== "upstate-new-york") bump(browsePath(cat, r), INDEX_MIN.combo, when);   // upstate combos duplicate the category page
     }
   }
-  const fixed = [["/", "daily", "1.0"], ["/about", "monthly", "0.5"], ["/terms", "yearly", "0.3"], ["/privacy", "yearly", "0.3"]]
+  const fixed = [["/", "daily", "1.0"], ["/sell", "monthly", "0.6"], ["/about", "monthly", "0.5"], ["/terms", "yearly", "0.3"], ["/privacy", "yearly", "0.3"]]
     .map(([p, f, pr]) => `  <url><loc>${SITE}${p}</loc><lastmod>${day(todayIso)}</lastmod><changefreq>${f}</changefreq><priority>${pr}</priority></url>`);
   const lists = [...groups.entries()].filter(([, g]) => g.n >= g.need).sort(([a], [b]) => (a < b ? -1 : 1))
     .map(([p, g]) => `  <url><loc>${esc(SITE + p)}</loc><lastmod>${g.last}</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>`);

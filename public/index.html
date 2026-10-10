@@ -295,7 +295,7 @@ dialog .dlg.msgs{padding:0;gap:0}
   </main>
 </div>
 
-<footer class="site-foot"><a href="/about">About</a><a href="/terms">Terms</a><a href="/privacy">Privacy</a><span>© 2026 ChadAds</span><nav class="seo-nav" id="seoNav" aria-label="Browse categories and regions"></nav></footer>
+<footer class="site-foot"><a href="/sell">Sell on ChadAds</a><a href="/about">About</a><a href="/terms">Terms</a><a href="/privacy">Privacy</a><span>© 2026 ChadAds</span><nav class="seo-nav" id="seoNav" aria-label="Browse categories and regions"></nav></footer>
 
 <dialog id="dPost"><form class="dlg" id="f">
   <div class="top"><h2 id="postTitle">Post an ad</h2><button type="button" class="x" data-close aria-label="Close">✕</button></div>
@@ -598,7 +598,7 @@ $("#fl").addEventListener("input",e=>e.target.setCustomValidity(""));
 /* ---------- Accounts (Supabase Auth) ---------- */
 // "sb" is our connection to Supabase, like an ADO connection object in classic ASP.
 // Its settings come from config.js.
-let sb=null,user=null,signup=false,editId=null,deepDone=false;
+let sb=null,user=null,signup=false,editId=null,deepDone=false,postDone=false,postAfterLogin=false;
 const BUCKET="listing-photos",cityIds={};   // cityIds: "Albany, NY" -> the city's id in the database
 const PHOTO_TYPES={"image/jpeg":"jpg","image/png":"png","image/webp":"webp"},MAX_PHOTO=5*1024*1024,MAX_PHOTO_IN=60*1024*1024,PHOTO_TARGET=1.5*1024*1024,MAX_PHOTOS=5;   // MAX_PHOTOS must match the limit in step4_photos_and_limits.sql
 const cfgOk=typeof NEARBY_CONFIG!=="undefined"&&/^https?:\/\//.test(NEARBY_CONFIG.supabaseUrl)&&!NEARBY_CONFIG.supabaseAnonKey.startsWith("PASTE");
@@ -630,6 +630,7 @@ async function loadFavorites(){
 function showUser(u){
   const changed=(u?u.id:null)!==(user?user.id:null);
   user=u;
+  if(u&&postAfterLogin){postAfterLogin=false;setTimeout(()=>startPost(),400)}   // they came from "Post your ad" and have just logged in
   $("#msgsBtn").hidden=!u;
   if(changed){
     convos=[];curConv=null;updateBadge();stopPolling();
@@ -1136,6 +1137,14 @@ async function loadData(){
   $("#seoNav").innerHTML=`<span>Browse:</span> `+cats.map(c=>`<a href="/for-sale/${slugify(c[0])}">${esc(c[0])}</a>`).join("")+` <span>Regions:</span> `+[["capital-district","Capital District"],["adirondacks","Adirondacks"],["hudson-valley","Hudson Valley"],["upstate-new-york","Upstate NY"]].map(([s,n])=>`<a href="/in/${s}">${n}</a>`).join("");
   if(!deepDone){const sq=new URLSearchParams(location.search).get("q");if(sq&&sq.trim()){q=sq.trim().toLowerCase();$("#q").value=sq.trim()}}
   render();
+  // "Post your ad" buttons (on /sell and flyers) link to /?post=1: open the Post form, or ask them to log in first.
+  if(!postDone){postDone=true;if(new URLSearchParams(location.search).has("post")){
+    try{history.replaceState(null,"","/")}catch(e){}
+    sb.auth.getSession().then(({data})=>{
+      if(data.session&&!user)showUser(data.session.user);
+      if(user)startPost();else{postAfterLogin=true;needLogin("Please log in or create a free account to post your ad.")}
+    });
+  }}
   // Someone arrived through a shared link like /ad/38-2017-jeep-rubicon (or the older ?ad=38): show that ad straight away.
   if(!deepDone){deepDone=true;const pm=location.pathname.match(/^\/ad\/(\d+)/),id=pm?+pm[1]:+new URLSearchParams(location.search).get("ad");if(id&&items.some(x=>x.id===id))open(id)}
 }

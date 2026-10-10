@@ -18,3 +18,20 @@ ul{padding-left:22px}li{margin:6px 0}
 footer{border-top:1px solid var(--line);padding:22px 20px;text-align:center;color:var(--mute);font-size:14px}
 footer a{margin:0 10px;color:var(--mute)}
 @media (max-width:600px){h1{font-size:28px}header img{height:46px}}
+/* Sell page */
+.hero{background:var(--soft);border-radius:24px;padding:30px 26px;margin:0 0 30px}
+.hero h1{margin-bottom:10px}
+.btn.lg{padding:14px 28px;font-size:18px}
+.btn.ghost{background:var(--soft);color:var(--ink);border:1px solid var(--line)}
+.hero .btn.ghost{background:var(--panel)}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;list-style:none;padding:0}
+.card3{background:var(--soft);border-radius:18px;padding:16px 18px;margin:0}
+.steps{list-style:none;padding:0}
+.steps li{display:flex;gap:14px;align-items:flex-start;margin:14px 0}
+.num{flex:none;display:inline-grid;place-items:center;width:34px;height:34px;border-radius:50%;background:var(--ink);color:var(--bg);font-weight:700}
+.chips2{display:flex;flex-wrap:wrap;gap:8px}
+.chips2 a{background:var(--soft);color:var(--ink);border-radius:999px;padding:7px 15px;text-decoration:none;font-size:15px;font-weight:500}
+.chips2 a:hover{background:var(--line)}
+details{border-bottom:1px solid var(--line);padding:12px 0}
+summary{cursor:pointer;font-weight:600}
+details p{margin:8px 0 0;color:var(--mute)}

@@ -16,3 +16,9 @@
 
 /admin.html
   X-Robots-Tag: noindex, nofollow
+
+/flyer.html
+  X-Robots-Tag: noindex, nofollow
+
+/flyer-sheet.html
+  X-Robots-Tag: noindex, nofollow

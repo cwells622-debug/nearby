@@ -18,3 +18,18 @@
   from = "/privacy"
   to = "/privacy.html"
   status = 200
+
+[[redirects]]
+  from = "/sell"
+  to = "/sell.html"
+  status = 200
+
+[[redirects]]
+  from = "/flyer"
+  to = "/flyer.html"
+  status = 200
+
+[[redirects]]
+  from = "/flyer-sheet"
+  to = "/flyer-sheet.html"
+  status = 200

@@ -2,6 +2,7 @@
 <!-- Hand-written for now. When ads get their own pages, this file will be generated automatically from the database. See SEO.md. -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://chadads.com/</loc><lastmod>2026-10-09</lastmod><changefreq>daily</changefreq><priority>1.0</priority></url>
+  <url><loc>https://chadads.com/sell</loc><lastmod>2026-10-11</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>
   <url><loc>https://chadads.com/about</loc><lastmod>2026-10-09</lastmod><changefreq>monthly</changefreq><priority>0.5</priority></url>
   <url><loc>https://chadads.com/terms</loc><lastmod>2026-10-09</lastmod><changefreq>yearly</changefreq><priority>0.3</priority></url>
   <url><loc>https://chadads.com/privacy</loc><lastmod>2026-10-09</lastmod><changefreq>yearly</changefreq><priority>0.3</priority></url>
