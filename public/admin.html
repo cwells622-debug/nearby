@@ -127,6 +127,7 @@ async function start(){
   const {data:isAdmin,error}=await sb.rpc("is_admin");
   if(error)return say("Admin setup missing","Run step8_admin.sql in the Supabase SQL Editor. ("+esc(error.message)+")");
   if(!isAdmin)return say("Not an admin","This account is not an administrator.");
+  try{localStorage.setItem("chadads-no-analytics","1")}catch(e){}   // the admin's own visits are not counted in the site statistics
   const rc=await sb.from("categories").select("*").order("id");
   if(rc.error)return say("Couldn't load",esc(rc.error.message));
   cats=rc.data.slice().sort((a,b)=>a.name.localeCompare(b.name));

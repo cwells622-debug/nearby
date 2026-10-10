@@ -3,5 +3,6 @@ User-agent: *
 Allow: /
 Disallow: /admin
 Disallow: /flyer
+Disallow: /s/
 
 Sitemap: https://chadads.com/sitemap.xml

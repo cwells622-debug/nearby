@@ -33,3 +33,14 @@
   from = "/flyer-sheet"
   to = "/flyer-sheet.html"
   status = 200
+
+# QR codes on printed flyers and cards use these short addresses so visits from each can be counted separately.
+[[redirects]]
+  from = "/s/flyer"
+  to = "/sell.html"
+  status = 200
+
+[[redirects]]
+  from = "/s/card"
+  to = "/sell.html"
+  status = 200

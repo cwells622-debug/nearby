@@ -68,3 +68,9 @@
 - Print pieces: `/flyer` (one US Letter page) and `/flyer-sheet` (8 cut-out cards). Both are print-only pages (not indexed). Print with Margins: None and Background graphics: on.
 - Both use `public/qr-sell.svg`, a QR code for `https://chadads.com/sell` (error correction Q, checked with a decoder). If the web address ever changes, the QR code must be regenerated (it is just a picture of the address).
 - There is no analytics yet, so scans and visits can't be counted. Add privacy-friendly analytics (e.g. Plausible) before a big print run.
+
+## Analytics (Cloudflare Web Analytics)
+- `public/analytics.js` adds Cloudflare's counter. It does NOTHING until the TOKEN line in that file is filled in (get it from Cloudflare dashboard > Web Analytics > your site > JavaScript snippet; it is public, not a secret), then push.
+- Only chadads.com / www.chadads.com are counted. Not counted: localhost, the old netlify.app address, browsers that send Do Not Track, and the owner's browser (visit `/admin.html` or `/?noanalytics=1` once per browser; `/?noanalytics=0` undoes it).
+- Cloudflare Web Analytics has no custom events. Printed pieces are told apart by their own addresses: flyer QR -> `/s/flyer`, card QR -> `/s/card` (both show the Sell page; files `public/qr-flyer.svg` and `public/qr-card.svg`). Look for those paths in the dashboard. `qr-sell.svg` (`/sell`) is the older, untagged code.
+- The Privacy page mentions the counting. If the provider changes, update it.
