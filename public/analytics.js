@@ -6,7 +6,7 @@
 //
 // While TOKEN is empty this file does nothing at all.
 (function () {
-  var TOKEN = "";
+  var TOKEN = "da70eb79135e4118a3d6e9e84f3ac6d1";
   if (!TOKEN) return;
 
   // Only the real site is counted (not the old netlify.app address, previews or local testing).
@@ -25,7 +25,7 @@
   if (navigator.doNotTrack === "1" || window.doNotTrack === "1") return;
 
   var s = document.createElement("script");
-  s.defer = true;
+  s.type = "module"; // same as Cloudflare's current snippet
   s.src = "https://static.cloudflareinsights.com/beacon.min.js";
   s.setAttribute("data-cf-beacon", JSON.stringify({ token: TOKEN }));
   document.head.appendChild(s);
