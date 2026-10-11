@@ -1007,7 +1007,7 @@ async function uploadPhoto(file){
 }
 // Turns technical upload errors into something a person can act on.
 function friendlyError(e){
-  const m=String((e&&e.message)||e||""),l=m.toLowerCase();
+  const m=String((e&&e.message)||(typeof e==="string"?e:"")),l=m.toLowerCase();
   if(/row-level security|jwt|not authorized|unauthorized|expired/.test(l))return "Your login may have expired. Please log out, log back in, and try again.";
   if(/exceeded the maximum|payload too large/.test(l))return "A photo is too large to upload. Please try a smaller photo, or fewer photos.";
   if(/mime type|not supported/.test(l))return "That file type isn't accepted. Please use JPG, PNG or WebP photos.";
