@@ -182,17 +182,31 @@ function draw(){
   `</tbody></table></div>${more?`<div class="more"><button class="btn ghost" id="more">Load more</button></div>`:""}`;
 }
 
-async function ensureCities(){
-  if(citiesLoaded)return;
-  for(let f=0;;f+=1000){
-    const {data,error}=await sb.from("cities").select("id,name,state").order("id").range(f,f+999);
-    if(error)throw error;
-    data.forEach(c=>{const k=c.name+", "+c.state;cityIds[k]=c.id});
-    if(data.length<1000)break;
-  }
-  $("#cl").innerHTML=Object.keys(cityIds).sort().map(k=>`<option value="${esc(k)}">`).join("");
-  citiesLoaded=true;
+// There are 30,000+ places, so cities are searched in the database as you type (the search_cities function, step17_city_search.sql).
+async function ensureCities(){}
+let suggTimer=0,suggSeq=0;
+function searchCities(text){
+  clearTimeout(suggTimer);
+  const s=text.trim();
+  if(s.length<2)return;
+  suggTimer=setTimeout(async()=>{
+    const my=++suggSeq,{data}=await sb.rpc("search_cities",{q:s,lim:15});
+    if(my!==suggSeq||!data)return;
+    data.forEach(c=>{cityIds[c.name+", "+c.state]=c.id});
+    $("#cl").innerHTML=data.map(c=>`<option value="${esc(c.name+", "+c.state)}">`).join("");
+  },200);
 }
+async function lookupCityId(text){
+  const want=text.trim().toLowerCase();
+  const k=Object.keys(cityIds).find(n=>n.toLowerCase()===want);
+  if(k)return cityIds[k];
+  if(want.length<2)return null;
+  const {data}=await sb.rpc("search_cities",{q:text.trim(),lim:15});
+  const m=(data||[]).find(c=>(c.name+", "+c.state).toLowerCase()===want);
+  if(m){cityIds[m.name+", "+m.state]=m.id;return m.id}
+  return null;
+}
+$("#el").addEventListener("input",e=>searchCities(e.target.value));
 function safeUrl(u){try{const x=new URL(u);return x.protocol==="https:"||x.protocol==="http:"?x.href:null}catch(e){return null}}
 
 async function openEdit(id){
@@ -201,6 +215,7 @@ async function openEdit(id){
   editing=r;const e=$("#fe").elements;
   $("#eTitle").textContent="Edit ad #"+r.id+(r.is_demo?" (demo)":"");
   e.t.value=r.title;e.c.value=r.category_id;e.p.value=r.price;e.loc.value=r.cities?r.cities.name+", "+r.cities.state:"";
+  if(r.cities)cityIds[r.cities.name+", "+r.cities.state]=r.city_id;
   e.s.value=r.status;e.d.value=r.description;e.link.value=r.link||"";e.vlink.value=r.video_link||"";
   $("#eVidRow").hidden=!(r.listing_videos||[]).length;e.rmv.checked=false;
   $("#eErr").textContent="";
@@ -211,7 +226,7 @@ async function openEdit(id){
 $("#fe").addEventListener("submit",async ev=>{
   ev.preventDefault();if(!editing)return;
   const e=ev.target.elements,err=$("#eErr");err.textContent="";
-  const cityId=cityIds[Object.keys(cityIds).find(k=>k.toLowerCase()===e.loc.value.trim().toLowerCase())];
+  const cityId=await lookupCityId(e.loc.value);
   if(!cityId){err.textContent="Choose a city from the list.";return}
   const catName=(cats.find(c=>String(c.id)===e.c.value)||{}).name;
   let link=e.link.value.trim()?safeUrl(e.link.value.trim()):null;
