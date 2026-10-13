@@ -244,6 +244,8 @@ dialog .dlg.msgs{padding:0;gap:0}
 .sico:hover{transform:translateY(-2px);opacity:.85}
 .sico svg{width:20px;height:20px;display:block}
 @media (max-width:760px){.sico{width:40px;height:40px}.sharerow{gap:8px}}
+.igprev{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:4px}
+.igprev img{height:300px;width:auto;border-radius:12px;scroll-snap-align:start;flex:none;display:block}
 .spill{border:0;background:var(--soft);color:var(--ink);border-radius:999px;padding:8px 15px;font-weight:500;font-size:14px;text-decoration:none;display:inline-block;transition:background .15s}
 .spill:hover{background:var(--line)}
 .thumbs{display:flex;gap:8px;flex-wrap:wrap}
@@ -333,6 +335,14 @@ dialog .dlg.msgs{padding:0;gap:0}
 </div></dialog>
 
 <dialog id="dView"><div class="dlg" id="view"></div></dialog>
+<dialog id="dIg"><div class="dlg">
+  <div class="top"><h2>Instagram post</h2><button type="button" class="x" data-close aria-label="Close">✕</button></div>
+  <p class="note" id="igMsg" style="margin:0" role="status"></p>
+  <div id="igPrev" class="igprev"></div>
+  <label>Caption<textarea id="igCap" rows="9"></textarea></label>
+  <div class="qa"><button type="button" class="btn" id="igShare" hidden>Share…</button><button type="button" class="btn ghost" data-igsave>Save pictures</button><button type="button" class="btn ghost" data-igcopy>Copy caption</button></div>
+  <p class="note" style="margin:0">Instagram doesn't let websites post for you. Save the pictures (or tap Share on a phone and choose Instagram), copy the caption, then in the Instagram app tap + and Post, pick the pictures in order and paste the caption.</p>
+</div></dialog>
 
 <dialog id="dAuth"><form class="dlg" id="fa">
   <div class="top"><h2 id="authTitle">Log in</h2><button type="button" class="x" data-close aria-label="Close">✕</button></div>
@@ -503,6 +513,7 @@ const ICON={
   mail:SVGO+'fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>',
   link:SVGO+'fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>',
   share:SVGO+'fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"/><path d="m16 6-4-4-4 4"/><path d="M12 2v13"/></svg>',
+  ig:SVGO+'fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".6" fill="currentColor"/></svg>',
   check:SVGO+'fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>'
 };
 function shareHtml(i){
@@ -514,8 +525,98 @@ function shareHtml(i){
     ${link("https://twitter.com/intent/tweet?url="+u+"&text="+t,"Share on X",ICON.x,1)}
     ${link("https://wa.me/?text="+encodeURIComponent(txt+" "+url),"Share on WhatsApp",ICON.wa,1)}
     ${link("mailto:?subject="+t+"&body="+encodeURIComponent(txt+"\n"+url),"Share by email",ICON.mail,0)}
+    <button class="sico" type="button" data-ig="${i.id}" aria-label="Make an Instagram post" title="Make an Instagram post">${ICON.ig}</button>
     <button class="sico" type="button" data-copy="${i.id}" aria-label="Copy link" title="Copy link">${ICON.link}</button></div></div>`;
 }
+// ---- Instagram post maker: turns an ad into 4:5 pictures (1080 x 1350) plus a caption ----
+// Instagram does not let a website post for the user, so we build the pictures and caption here and the user
+// saves/shares them to the Instagram app. Photos come from Supabase storage, which allows canvas use (CORS).
+const IG_W=1080,IG_H=1350,IG_FONT='-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif';
+let igFiles=[],igUrls=[],igId=null;
+const loadImg=src=>new Promise((ok,no)=>{const m=new Image();m.crossOrigin="anonymous";m.onload=()=>ok(m);m.onerror=()=>no(new Error("image"));m.src=src});
+function wrapLines(ctx,text,maxW,maxLines){
+  const words=String(text).split(/\s+/),lines=[];let cur="";
+  for(const w of words){const t=cur?cur+" "+w:w;if(!cur||ctx.measureText(t).width<=maxW)cur=t;else{lines.push(cur);cur=w}}
+  if(cur)lines.push(cur);
+  if(lines.length>maxLines){lines.length=maxLines;let l=lines[maxLines-1];while(l.length>1&&ctx.measureText(l+"…").width>maxW)l=l.slice(0,-1);lines[maxLines-1]=l.replace(/\s+$/,"")+"…"}
+  return lines;
+}
+function drawCover(ctx,img,x,y,w,h,fy){   // fills the box, cropping the overflow (like CSS object-fit:cover)
+  const s=Math.max(w/img.width,h/img.height),dw=img.width*s,dh=img.height*s;
+  ctx.save();ctx.beginPath();ctx.rect(x,y,w,h);ctx.clip();
+  ctx.drawImage(img,x+(w-dw)/2,y+(h-dh)*(fy/100),dw,dh);ctx.restore();
+}
+function drawContain(ctx,img,x,y,w,h){   // shows the whole photo, never cropped
+  const s=Math.min(w/img.width,h/img.height),dw=img.width*s,dh=img.height*s;
+  ctx.drawImage(img,x+(w-dw)/2,y+(h-dh)/2,dw,dh);
+}
+function drawStripe(ctx,y,h){ctx.fillStyle="#164663";ctx.fillRect(0,y,IG_W/3,h);ctx.fillStyle="#e95e0d";ctx.fillRect(IG_W/3,y,IG_W/3,h);ctx.fillStyle="#e9a70d";ctx.fillRect(2*IG_W/3,y,IG_W/3,h)}
+function fitText(ctx,text,weight,start,min,maxW){let s=start;do{ctx.font=weight+" "+s+"px "+IG_FONT;s-=2}while(ctx.measureText(text).width>maxW&&s>min);}
+// Slide 1: the cover photo with the price, title and town underneath.
+function igCover(i,photo,logo){
+  const c=document.createElement("canvas");c.width=IG_W;c.height=IG_H;const ctx=c.getContext("2d");
+  ctx.fillStyle="#fbf7ef";ctx.fillRect(0,0,IG_W,IG_H);
+  const PH=860;
+  if(photo)drawCover(ctx,photo,0,0,IG_W,PH,+i.coverY||50);
+  else{ctx.fillStyle="hsl("+i.h+",55%,84%)";ctx.fillRect(0,0,IG_W,PH);ctx.font="300px "+IG_FONT;ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillStyle="#000";ctx.fillText(i.e||"",IG_W/2,PH/2);ctx.textAlign="left"}
+  ctx.textBaseline="alphabetic";
+  ctx.fillStyle="#e95e0d";fitText(ctx,pt(i),"800",104,56,IG_W-100);ctx.fillText(pt(i),50,PH+112);
+  ctx.fillStyle="#1e1c19";ctx.font="700 52px "+IG_FONT;
+  wrapLines(ctx,i.t,IG_W-100,2).forEach((l,n)=>ctx.fillText(l,50,PH+190+n*62));
+  ctx.fillStyle="#5b5446";ctx.font="500 38px "+IG_FONT;ctx.fillText(i.loc,50,PH+330);
+  if(logo){const lh=84,lw=logo.width*lh/logo.height;ctx.drawImage(logo,50,IG_H-lh-48,lw,lh)}
+  ctx.fillStyle="#1e1c19";ctx.font="700 36px "+IG_FONT;ctx.textAlign="right";ctx.fillText("chadads.com/ad/"+i.id,IG_W-50,IG_H-70);ctx.textAlign="left";
+  drawStripe(ctx,IG_H-16,16);
+  return c;
+}
+// Other slides: the whole photo on a dark backdrop, with a thin ChadAds strip at the bottom.
+function igPhoto(i,photo,logo){
+  const c=document.createElement("canvas");c.width=IG_W;c.height=IG_H;const ctx=c.getContext("2d");
+  ctx.fillStyle="#1e1c19";ctx.fillRect(0,0,IG_W,IG_H);
+  ctx.globalAlpha=.3;drawCover(ctx,photo,0,0,IG_W,IG_H,50);ctx.globalAlpha=1;
+  drawContain(ctx,photo,0,0,IG_W,IG_H-130);
+  ctx.fillStyle="#fbf7ef";ctx.fillRect(0,IG_H-130,IG_W,130);
+  if(logo){const lh=70,lw=logo.width*lh/logo.height;ctx.drawImage(logo,40,IG_H-130+30,lw,lh)}
+  ctx.textBaseline="middle";ctx.fillStyle="#e95e0d";ctx.textAlign="right";fitText(ctx,pt(i),"800",48,28,420);ctx.fillText(pt(i),IG_W-40,IG_H-130+46);
+  ctx.fillStyle="#5b5446";ctx.font="500 28px "+IG_FONT;ctx.fillText("chadads.com/ad/"+i.id,IG_W-40,IG_H-130+88);ctx.textAlign="left";ctx.textBaseline="alphabetic";
+  drawStripe(ctx,IG_H-12,12);
+  return c;
+}
+function igCaption(i){
+  const tag=s=>"#"+String(s).replace(/[^A-Za-z0-9]/g,""),[town,st]=String(i.loc).split(", ");
+  const regs={"capital-district":["#CapitalDistrict","#CapitalRegionNY"],"adirondacks":["#Adirondacks"],"hudson-valley":["#HudsonValley"],"upstate-new-york":["#UpstateNY"]};
+  const tags=new Set(["#ChadAds","#ForSale",tag(i.c),tag(town+(st||""))]);
+  (i.reg||[]).forEach(r=>(regs[r]||[]).forEach(x=>tags.add(x)));
+  let d=String(i.d||"").replace(/\s+/g," ").trim();
+  if(d.length>300)d=d.slice(0,300).replace(/\s+\S*$/,"")+"…";
+  return i.t+"\n"+pt(i)+" · "+i.loc+"\n\n"+d+"\n\nMessage the seller on ChadAds: chadads.com/ad/"+i.id+"\n\n"+[...tags].join(" ");
+}
+async function openIg(id){
+  const i=items.find(x=>x.id===id);if(!i)return;
+  igId=id;igFiles=[];igUrls.forEach(u=>URL.revokeObjectURL(u));igUrls=[];
+  $("#igPrev").innerHTML="";$("#igCap").value=igCaption(i);$("#igShare").hidden=true;
+  $("#igMsg").textContent="Making your pictures…";
+  if(!$("#dIg").open)$("#dIg").showModal();
+  try{
+    const logo=await loadImg("/logo-sm.webp").catch(()=>null);
+    const photos=[];
+    for(const src of (i.imgs||[]).slice(0,10)){try{photos.push(await loadImg(src))}catch(e){}}
+    const canvases=[igCover(i,photos[0]||null,logo),...photos.slice(1).map(p=>igPhoto(i,p,logo))];
+    const blobs=await Promise.all(canvases.map(c=>new Promise((ok,no)=>c.toBlob(b=>b?ok(b):no(new Error("blob")),"image/jpeg",.92))));
+    if(igId!==id)return;
+    igFiles=blobs.map((b,n)=>new File([b],"chadads-ad-"+i.id+"-"+(n+1)+".jpg",{type:"image/jpeg"}));
+    igUrls=igFiles.map(f=>URL.createObjectURL(f));
+    $("#igPrev").innerHTML=igUrls.map((u,n)=>`<img src="${u}" alt="Picture ${n+1} of ${igUrls.length}">`).join("");
+    $("#igMsg").textContent=igFiles.length+(igFiles.length===1?" picture":" pictures")+" ready. Edit the caption below if you like.";
+    $("#igShare").hidden=!(navigator.canShare&&navigator.canShare({files:igFiles}));
+  }catch(e){$("#igMsg").textContent="Sorry, the pictures could not be made ("+(e&&e.message||"error")+"). Please try again."}
+}
+function igSave(){igFiles.forEach((f,n)=>setTimeout(()=>{const a=document.createElement("a");a.href=igUrls[n];a.download=f.name;document.body.appendChild(a);a.click();a.remove()},n*400))}
+function igCopy(btn){
+  const ta=$("#igCap"),done=()=>{const o=btn.textContent;btn.textContent="Copied";setTimeout(()=>{btn.textContent=o},1800)};
+  (navigator.clipboard?navigator.clipboard.writeText(ta.value):Promise.reject()).then(done,()=>{ta.select();try{document.execCommand("copy");done()}catch(e){}});
+}
+function igShareNow(){if(igFiles.length)navigator.share({files:igFiles,title:(items.find(x=>x.id===igId)||{}).t||"ChadAds"}).catch(()=>{})}
 // ---- Ad pop-up: photo gallery ----
 let gi=0,gId=null;
 // One "slide" of the gallery: a photo, an uploaded video, or a YouTube/Vimeo player.
@@ -588,6 +689,10 @@ document.addEventListener("click",e=>{
   const mc=t.closest("[data-cover]");if(mc){
     const [f]=picked.splice(+mc.dataset.cover,1);picked.unshift(f);coverNew=true;   // the cover is uploaded first
     document.querySelectorAll('#curPhotos [name=cover]').forEach(r=>{r.checked=false});showPicked();return}
+  const ig=t.closest("[data-ig]");if(ig){openIg(+ig.dataset.ig);return}
+  if(t.closest("[data-igsave]")){igSave();return}
+  const igc=t.closest("[data-igcopy]");if(igc){igCopy(igc);return}
+  if(t.closest("#igShare")){igShareNow();return}
   const ns=t.closest("[data-nshare]");if(ns){
     const i=items.find(x=>x.id===+ns.dataset.nshare);
     if(i&&navigator.share)navigator.share({title:i.t,text:i.t+" – "+pt(i)+" on ChadAds",url:adUrl(i)}).catch(()=>{});return}
