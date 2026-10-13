@@ -556,16 +556,16 @@ function fitText(ctx,text,weight,start,min,maxW){let s=start;do{ctx.font=weight+
 function igCover(i,photo,logo){
   const c=document.createElement("canvas");c.width=IG_W;c.height=IG_H;const ctx=c.getContext("2d");
   ctx.fillStyle="#fbf7ef";ctx.fillRect(0,0,IG_W,IG_H);
-  const PH=860;
+  const PH=900;
   if(photo)drawCover(ctx,photo,0,0,IG_W,PH,+i.coverY||50);
   else{ctx.fillStyle="hsl("+i.h+",55%,84%)";ctx.fillRect(0,0,IG_W,PH);ctx.font="300px "+IG_FONT;ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillStyle="#000";ctx.fillText(i.e||"",IG_W/2,PH/2);ctx.textAlign="left"}
   ctx.textBaseline="alphabetic";
-  ctx.fillStyle="#e95e0d";fitText(ctx,pt(i),"800",104,56,IG_W-100);ctx.fillText(pt(i),50,PH+112);
+  const lh=120,lw=logo?logo.width*lh/logo.height:0;   // the logo sits to the right of the price
+  ctx.fillStyle="#e95e0d";fitText(ctx,pt(i),"800",104,56,IG_W-100-(lw?lw+30:0));ctx.fillText(pt(i),50,PH+112);
+  if(logo)ctx.drawImage(logo,IG_W-50-lw,PH+112-lh*0.78,lw,lh);
   ctx.fillStyle="#1e1c19";ctx.font="700 52px "+IG_FONT;
   wrapLines(ctx,i.t,IG_W-100,2).forEach((l,n)=>ctx.fillText(l,50,PH+190+n*62));
   ctx.fillStyle="#5b5446";ctx.font="500 38px "+IG_FONT;ctx.fillText(i.loc,50,PH+330);
-  if(logo){const lh=84,lw=logo.width*lh/logo.height;ctx.drawImage(logo,50,IG_H-lh-48,lw,lh)}
-  ctx.fillStyle="#1e1c19";ctx.font="700 36px "+IG_FONT;ctx.textAlign="right";ctx.fillText("chadads.com/ad/"+i.id,IG_W-50,IG_H-70);ctx.textAlign="left";
   drawStripe(ctx,IG_H-16,16);
   return c;
 }
@@ -577,8 +577,8 @@ function igPhoto(i,photo,logo){
   drawContain(ctx,photo,0,0,IG_W,IG_H-130);
   ctx.fillStyle="#fbf7ef";ctx.fillRect(0,IG_H-130,IG_W,130);
   if(logo){const lh=70,lw=logo.width*lh/logo.height;ctx.drawImage(logo,40,IG_H-130+30,lw,lh)}
-  ctx.textBaseline="middle";ctx.fillStyle="#e95e0d";ctx.textAlign="right";fitText(ctx,pt(i),"800",48,28,420);ctx.fillText(pt(i),IG_W-40,IG_H-130+46);
-  ctx.fillStyle="#5b5446";ctx.font="500 28px "+IG_FONT;ctx.fillText("chadads.com/ad/"+i.id,IG_W-40,IG_H-130+88);ctx.textAlign="left";ctx.textBaseline="alphabetic";
+  ctx.textBaseline="middle";ctx.fillStyle="#e95e0d";ctx.textAlign="right";fitText(ctx,pt(i),"800",48,28,420);ctx.fillText(pt(i),IG_W-40,IG_H-130+65);
+  ctx.textAlign="left";ctx.textBaseline="alphabetic";
   drawStripe(ctx,IG_H-12,12);
   return c;
 }
