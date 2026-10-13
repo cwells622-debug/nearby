@@ -25,7 +25,7 @@ export const slugify = (t) =>
 
 export const adPath = (id, title) => `/ad/${id}-${slugify(title)}`;
 export const money = (p) => (Number(p) === 0 ? "Free" : "$" + Number(p).toLocaleString("en-US"));
-export const priceText = (a) => (a.price_on_request ? "Contact for price" : money(a.price));
+export const priceText = (a) => (a.price_on_request ? "Call for price" : money(a.price));
 const clip = (s, n) => {
   s = String(s ?? "").replace(/\s+/g, " ").trim();
   return s.length > n ? s.slice(0, n - 1).trimEnd() + "…" : s;
@@ -97,7 +97,7 @@ export function buildAdPage(shell, ad) {
     url,
     ...(photos.length ? { image: photos.slice(0, 5) } : {}),
     ...(cat ? { category: cat } : {}),
-    // An ad marked "Contact for price" has no price to give Google, so it gets no offer block.
+    // An ad marked "Call for price" has no price to give Google, so it gets no offer block.
     ...(ad.price_on_request ? {} : { offers: {
       "@type": "Offer",
       url,

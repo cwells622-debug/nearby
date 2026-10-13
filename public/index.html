@@ -305,7 +305,7 @@ dialog .dlg.msgs{padding:0;gap:0}
     <label>Category<select name="c" id="fc"></select></label>
     <label>Price ($, 0 for free)<input name="p" type="number" min="0" value="0" required></label>
   </div>
-  <label style="flex-direction:row;align-items:center;gap:8px;margin-top:-6px"><input type="checkbox" name="por" id="por" style="width:auto;padding:0;margin:0"> Contact for price (don't show a price)</label>
+  <label style="flex-direction:row;align-items:center;gap:8px;margin-top:-6px"><input type="checkbox" name="por" id="por" style="width:auto;padding:0;margin:0"> Call for price (don't show a price)</label>
   <label>City<input name="loc" id="fl" list="cl" required autocomplete="off" placeholder="Start typing a city"></label><datalist id="cl"></datalist>
   <label>Description<textarea name="d" rows="3" required placeholder="Condition, size, pickup details"></textarea></label>
   <label id="linkRow" hidden>Link (optional)<input name="link" type="url" maxlength="500" placeholder="https://" autocomplete="off"></label>
@@ -435,7 +435,7 @@ const where2=i=>esc(i.loc)+(dd(i)?" · "+dd(i):"");   // "Albany, NY · 12 mi aw
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt=p=>p===0?"Free":"$"+p.toLocaleString();
-const pt=i=>i.pr?"Contact for price":fmt(i.p);   // an ad's price as text: "Contact for price", "Free" or "$5,000"
+const pt=i=>i.pr?"Call for price":fmt(i.p);   // an ad's price as text: "Call for price", "Free" or "$5,000"
 const saved=new Set();
 const card=i=>`<div class="cw"><button class="card" data-id="${i.id}"><div class="ph" style="--h:${i.h}">${i.img?`<img src="${esc(i.thumb||i.img)}" data-full="${esc(i.img)}" ${FALLBACK} alt="${esc(i.t)}" loading="lazy" decoding="async" style="object-position:50% ${+i.coverY||50}%">`:`<span>${i.e}</span>`}${i.hasVideo?`<span class="vbadge">▶ Video</span>`:""}</div><div class="cb"><b>${pt(i)}</b><span class="t">${esc(i.t)}</span><span class="m">${where2(i)}</span></div></button><button class="heart" data-save="${i.id}" aria-pressed="${saved.has(i.id)}" aria-label="Save listing">${saved.has(i.id)?"♥":"♡"}</button></div>`;
 // Saved ads live in the database (favorites table), private to the signed-in user.
@@ -480,7 +480,7 @@ function render(){
       return `<section class="sec"><div class="hd"><h2>${c[0]}</h2><button class="link" data-cat="${c[0]}">See all ${l.length}</button></div><div class="grid">${l.slice(0,4).map(card).join("")}</div></section>`}).join("");
     return;
   }
-  const pv=i=>i.pr?1e12:i.p;   // "Contact for price" ads go to the end of price sorts
+  const pv=i=>i.pr?1e12:i.p;   // "Call for price" ads go to the end of price sorts
   if(sort==="low")list.sort((a,b)=>pv(a)-pv(b));else if(sort==="high")list.sort((a,b)=>(b.pr?-1:b.p)-(a.pr?-1:a.p));else if(sort==="near")list.sort((a,b)=>dist(a)-dist(b));else if(sort==="old")list.sort((a,b)=>b.hrs-a.hrs||a.id-b.id);else list.sort((a,b)=>a.hrs-b.hrs||b.id-a.id);
   main.innerHTML=nb+`<div class="bar"><h1>${landActive()?esc(LAND.h1):q?`Results for “${esc(q)}”`:cur==="All"?"All listings":cur==="Saved"?"Saved listings":esc(cur)}</h1><select id="sort" aria-label="Sort"><option value="new">Newest first</option><option value="old">Oldest first</option>${T[me]?`<option value="near">Nearest</option>`:""}<option value="low">Price: low to high</option><option value="high">Price: high to low</option></select></div>${landActive()?`<p class="note">${esc(LAND.intro)}</p>`:""}<div class="grid">${list.map(card).join("")}</div>`;
   $("#sort").value=sort;
@@ -828,7 +828,7 @@ async function sendOfferNow(ad,amount){
 }
 
 /* ---------- Post, edit and delete ads ---------- */// Opens the form: empty for a new ad, or filled in when editing ad number "id".
-// "Contact for price" ticked: the price box is greyed out and not needed.
+// "Call for price" ticked: the price box is greyed out and not needed.
 function syncPor(){const f=$("#f").elements;f.p.disabled=f.por.checked;f.p.required=!f.por.checked}
 document.addEventListener("change",e=>{if(e.target.id==="por")syncPor()});
 function startPost(id){

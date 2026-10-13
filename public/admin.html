@@ -73,7 +73,7 @@ label input:focus,label select:focus,label textarea:focus{outline:none;border-co
   <div class="row">
     <label>Category<select name="c" id="ec"></select></label>
     <label>Price ($, 0 for free)<input name="p" type="number" min="0" required></label>
-    <label style="flex-direction:row;align-items:center;gap:8px"><input type="checkbox" name="por" id="epor" style="width:auto;padding:0;margin:0"> Contact for price</label>
+    <label style="flex-direction:row;align-items:center;gap:8px"><input type="checkbox" name="por" id="epor" style="width:auto;padding:0;margin:0"> Call for price</label>
   </div>
   <div class="row">
     <label>City<input name="loc" id="el" list="cl" required autocomplete="off"></label>
@@ -176,7 +176,7 @@ function draw(){
       <td>${r.is_demo?`<span class="pill demo">Demo</span>`:esc(r.profiles?r.profiles.display_name:"(unknown)")}</td>
       <td>${esc(r.categories?r.categories.name:"")}</td>
       <td>${esc(r.cities?r.cities.name+", "+r.cities.state:"")}</td>
-      <td>${r.price_on_request?"Contact for price":r.price===0?"Free":"$"+r.price.toLocaleString()}</td>
+      <td>${r.price_on_request?"Call for price":r.price===0?"Free":"$"+r.price.toLocaleString()}</td>
       <td><span class="pill ${r.status==="sold"?"sold":""}">${esc(r.status)}</span></td>
       <td class="sub">${esc(when)}</td>
       <td><div class="acts"><button class="btn ghost sm" data-edit="${r.id}">Edit</button><button class="btn danger sm" data-del="${r.id}">Delete</button></div></td></tr>`}).join("")+
