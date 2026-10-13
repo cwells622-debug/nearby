@@ -10,7 +10,7 @@ export const SB_KEY = "sb_publishable_uuz1NgftKiBRGtME6enOzg_nELwZIpz";
 
 // What we ask the database for about one ad.
 export const AD_SELECT =
-  "id,title,description,price,created_at,video_link," +
+  "id,title,description,price,price_on_request,created_at,video_link," +
   "categories(name,active),cities(name,state,regions)," +
   "listing_photos(id,storage_path,position),profiles!seller_id(display_name)";
 
@@ -25,6 +25,7 @@ export const slugify = (t) =>
 
 export const adPath = (id, title) => `/ad/${id}-${slugify(title)}`;
 export const money = (p) => (Number(p) === 0 ? "Free" : "$" + Number(p).toLocaleString("en-US"));
+export const priceText = (a) => (a.price_on_request ? "Contact for price" : money(a.price));
 const clip = (s, n) => {
   s = String(s ?? "").replace(/\s+/g, " ").trim();
   return s.length > n ? s.slice(0, n - 1).trimEnd() + "…" : s;
@@ -69,8 +70,8 @@ export function buildAdPage(shell, ad) {
   const cat = ad.categories ? ad.categories.name : "";
   const seller = ad.profiles && ad.profiles.display_name ? ad.profiles.display_name : "a local seller";
   const url = SITE + adPath(ad.id, ad.title);
-  const pageTitle = `${clip(ad.title, 52)} – ${money(ad.price)}${city ? " in " + city : ""} | ChadAds`;
-  const desc = clip(`${money(ad.price)}${city ? " · " + city : ""}. ${ad.description}`, 155);
+  const pageTitle = `${clip(ad.title, 52)} – ${priceText(ad)}${city ? " in " + city : ""} | ChadAds`;
+  const desc = clip(`${priceText(ad)}${city ? " · " + city : ""}. ${ad.description}`, 155);
   const image = photos[0] || SITE + "/logo.webp";
 
   let h = shell;
@@ -96,14 +97,15 @@ export function buildAdPage(shell, ad) {
     url,
     ...(photos.length ? { image: photos.slice(0, 5) } : {}),
     ...(cat ? { category: cat } : {}),
-    offers: {
+    // An ad marked "Contact for price" has no price to give Google, so it gets no offer block.
+    ...(ad.price_on_request ? {} : { offers: {
       "@type": "Offer",
       url,
       price: String(ad.price),
       priceCurrency: "USD",
       availability: "https://schema.org/InStock",
       ...(city ? { areaServed: city } : {}),
-    },
+    } }),
   };
   const headExtra =
     `<meta name="robots" content="index,follow,max-image-preview:large">\n` +
@@ -115,7 +117,7 @@ export function buildAdPage(shell, ad) {
     .join("\n");
   const article =
     `<article class="seo-ad"><h1>${esc(ad.title)}</h1>` +
-    `<p><strong>${esc(money(ad.price))}</strong>${city ? " · " + esc(city) : ""}${cat ? " · " + esc(cat) : ""}</p>` +
+    `<p><strong>${esc(priceText(ad))}</strong>${city ? " · " + esc(city) : ""}${cat ? " · " + esc(cat) : ""}</p>` +
     `${imgs}<p style="white-space:pre-line">${esc(ad.description)}</p>` +
     `<p>Listed by ${esc(seller)} on ChadAds. <a href="/">Browse more local classifieds</a>.</p>${relatedLinks(ad)}</article>`;
   h = h.replace(/<main id="main">[\s\S]*?<\/main>/, () => `<main id="main">${article}</main>`);
@@ -231,7 +233,7 @@ export function buildListPage(shell, { catName, region, ads, total, cats }) {
     const city = a.cities ? `${a.cities.name}, ${a.cities.state}` : "";
     // small copy in the list; older ads without one fall back to the full photo
     return `<li><a href="${esc(adPath(a.id, a.title))}">${ph ? `<img src="${esc(th)}" data-full="${esc(ph)}" onerror="this.onerror=null;this.src=this.dataset.full" alt="${esc(a.title)}" loading="lazy" width="200" height="150" style="width:100%;height:auto;aspect-ratio:4/3;object-fit:cover;border-radius:12px">` : ""}` +
-      `<strong>${esc(money(a.price))}</strong> ${esc(a.title)}<br><small>${esc(city)}</small></a></li>`;
+      `<strong>${esc(priceText(a))}</strong> ${esc(a.title)}<br><small>${esc(city)}</small></a></li>`;
   }).join("\n");
   const catLinks = (cats || []).map((c) => `<a href="${browsePath(c.name, null)}">${esc(catLabel(c.name))}</a>`).join(" · ");
   const regLinks = REGION_ORDER.map((r) => `<a href="${browsePath(null, r)}">${esc(REGIONS[r].name)}</a>`).join(" · ");

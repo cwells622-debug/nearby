@@ -73,6 +73,7 @@ label input:focus,label select:focus,label textarea:focus{outline:none;border-co
   <div class="row">
     <label>Category<select name="c" id="ec"></select></label>
     <label>Price ($, 0 for free)<input name="p" type="number" min="0" required></label>
+    <label style="flex-direction:row;align-items:center;gap:8px"><input type="checkbox" name="por" id="epor" style="width:auto;padding:0;margin:0"> Contact for price</label>
   </div>
   <div class="row">
     <label>City<input name="loc" id="el" list="cl" required autocomplete="off"></label>
@@ -150,7 +151,7 @@ async function start(){
 async function load(reset){
   if(busy)return;busy=true;
   if(reset){from=0;rows=[]}
-  let q=sb.from("listings").select("id,seller_id,title,description,price,link,status,is_demo,created_at,category_id,city_id,video_link,categories(name),cities(name,state),profiles!seller_id(display_name),listing_photos(id,storage_path,position),listing_videos(id,storage_path)")
+  let q=sb.from("listings").select("id,seller_id,title,description,price,price_on_request,link,status,is_demo,created_at,category_id,city_id,video_link,categories(name),cities(name,state),profiles!seller_id(display_name),listing_photos(id,storage_path,position),listing_videos(id,storage_path)")
     .order("created_at",{ascending:false}).order("position",{referencedTable:"listing_photos"}).range(from,from+PAGE-1);
   const text=($("#fq").value||"").replace(/[%_*,()]/g," ").trim(),st=$("#fs").value,src=$("#fd").value;
   if(text)q=q.ilike("title","%"+text+"%");
@@ -175,7 +176,7 @@ function draw(){
       <td>${r.is_demo?`<span class="pill demo">Demo</span>`:esc(r.profiles?r.profiles.display_name:"(unknown)")}</td>
       <td>${esc(r.categories?r.categories.name:"")}</td>
       <td>${esc(r.cities?r.cities.name+", "+r.cities.state:"")}</td>
-      <td>${r.price===0?"Free":"$"+r.price.toLocaleString()}</td>
+      <td>${r.price_on_request?"Contact for price":r.price===0?"Free":"$"+r.price.toLocaleString()}</td>
       <td><span class="pill ${r.status==="sold"?"sold":""}">${esc(r.status)}</span></td>
       <td class="sub">${esc(when)}</td>
       <td><div class="acts"><button class="btn ghost sm" data-edit="${r.id}">Edit</button><button class="btn danger sm" data-del="${r.id}">Delete</button></div></td></tr>`}).join("")+
@@ -207,6 +208,7 @@ async function lookupCityId(text){
   return null;
 }
 $("#el").addEventListener("input",e=>searchCities(e.target.value));
+$("#epor").addEventListener("change",e=>{e.target.form.elements.p.disabled=e.target.checked});
 function safeUrl(u){try{const x=new URL(u);return x.protocol==="https:"||x.protocol==="http:"?x.href:null}catch(e){return null}}
 
 async function openEdit(id){
@@ -214,7 +216,7 @@ async function openEdit(id){
   try{await ensureCities()}catch(e){alert("Couldn't load cities: "+e.message);return}
   editing=r;const e=$("#fe").elements;
   $("#eTitle").textContent="Edit ad #"+r.id+(r.is_demo?" (demo)":"");
-  e.t.value=r.title;e.c.value=r.category_id;e.p.value=r.price;e.loc.value=r.cities?r.cities.name+", "+r.cities.state:"";
+  e.t.value=r.title;e.c.value=r.category_id;e.p.value=r.price;e.por.checked=!!r.price_on_request;e.p.disabled=e.por.checked;e.loc.value=r.cities?r.cities.name+", "+r.cities.state:"";
   if(r.cities)cityIds[r.cities.name+", "+r.cities.state]=r.city_id;
   e.s.value=r.status;e.d.value=r.description;e.link.value=r.link||"";e.vlink.value=r.video_link||"";
   $("#eVidRow").hidden=!(r.listing_videos||[]).length;e.rmv.checked=false;
@@ -237,7 +239,7 @@ $("#fe").addEventListener("submit",async ev=>{
   const removed=[...ev.target.querySelectorAll('[name=rm]:checked')].map(x=>x.value);
   const go=$("#eGo");go.disabled=true;
   const {data,error}=await sb.from("listings").update({title:e.t.value.trim(),category_id:+e.c.value,city_id:cityId,
-    price:Math.max(0,Math.round(+e.p.value||0)),status:e.s.value,description:e.d.value.trim(),link,video_link:vl||null}).eq("id",editing.id).select("id");
+    price:e.por.checked?0:Math.max(0,Math.round(+e.p.value||0)),price_on_request:e.por.checked,status:e.s.value,description:e.d.value.trim(),link,video_link:vl||null}).eq("id",editing.id).select("id");
   if(error||!data.length){go.disabled=false;err.textContent=error?error.message:"Not saved. Are you still an admin?";return}
   if(removed.length){
     const d=await sb.from("listing_photos").delete().eq("listing_id",editing.id).in("storage_path",removed);

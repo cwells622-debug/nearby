@@ -33,7 +33,7 @@ export default async (request) => {
   }
 
   // The ads for this page: newest first, with the first photo, and a total count from the same query.
-  let q = `${SB_URL}/rest/v1/listings?select=id,title,price,created_at,categories!inner(name,active),cities!inner(name,state,regions),listing_photos(id,storage_path,position)` +
+  let q = `${SB_URL}/rest/v1/listings?select=id,title,price,price_on_request,created_at,categories!inner(name,active),cities!inner(name,state,regions),listing_photos(id,storage_path,position)` +
     `&categories.active=eq.true&order=created_at.desc&limit=48`;
   if (catName) q += `&categories.name=eq.${encodeURIComponent(catName)}`;
   if (route.region) q += `&cities.regions=cs.${encodeURIComponent("{" + route.region + "}")}`;
