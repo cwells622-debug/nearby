@@ -360,7 +360,7 @@ dialog .dlg.msgs{padding:0;gap:0}
 <script>
 // Filled in from Supabase by loadData() at the bottom of the page.
 // cats: [name, icon, hue]   items: the listings   T: "City, ST" -> [lat, lng]
-const HUES={"Autos Cars":210,"Autos Trucks":220,Vehicles:210,Property:150,Electronics:190,Furniture:30,Clothing:330,Sports:100,Jobs:260,ATV:20,Appliances:170,Campers:120,"Real Estate":140,Medical:350,Motorcycles:0,Antiques:40,"Lawn and Garden":90,"Heavy Machinery":50};
+const HUES={"Auto Cars":210,"Auto Trucks":220,"Auto SUVs":215,Vehicles:210,Property:150,Electronics:190,Furniture:30,Clothing:330,Sports:100,Jobs:260,ATV:20,Appliances:170,Campers:120,"Real Estate":140,Medical:350,Motorcycles:0,Antiques:40,"Lawn and Garden":90,"Heavy Machinery":50};
 let cats=[],items=[];
 const T={};   // "Albany, NY" -> [lat,lng] for the cities this visitor has needed so far (cities with ads, plus any they searched for)
 const adCities={};   // "Albany, NY" -> 1, only for cities that have ads
@@ -393,7 +393,7 @@ async function lookupCity(text){
   return data.map(c=>c.name+", "+c.state).find(n=>n.toLowerCase()===want)||null;
 }
 let cur="All",q="",sort="new",me="",rad=0,view="all"   /* me: the visitor's city (empty = no city chosen yet; set it to e.g. "Saratoga Springs, NY" for a default). rad: miles from "me"; 0 = any distance. Use 50 or 25 once there are plenty of ads. */,showLoc=false,geoMsg="",ow=false;
-// Category / region pages (/for-sale/autos-trucks, /in/capital-district) arrive with a note from the server (window.__LANDING__)
+// Category / region pages (/for-sale/auto-trucks, /in/capital-district) arrive with a note from the server (window.__LANDING__)
 // saying which filter they represent. regionSlug filters by the database's region lists instead of by distance.
 const LAND=window.__LANDING__||null;
 let regionSlug=null,regionName="",landDone=false;
@@ -961,8 +961,8 @@ function startPost(id){
   showLinkField();showPicked();
   $("#dView").close();$("#dPost").showModal();
 }
-// The "Link" box only appears for these categories (the database enforces the same list; see step13_autos_categories.sql).
-const LINK_CATS=["Autos Cars","Autos Trucks"];
+// The "Link" box only appears for these categories (the database enforces the same list; see step13_autos_categories.sql and step19_auto_categories.sql).
+const LINK_CATS=["Auto Cars","Auto Trucks","Auto SUVs"];
 function showLinkField(){$("#linkRow").hidden=!LINK_CATS.includes($("#fc").value)}
 $("#fc").addEventListener("change",showLinkField);
 // Only web addresses starting with http:// or https:// are allowed (never javascript: and similar).

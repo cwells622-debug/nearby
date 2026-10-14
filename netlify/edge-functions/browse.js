@@ -1,7 +1,7 @@
 // Builds the category and region pages:
-//   chadads.com/for-sale/autos-trucks                      all trucks
+//   chadads.com/for-sale/auto-trucks                      all trucks
 //   chadads.com/in/capital-district                        everything in a region
-//   chadads.com/for-sale/autos-trucks/capital-district     trucks in a region
+//   chadads.com/for-sale/auto-trucks/capital-district     trucks in a region
 // Logic lives in ../edge-lib/seo.js. Regions come from the database (cities.regions, see step15_regions.sql). See SEO.md.
 import { SB_URL, SB_KEY, slugify, parseBrowsePath, buildListPage } from "../edge-lib/seo.js";
 
@@ -20,6 +20,11 @@ export default async (request) => {
   const url = new URL(request.url);
   const route = parseBrowsePath(url.pathname);
   if (!route) return notFound(url.origin);
+  // The two original category names had "Autos" in them; send old links and search results to the new addresses.
+  const OLD = { "autos-cars": "auto-cars", "autos-trucks": "auto-trucks" };
+  if (route.cat && OLD[route.cat]) {
+    return new Response(null, { status: 301, headers: { location: url.origin + "/for-sale/" + OLD[route.cat] + (route.region ? "/" + route.region : ""), "cache-control": "public, max-age=3600" } });
+  }
 
   // Which categories exist (and are switched on)?
   const cr = await fetch(`${SB_URL}/rest/v1/categories?select=id,name&active=eq.true&order=name`, { headers: HEADERS });

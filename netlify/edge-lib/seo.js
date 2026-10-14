@@ -125,7 +125,7 @@ export function buildAdPage(shell, ad) {
 }
 
 // ======================================================================
-// Category and region pages:  /for-sale/autos-trucks   /in/capital-district   /for-sale/autos-trucks/capital-district
+// Category and region pages:  /for-sale/auto-trucks   /in/capital-district   /for-sale/auto-trucks/capital-district
 // ======================================================================
 // Regions are defined in the database (cities.regions, set by step15_regions.sql). This list only adds the words
 // shown to people. The keys here MUST match the region names used in step15_regions.sql.
@@ -144,8 +144,9 @@ export const REGION_ORDER = ["capital-district", "adirondacks", "hudson-valley",
 // Short words for page titles and a sentence about each category. A category not listed here still works (it uses its own name).
 export const CATEGORY_INFO = {
   "ATV": { label: "ATVs", blurb: "Four-wheelers, side-by-sides and utility ATVs from local owners." },
-  "Autos Cars": { label: "Cars", blurb: "Used and late-model cars, SUVs and wagons from local sellers." },
-  "Autos Trucks": { label: "Trucks", blurb: "Pickups, 4x4s and work trucks from local sellers." },
+  "Auto Cars": { label: "Cars", blurb: "Used and late-model cars, sedans and wagons from local sellers." },
+  "Auto SUVs": { label: "SUVs", blurb: "SUVs, crossovers and 4x4s from local sellers." },
+  "Auto Trucks": { label: "Trucks", blurb: "Pickups, 4x4s and work trucks from local sellers." },
   "Campers": { label: "Campers", blurb: "Travel trailers, pop-ups, truck campers and motorhomes for sale locally." },
   "Farm Equipment": { label: "Farm Equipment", blurb: "Tractors, implements and farm machinery from local farms and dealers." },
   "Heavy Machinery": { label: "Heavy Machinery", blurb: "Excavators, loaders, dozers and other construction equipment." },
@@ -166,7 +167,7 @@ export const isIndexable = (catName, region, total) => total >= (catName && regi
 // Page addresses
 export const browsePath = (catName, region) =>
   catName ? `/for-sale/${slugify(catName)}${region ? "/" + region : ""}` : `/in/${region}`;
-// "/for-sale/autos-trucks/capital-district" -> { cat: "autos-trucks", region: "capital-district" }; null if it is not one of ours.
+// "/for-sale/auto-trucks/capital-district" -> { cat: "auto-trucks", region: "capital-district" }; null if it is not one of ours.
 export function parseBrowsePath(pathname) {
   const p = pathname.replace(/\/+$/, "").split("/").filter(Boolean);
   if (p[0] === "in" && p.length === 2 && REGIONS[p[1]]) return { cat: null, region: p[1] };

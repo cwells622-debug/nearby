@@ -52,9 +52,9 @@ Things to remember:
 
 ## Stage 3: category and region pages (built, October 2026)
 Addresses (built by `netlify/edge-functions/browse.js`, logic in `netlify/edge-lib/seo.js`):
-- `/for-sale/autos-trucks`: one category, everywhere. Category address = `slugify(category name)`.
+- `/for-sale/auto-trucks`: one category, everywhere. Category address = `slugify(category name)`.
 - `/in/capital-district`: everything in one region.
-- `/for-sale/autos-trucks/capital-district`: one category in one region. (`.../upstate-new-york` is treated as a duplicate of the plain category page: its canonical points there and it is kept out of the sitemap.)
+- `/for-sale/auto-trucks/capital-district`: one category in one region. (`.../upstate-new-york` is treated as a duplicate of the plain category page: its canonical points there and it is kept out of the sitemap.)
 
 How regions work:
 - A region is a list of **counties**, stored per place in the database (`cities.county_fips`, `cities.regions`), set by `step15_regions.sql`.

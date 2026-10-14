@@ -233,7 +233,7 @@ $("#fe").addEventListener("submit",async ev=>{
   const catName=(cats.find(c=>String(c.id)===e.c.value)||{}).name;
   let link=e.link.value.trim()?safeUrl(e.link.value.trim()):null;
   if(e.link.value.trim()&&!link){err.textContent="The link must start with http:// or https://";return}
-  if(!["Autos Cars","Autos Trucks"].includes(catName))link=null;   // the database only allows links on these categories
+  if(!["Auto Cars","Auto Trucks","Auto SUVs"].includes(catName))link=null;   // the database only allows links on these categories
   const vl=e.vlink.value.trim();
   if(vl&&!VIDEO_LINK_OK.test(vl)){err.textContent="The video link must be a YouTube or Vimeo address starting with https://";return}
   const removed=[...ev.target.querySelectorAll('[name=rm]:checked')].map(x=>x.value);
