@@ -4,5 +4,7 @@ Allow: /
 Disallow: /admin
 Disallow: /flyer
 Disallow: /s/
+Disallow: /unsubscribe
+Disallow: /api/
 
 Sitemap: https://chadads.com/sitemap.xml

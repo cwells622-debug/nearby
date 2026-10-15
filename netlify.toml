@@ -44,3 +44,9 @@
   from = "/s/card"
   to = "/sell.html"
   status = 200
+
+# The Unsubscribe link in email alerts.
+[[redirects]]
+  from = "/unsubscribe"
+  to = "/unsubscribe.html"
+  status = 200

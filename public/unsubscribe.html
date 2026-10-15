@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Turn off email alerts | ChadAds</title>
+<link rel="icon" href="logo-sm.webp" type="image/webp">
+<link rel="stylesheet" href="page.css">
+<script src="/analytics.js" defer></script>
+</head>
+<body>
+<header><a href="/" aria-label="ChadAds home"><img src="logo-sm.webp" alt="ChadAds" width="84" height="56"></a><a class="btn" href="/">Browse ads</a></header>
+<main>
+  <h1>Email alerts</h1>
+  <p class="lead" id="msg" role="status">Turning off your email alerts…</p>
+  <p id="more" hidden>You will still see new messages in your Messages inbox on ChadAds. You can turn the emails back on from the Messages screen.</p>
+</main>
+<footer><a href="/sell">Sell</a><a href="/about">About</a><a href="/terms">Terms</a><a href="/privacy">Privacy</a><div style="margin-top:8px">© 2026 ChadAds</div></footer>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script>
+(async()=>{
+  const say=t=>{document.getElementById("msg").textContent=t};
+  const q=new URLSearchParams(location.search),u=q.get("u"),t=q.get("t"),uuid=/^[0-9a-f-]{36}$/i;
+  try{
+    if(!uuid.test(u||"")||!uuid.test(t||""))return say("This link is not complete. Open the Messages screen on ChadAds to change your email alerts.");
+    const sb=window.supabase.createClient(NEARBY_CONFIG.supabaseUrl,NEARBY_CONFIG.supabaseAnonKey);
+    const {data,error}=await sb.rpc("unsubscribe_alerts",{p_user:u,p_token:t});
+    if(error)throw error;
+    if(data){say("Done. You will not get email alerts about new messages any more.");document.getElementById("more").hidden=false}
+    else say("This link is not valid any more. Open the Messages screen on ChadAds to change your email alerts.");
+  }catch(e){say("Sorry, that did not work. Please try again later, or use the switch on the Messages screen.")}
+})();
+</script>
+</body>
+</html>

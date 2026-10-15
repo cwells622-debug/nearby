@@ -244,6 +244,8 @@ dialog .dlg.msgs{padding:0;gap:0}
 .sico:hover{transform:translateY(-2px);opacity:.85}
 .sico svg{width:20px;height:20px;display:block}
 @media (max-width:760px){.sico{width:40px;height:40px}.sharerow{gap:8px}}
+.alertrow{flex-direction:row;align-items:center;gap:8px;padding:0 16px 10px;font-size:13px}
+.alertrow input{width:auto;padding:0;margin:0}
 .igprev{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:4px}
 .igprev img{height:300px;width:auto;border-radius:12px;scroll-snap-align:start;flex:none;display:block}
 .spill{border:0;background:var(--soft);color:var(--ink);border-radius:999px;padding:8px 15px;font-weight:500;font-size:14px;text-decoration:none;display:inline-block;transition:background .15s}
@@ -329,7 +331,7 @@ dialog .dlg.msgs{padding:0;gap:0}
 
 <dialog id="dMsg" class="wide"><div class="dlg msgs">
   <div class="mwrap" id="mwrap">
-    <div class="mlist"><div class="top"><h2>Messages</h2><button type="button" class="x" data-close aria-label="Close">✕</button></div><div id="mlist"></div></div>
+    <div class="mlist"><div class="top"><h2>Messages</h2><button type="button" class="x" data-close aria-label="Close">✕</button></div><label class="alertrow"><input type="checkbox" id="alertToggle" checked> Email me about new messages</label><div id="mlist"></div></div>
     <div class="mthread" id="mthread"></div>
   </div>
 </div></dialog>
@@ -738,7 +740,7 @@ $("#fl").addEventListener("input",e=>{e.target.setCustomValidity("");searchCitie
 /* ---------- Accounts (Supabase Auth) ---------- */
 // "sb" is our connection to Supabase, like an ADO connection object in classic ASP.
 // Its settings come from config.js.
-let sb=null,user=null,signup=false,editId=null,deepDone=false,postDone=false,postAfterLogin=false;
+let sb=null,user=null,signup=false,editId=null,deepDone=false,postDone=false,postAfterLogin=false,msgAfter=null;
 const BUCKET="listing-photos",cityIds={};   // cityIds: "Albany, NY" -> the city's id in the database
 const PHOTO_TYPES={"image/jpeg":"jpg","image/png":"png","image/webp":"webp"},MAX_PHOTO=5*1024*1024,MAX_PHOTO_IN=60*1024*1024,PHOTO_TARGET=1.5*1024*1024,MAX_PHOTOS=5;   // MAX_PHOTOS must match the limit in step4_photos_and_limits.sql
 const cfgOk=typeof NEARBY_CONFIG!=="undefined"&&/^https?:\/\//.test(NEARBY_CONFIG.supabaseUrl)&&!NEARBY_CONFIG.supabaseAnonKey.startsWith("PASTE");
@@ -771,6 +773,7 @@ function showUser(u){
   const changed=(u?u.id:null)!==(user?user.id:null);
   user=u;
   if(u&&postAfterLogin){postAfterLogin=false;setTimeout(()=>startPost(),400)}   // they came from "Post your ad" and have just logged in
+  if(u&&msgAfter!==null){const cid=msgAfter;msgAfter=null;setTimeout(()=>openMessages().then(()=>{if(cid)openThread(cid)}),600)}   // they came from an email alert and have just logged in
   $("#msgsBtn").hidden=!u;
   if(changed){
     convos=[];curConv=null;updateBadge();stopPolling();
@@ -881,8 +884,19 @@ async function openMessages(){
   $("#dView").close();
   if(!$("#dMsg").open)$("#dMsg").showModal();
   $("#mwrap").classList.remove("thread-open");$("#mthread").innerHTML=`<div class="mempty">Choose a conversation.</div>`;
-  await loadConvos();drawList();startPolling();
+  await loadConvos();drawList();startPolling();loadAlertPref();
 }
+// The "Email me about new messages" switch: no saved choice means on.
+async function loadAlertPref(){
+  const t=$("#alertToggle");if(!t||!user)return;
+  const {data}=await sb.from("email_prefs").select("alerts").eq("user_id",user.id).maybeSingle();
+  t.checked=!data||data.alerts!==false;
+}
+document.addEventListener("change",async e=>{
+  if(e.target.id!=="alertToggle"||!user)return;
+  const on=e.target.checked,{error}=await sb.from("email_prefs").upsert({user_id:user.id,alerts:on},{onConflict:"user_id"});
+  if(error){e.target.checked=!on;alert("Sorry, that did not save. Please try again.")}
+});
 $("#dMsg").addEventListener("close",()=>{curConv=null;pendingAd=null;startPolling()});
 
 // "Message [seller]" on an ad: continue the existing conversation, or start a blank one (nothing is saved until you send).
@@ -1335,6 +1349,15 @@ async function loadData(){
       if(user)startPost();else{postAfterLogin=true;needLogin("Please log in or create a free account to post your ad.")}
     });
   }}
+  // "View message" in an email alert links to /?messages=12 (a conversation) or /?messages=1: open the inbox, asking them to log in first.
+  if(new URLSearchParams(location.search).has("messages")){
+    const mc=+new URLSearchParams(location.search).get("messages")||0;
+    try{history.replaceState(null,"","/")}catch(e){}
+    sb.auth.getSession().then(({data})=>{
+      if(data.session&&!user)showUser(data.session.user);
+      if(user)openMessages().then(()=>{if(mc)openThread(mc)});else{msgAfter=mc;needLogin("Please log in to see your messages.")}
+    });
+  }
   // Someone arrived through a shared link like /ad/38-2017-jeep-rubicon (or the older ?ad=38): show that ad straight away.
   if(!deepDone){deepDone=true;const pm=location.pathname.match(/^\/ad\/(\d+)/),id=pm?+pm[1]:+new URLSearchParams(location.search).get("ad");if(id&&items.some(x=>x.id===id))open(id)}
 }
