@@ -25,7 +25,14 @@ export default async (request) => {
   if (!secret || !key) {
     // Says which one is missing (names only, never values) so a setup mistake is easy to find.
     const missing = [!secret && "NOTIFY_SECRET", !key && "RESEND_API_KEY"].filter(Boolean);
-    return json({ error: "not configured", missing }, 503);
+    // Also the NAMES (never values) of variables that look related, to spot a typo or a stray space in a name.
+    let seen = [];
+    try {
+      const all = typeof Netlify !== "undefined" && Netlify.env && Netlify.env.toObject ? Netlify.env.toObject() : Deno.env.toObject();
+      seen = Object.keys(all).filter((k) => /notify|resend|secret|api_key/i.test(k)).map((k) => JSON.stringify(k));
+      seen.push("(" + Object.keys(all).length + " variables visible in total)");
+    } catch (e) { seen = ["could not list: " + String(e && e.message || e)]; }
+    return json({ error: "not configured", missing, seen }, 503);
   }
   if (!same(request.headers.get("x-notify-secret") || "", secret)) return json({ error: "no" }, 401);
 
