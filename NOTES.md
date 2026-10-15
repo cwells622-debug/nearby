@@ -98,3 +98,8 @@
 - The Resend key lives ONLY in the database table `private.app_secrets` (name `resend_api_key`; insert it in the SQL Editor, see the bottom of the SQL file). Never in GitHub. Delete that row to switch alerts off everywhere. (We first tried a Netlify function with Netlify environment variables, but the function never saw them, so it was removed.)
 - Resend setup: free account, domain chadads.com verified (DNS records added in Netlify DNS), an API key. Free plan: 3,000 emails/month, 100/day. If an email never arrives: Resend dashboard > Logs; and in Supabase `select id, status_code, content from net._http_response order by id desc limit 5;`.
 - Not built: a daily summary, SMS, and replying to the email (it says to reply on ChadAds).
+
+## Dealer feed import (not started, waiting for a sample)
+- Idea: import a dealer's inventory (via carsforsale.com or the dealer directly) as ads. Do NOT scrape carsforsale.com; get permission and a feed from the dealer or carsforsale.com.
+- Wanted: UTF-8 CSV, one row per vehicle, FULL inventory each time (so sold cars disappear), delivered as a private HTTPS link (or SFTP), daily. Columns: VIN or stock number, year, make, model, trim, price, mileage, body type, description, photo URLs (separated by `|`), dealer name, city, state.
+- Plan once a sample file arrives: map columns, add `source` + `external_id` to listings, a scheduled importer that adds/updates/removes by VIN, copy up to 5 photos into storage (with thumbnails), "Dealer" label, per-dealer ad cap and a pause switch. The feed link is a secret: store it in `private.app_secrets`, never in GitHub.
