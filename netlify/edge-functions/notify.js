@@ -20,8 +20,13 @@ function same(a, b) {
 
 export default async (request) => {
   if (request.method !== "POST") return json({ error: "POST only" }, 405);
-  const secret = Netlify.env.get("NOTIFY_SECRET"), key = Netlify.env.get("RESEND_API_KEY");
-  if (!secret || !key) return json({ error: "not configured" }, 503);
+  const env = (k) => (typeof Netlify !== "undefined" && Netlify.env ? Netlify.env.get(k) : Deno.env.get(k));
+  const secret = env("NOTIFY_SECRET"), key = env("RESEND_API_KEY");
+  if (!secret || !key) {
+    // Says which one is missing (names only, never values) so a setup mistake is easy to find.
+    const missing = [!secret && "NOTIFY_SECRET", !key && "RESEND_API_KEY"].filter(Boolean);
+    return json({ error: "not configured", missing }, 503);
+  }
   if (!same(request.headers.get("x-notify-secret") || "", secret)) return json({ error: "no" }, 401);
 
   let p;
