@@ -103,3 +103,10 @@
 - Idea: import a dealer's inventory (via carsforsale.com or the dealer directly) as ads. Do NOT scrape carsforsale.com; get permission and a feed from the dealer or carsforsale.com.
 - Wanted: UTF-8 CSV, one row per vehicle, FULL inventory each time (so sold cars disappear), delivered as a private HTTPS link (or SFTP), daily. Columns: VIN or stock number, year, make, model, trim, price, mileage, body type, description, photo URLs (separated by `|`), dealer name, city, state.
 - Plan once a sample file arrives: map columns, add `source` + `external_id` to listings, a scheduled importer that adds/updates/removes by VIN, copy up to 5 photos into storage (with thumbnails), "Dealer" label, per-dealer ad cap and a pause switch. The feed link is a secret: store it in `private.app_secrets`, never in GitHub.
+
+## Report an ad
+- `step21_reports.sql` (run after step8_admin.sql and step20_email_alerts.sql): table `reports` (reasons: scam, prohibited, spam, wrong, misleading, offensive, sold, other), one report per person per ad, 10 per person per day, not on your own ad. RUN THE SQL BEFORE PUSHING the page change (the site sends reports to that table).
+- On the site: logged-in members see "Report this ad" at the bottom of an ad pop-up (`#dRep`, `openReport()` in `public/index.html`). Logged-out visitors are asked to log in first. The seller is never told who reported.
+- Admin page (`public/admin.html`): a "Reports" tab with a count. One card per ad with every report on it. Buttons: Find in Ads (to edit or delete the ad with the existing buttons), Mark handled, Dismiss (these close every open report on that ad). Choose "Handled / Dismissed / Everything" to see old ones.
+- Each new report emails hello@chadads.com (or the address in `private.app_secrets` name `admin_email`) through Resend, like message alerts. No Resend key = reports still work, just no email.
+- Not built yet: auto-hiding an ad after several reports, blocking a user from messaging you, reporting a message or a user.

@@ -246,6 +246,8 @@ dialog .dlg.msgs{padding:0;gap:0}
 @media (max-width:760px){.sico{width:40px;height:40px}.sharerow{gap:8px}}
 .alertrow{flex-direction:row;align-items:center;gap:8px;padding:0 16px 10px;font-size:13px}
 .alertrow input{width:auto;padding:0;margin:0}
+.rep{margin:2px 0 0;text-align:center}
+.linkbtn{border:0;background:none;color:var(--mute);text-decoration:underline;padding:4px;font-size:13px;cursor:pointer}
 .igprev{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:4px}
 .igprev img{height:300px;width:auto;border-radius:12px;scroll-snap-align:start;flex:none;display:block}
 .spill{border:0;background:var(--soft);color:var(--ink);border-radius:999px;padding:8px 15px;font-weight:500;font-size:14px;text-decoration:none;display:inline-block;transition:background .15s}
@@ -337,6 +339,16 @@ dialog .dlg.msgs{padding:0;gap:0}
 </div></dialog>
 
 <dialog id="dView"><div class="dlg" id="view"></div></dialog>
+<dialog id="dRep"><form class="dlg" id="fr">
+  <div class="top"><h2>Report this ad</h2><button type="button" class="x" data-close aria-label="Close">✕</button></div>
+  <p class="note" id="repAd" style="margin:0"></p>
+  <label>What is wrong?<select name="reason" required>
+    <option value="">Choose one…</option><option value="scam">Scam or fraud</option><option value="prohibited">Prohibited or illegal item</option><option value="spam">Spam or duplicate</option><option value="wrong">Wrong category or location</option><option value="misleading">Misleading price or details</option><option value="offensive">Offensive content</option><option value="sold">Already sold</option><option value="other">Something else</option></select></label>
+  <label>Details (optional)<textarea name="details" rows="3" maxlength="500" placeholder="Anything that helps us check it"></textarea></label>
+  <p class="note" id="repMsg" role="alert" style="margin:0"></p>
+  <button class="btn" type="submit">Send report</button>
+  <p class="note" style="margin:0;font-size:13px">Reports are private. The seller is not told who reported the ad.</p>
+</form></dialog>
 <dialog id="dIg"><div class="dlg">
   <div class="top"><h2>Instagram post</h2><button type="button" class="x" data-close aria-label="Close">✕</button></div>
   <p class="note" id="igMsg" style="margin:0" role="status"></p>
@@ -619,6 +631,30 @@ function igCopy(btn){
   (navigator.clipboard?navigator.clipboard.writeText(ta.value):Promise.reject()).then(done,()=>{ta.select();try{document.execCommand("copy");done()}catch(e){}});
 }
 function igShareNow(){if(igFiles.length)navigator.share({files:igFiles,title:(items.find(x=>x.id===igId)||{}).t||"ChadAds"}).catch(()=>{})}
+// ---- Report an ad (step21_reports.sql): logged-in members flag a problem ad; admins review it on the admin page ----
+let repId=null;
+function openReport(id){
+  const i=items.find(x=>x.id===id);if(!i)return;
+  if(!user){needLogin("Please log in or create a free account to report an ad.");return}
+  repId=id;$("#fr").reset();$("#repMsg").textContent="";$("#repAd").textContent="Ad: "+i.t;
+  $("#fr button[type=submit]").disabled=false;$("#dRep").showModal();
+}
+$("#fr").addEventListener("submit",async e=>{
+  e.preventDefault();
+  const f=new FormData(e.target),msg=$("#repMsg"),btn=$("#fr button[type=submit]");
+  if(!user||!repId||!f.get("reason"))return;
+  btn.disabled=true;msg.textContent="Sending…";
+  const {error}=await sb.from("reports").insert({listing_id:repId,reporter_id:user.id,reason:String(f.get("reason")),details:String(f.get("details")||"").trim().slice(0,500)});
+  if(error){
+    btn.disabled=false;
+    msg.textContent=error.code==="23505"?"You have already reported this ad. Thank you, we will look at it."
+      :/lot of reports/i.test(error.message)?error.message
+      :"Sorry, the report could not be sent. Please try again.";
+    return;
+  }
+  msg.textContent="Thank you. Your report was sent and we will look at it.";
+  setTimeout(()=>{if($("#dRep").open)$("#dRep").close()},1800);
+});
 // ---- Ad pop-up: photo gallery ----
 let gi=0,gId=null;
 // One "slide" of the gallery: a photo, an uploaded video, or a YouTube/Vimeo player.
@@ -657,6 +693,7 @@ function open(id){
     ${mine?(i.sid?`<div class="ctas"><button class="btn lg" data-edit="${i.id}">Edit this ad</button><button class="btn ghost lg" data-del="${i.id}">Delete this ad</button></div>`:""):
       `<div class="ctas"><button class="btn lg" data-msg="${i.id}">Message ${esc(s.n)}</button><div id="offer">${offerHtml(i,s)}</div></div>`}
     ${shareHtml(i)}
+    ${mine?"":`<p class="rep"><button type="button" class="linkbtn" data-report="${i.id}">Report this ad</button></p>`}
   </div></div>`;
   try{history.replaceState(null,"",adPath(i))}catch(e){}   // so the address bar can be copied too
   {const d=$("#dView");if(!d.open)d.showModal()}
@@ -692,6 +729,7 @@ document.addEventListener("click",e=>{
     const [f]=picked.splice(+mc.dataset.cover,1);picked.unshift(f);coverNew=true;   // the cover is uploaded first
     document.querySelectorAll('#curPhotos [name=cover]').forEach(r=>{r.checked=false});showPicked();return}
   const ig=t.closest("[data-ig]");if(ig){openIg(+ig.dataset.ig);return}
+  const rp=t.closest("[data-report]");if(rp){openReport(+rp.dataset.report);return}
   if(t.closest("[data-igsave]")){igSave();return}
   const igc=t.closest("[data-igcopy]");if(igc){igCopy(igc);return}
   if(t.closest("#igShare")){igShareNow();return}
