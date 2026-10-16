@@ -110,3 +110,8 @@
 - Admin page (`public/admin.html`): a "Reports" tab with a count. One card per ad with every report on it. Buttons: Find in Ads (to edit or delete the ad with the existing buttons), Mark handled, Dismiss (these close every open report on that ad). Choose "Handled / Dismissed / Everything" to see old ones.
 - Each new report emails hello@chadads.com (or the address in `private.app_secrets` name `admin_email`) through Resend, like message alerts. No Resend key = reports still work, just no email.
 - Not built yet: auto-hiding an ad after several reports, blocking a user from messaging you, reporting a message or a user.
+
+## Block a member (messaging)
+- `step22_block_users.sql` (run after step14_messaging.sql; RUN IT BEFORE PUSHING the page change): table `blocks` (blocker, blocked; only the blocker can see or change their own), `block_state()` function, and updated `conversation_before_insert` / `message_before_insert` triggers that refuse new conversations, messages and offers while a block exists in EITHER direction. The blocked person is not told: they see "This member is not accepting messages." The blocker sees "You have blocked this member. Unblock them to send messages."
+- On the site: in the Messages screen, each conversation has a Block / Unblock button at the top right (`toggleBlock()` in `public/index.html`). A blocked conversation shows a "Blocked" tag, its composer is disabled, and it no longer counts as unread. The "Message" button on an ad also tells you if you blocked the seller. Old messages stay readable.
+- Not built: blocking from an ad page or profile without a conversation, an admin list of blocks, auto-blocking after reports.

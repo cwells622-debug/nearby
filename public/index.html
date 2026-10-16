@@ -631,6 +631,23 @@ function igCopy(btn){
   (navigator.clipboard?navigator.clipboard.writeText(ta.value):Promise.reject()).then(done,()=>{ta.select();try{document.execCommand("copy");done()}catch(e){}});
 }
 function igShareNow(){if(igFiles.length)navigator.share({files:igFiles,title:(items.find(x=>x.id===igId)||{}).t||"ChadAds"}).catch(()=>{})}
+// ---- Block / unblock a member from the Messages screen (step22_block_users.sql) ----
+async function toggleBlock(otherUid){
+  const c=convos.find(x=>x.id===curConv);if(!c||!user)return;
+  const name=otherName(c);
+  if(blocked.has(otherUid)){
+    const {error}=await sb.from("blocks").delete().eq("blocker_id",user.id).eq("blocked_id",otherUid);
+    if(error){alert("Sorry, that did not work. Please try again.");return}
+    blocked.delete(otherUid);
+  }else{
+    if(!confirm("Block "+name+"?\n\nThey will not be able to message you or send offers, and you will not be able to message them until you unblock them. They are not told they were blocked.\n\nYou can unblock them here at any time."))return;
+    const {error}=await sb.from("blocks").insert({blocker_id:user.id,blocked_id:otherUid});
+    if(error&&error.code!=="23505"){alert("Sorry, that did not work. Please try again.");return}
+    blocked.add(otherUid);
+    sb.rpc("mark_conversation_read",{cid:c.id});   // their old message should not keep showing as unread
+  }
+  await loadConvos();updateBadge();drawList();await openThread(c.id,true);
+}
 // ---- Report an ad (step21_reports.sql): logged-in members flag a problem ad; admins review it on the admin page ----
 let repId=null;
 function openReport(id){
@@ -730,6 +747,7 @@ document.addEventListener("click",e=>{
     document.querySelectorAll('#curPhotos [name=cover]').forEach(r=>{r.checked=false});showPicked();return}
   const ig=t.closest("[data-ig]");if(ig){openIg(+ig.dataset.ig);return}
   const rp=t.closest("[data-report]");if(rp){openReport(+rp.dataset.report);return}
+  const blkBtn=t.closest("[data-block]");if(blkBtn){toggleBlock(blkBtn.dataset.block);return}
   if(t.closest("[data-igsave]")){igSave();return}
   const igc=t.closest("[data-igcopy]");if(igc){igCopy(igc);return}
   if(t.closest("#igShare")){igShareNow();return}
@@ -814,6 +832,7 @@ function showUser(u){
   if(u&&msgAfter!==null){const cid=msgAfter;msgAfter=null;setTimeout(()=>openMessages().then(()=>{if(cid)openThread(cid)}),600)}   // they came from an email alert and have just logged in
   $("#msgsBtn").hidden=!u;
   if(changed){
+    blocked=new Set();blocksLoaded=false;
     convos=[];curConv=null;updateBadge();stopPolling();
     if(u)setTimeout(()=>{loadConvos();startPolling()},0);
     else if($("#dMsg").open)$("#dMsg").close();
@@ -855,15 +874,17 @@ if(sb)sb.auth.onAuthStateChange((event,session)=>showUser(session?session.user:n
 
 /* ---------- Messages (private, between a buyer and a seller) ---------- */
 // The database (step14_messaging.sql) makes sure only the two people in a conversation can read it.
-let convos=[],curConv=null,pendingAd=null,pollTimer=null,shownLast=null;
+let convos=[],curConv=null,pendingAd=null,pollTimer=null,shownLast=null,blocked=new Set(),blocksLoaded=false;   // blocked: ids of members I have blocked (step22_block_users.sql)
+const otherId=c=>c.buyer_id===user.id?c.seller_id:c.buyer_id;
 const otherName=c=>c.buyer_id===user.id?((c.seller&&c.seller.display_name)||"Seller"):((c.buyer&&c.buyer.display_name)||"Buyer");
 const myRead=c=>c.buyer_id===user.id?c.buyer_last_read_at:c.seller_last_read_at;
-const isUnread=c=>!!user&&!!c.last_sender_id&&c.last_sender_id!==user.id&&(!myRead(c)||new Date(c.last_message_at)>new Date(myRead(c)));
+const isUnread=c=>!!user&&!!c.last_sender_id&&c.last_sender_id!==user.id&&!blocked.has(otherId(c))&&(!myRead(c)||new Date(c.last_message_at)>new Date(myRead(c)));
 const ago2=iso=>{const s=Math.max(0,(Date.now()-new Date(iso))/1000);return s<60?"now":s<3600?Math.floor(s/60)+"m":s<86400?Math.floor(s/3600)+"h":Math.floor(s/86400)+"d"};
 const clock=iso=>new Date(iso).toLocaleString(undefined,{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"});
 
 async function loadConvos(){
   if(!user||!sb)return;
+  if(!blocksLoaded){const b=await sb.from("blocks").select("blocked_id");if(!b.error){blocked=new Set(b.data.map(r=>r.blocked_id));blocksLoaded=true}}
   const {data,error}=await sb.from("conversations").select("*,buyer:profiles!buyer_id(display_name),seller:profiles!seller_id(display_name)").order("last_message_at",{ascending:false}).limit(100);
   if(error)return;
   convos=data;updateBadge();
@@ -884,11 +905,11 @@ function drawList(){
   const box=$("#mlist");
   if(!convos.length){box.innerHTML=`<div class="mempty">No messages yet.<br>Open an ad and tap <b>Message</b> to start one.</div>`;return}
   box.innerHTML=convos.map(c=>`<button type="button" class="citem${isUnread(c)?" unread":""}" data-conv="${c.id}" aria-current="${c.id===curConv}">
-    <div class="ct"><span class="cn">${isUnread(c)?`<span class="udot" aria-label="Unread"></span>`:""}${esc(otherName(c))}</span><span class="cw2">${esc(ago2(c.last_message_at))}</span></div>
+    <div class="ct"><span class="cn">${isUnread(c)?`<span class="udot" aria-label="Unread"></span>`:""}${esc(otherName(c))}${blocked.has(otherId(c))?` <span class="pill" style="font-size:11px">Blocked</span>`:""}</span><span class="cw2">${esc(ago2(c.last_message_at))}</span></div>
     <div class="cp">${esc(c.listing_title||"Ad removed")}</div><div class="cp">${esc(c.last_preview)}</div></button>`).join("");
 }
-function threadShell(head,body,composerText){
-  $("#mthread").innerHTML=`<div class="mhead"><button type="button" class="x mback" data-mback aria-label="Back to messages">‹</button><div style="min-width:0">${head}</div></div>
+function threadShell(head,body,composerText,blk){
+  $("#mthread").innerHTML=`<div class="mhead"><button type="button" class="x mback" data-mback aria-label="Back to messages">‹</button><div style="min-width:0">${head}</div>${blk?`<button type="button" class="linkbtn" style="margin-left:auto;flex:none" data-block="${esc(blk.oid)}">${blk.isB?"Unblock":"Block"}</button>`:""}</div>
     <div class="mscroll" id="mscroll">${body}</div><p class="merr" id="merr" role="alert"></p>
     <div class="mcomp"><textarea id="mtxt" rows="1" maxlength="2000" placeholder="Write a message" aria-label="Write a message">${esc(composerText||"")}</textarea><button class="btn" id="msend" type="button">Send</button></div>`;
   $("#mwrap").classList.add("thread-open");
@@ -905,8 +926,10 @@ async function openThread(id,quiet){
   if(error){threadShell(`<div class="mt1">${esc(otherName(c))}</div>`,`<div class="mempty">Couldn't load this conversation.</div>`);return}
   const adLive=c.listing_id&&items.some(x=>x.id===c.listing_id);
   const keepText=quiet&&$("#mtxt")?$("#mtxt").value:"";
+  const oid=otherId(c),isB=blocked.has(oid);
   threadShell(`<div class="mt1">${esc(otherName(c))}</div><div class="mt2">${esc(c.listing_title||"Ad removed")}${adLive?` · <a href="${esc(adPath(items.find(x=>x.id===c.listing_id)))}" data-viewad="${c.listing_id}">View ad</a>`:""}</div>`,
-    data.map(bubble).join("")||`<div class="mempty">No messages yet.</div>`,keepText);
+    data.map(bubble).join("")||`<div class="mempty">No messages yet.</div>`,keepText,{oid,isB});
+  if(isB){$("#mtxt").disabled=true;$("#msend").disabled=true;$("#merr").textContent="You have blocked this member. Unblock them to send messages."}
   const sc=$("#mscroll");sc.scrollTop=sc.scrollHeight;
   shownLast=c.last_message_at;
   drawList();
@@ -944,6 +967,7 @@ async function startConversation(adId){
   if(!i.sid){alert("This is a sample ad, so messages can't be sent.");return}
   if(isMine(i))return;
   await openMessages();
+  if(blocked.has(i.sid)){alert("You have blocked this member. Open your conversation with them in Messages to unblock them.");return}
   const have=convos.find(c=>c.listing_id===i.id&&c.buyer_id===user.id);
   if(have){await openThread(have.id);return}
   curConv=null;pendingAd=i;
