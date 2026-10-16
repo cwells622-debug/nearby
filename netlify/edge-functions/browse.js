@@ -2,8 +2,9 @@
 //   chadads.com/for-sale/auto-trucks                      all trucks
 //   chadads.com/in/capital-district                        everything in a region
 //   chadads.com/for-sale/auto-trucks/capital-district     trucks in a region
+//   chadads.com/in/north-creek-ny                          a town (/in/ + the town name + the state)
 // Logic lives in ../edge-lib/seo.js. Regions come from the database (cities.regions, see step15_regions.sql). See SEO.md.
-import { SB_URL, SB_KEY, slugify, parseBrowsePath, buildListPage } from "../edge-lib/seo.js";
+import { SB_URL, SB_KEY, slugify, parseBrowsePath, buildListPage, cityPath } from "../edge-lib/seo.js";
 
 const HEADERS = { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` };
 const html = (body, status, extra = {}) =>
@@ -15,6 +16,18 @@ async function notFound(origin) {
   return html(body, 404, { "x-robots-tag": "noindex", "cache-control": "public, max-age=0, must-revalidate" });
 }
 const unavailable = () => html("Temporarily unavailable. Please try again.", 503, { "retry-after": "60", "x-robots-tag": "noindex" });
+
+// "north-creek-ny" -> the matching row in the cities table, null if there is none, undefined if the database could not be reached.
+// Town names are matched on their first letters, then checked exactly against the address we would build for each (cityPath).
+async function findCity(slug) {
+  const m = slug.match(/^(.*)-([a-z]{2})$/);
+  if (!m) return null;
+  const prefix = m[1].split("-")[0].slice(0, 3);
+  const res = await fetch(`${SB_URL}/rest/v1/cities?select=id,name,state,lat,lng,regions&state=eq.${m[2].toUpperCase()}&name=ilike.${encodeURIComponent(prefix)}*&limit=1000`, { headers: HEADERS });
+  if (!res.ok) return undefined;
+  const rows = await res.json();
+  return rows.find((c) => cityPath(c.name, c.state) === "/in/" + slug) || null;
+}
 
 export default async (request) => {
   const url = new URL(request.url);
@@ -37,19 +50,38 @@ export default async (request) => {
     catName = found.name;
   }
 
+  // A town page (/in/north-creek-ny): find the town, or say there is no such page.
+  let city = null, nearby = false;
+  if (route.citySlug) {
+    city = await findCity(route.citySlug);
+    if (city === undefined) return unavailable();
+    if (!city) return notFound(url.origin);
+  }
+
   // The ads for this page: newest first, with the first photo, and a total count from the same query.
   let q = `${SB_URL}/rest/v1/listings?select=id,title,price,price_on_request,created_at,categories!inner(name,active),cities!inner(name,state,regions),listing_photos(id,storage_path,position)` +
     `&categories.active=eq.true&order=created_at.desc&limit=48`;
   if (catName) q += `&categories.name=eq.${encodeURIComponent(catName)}`;
   if (route.region) q += `&cities.regions=cs.${encodeURIComponent("{" + route.region + "}")}`;
-  const ar = await fetch(q, { headers: { ...HEADERS, Prefer: "count=exact" } });
+  const base = q;
+  if (city) q += `&city_id=eq.${city.id}`;
+  let ar = await fetch(q, { headers: { ...HEADERS, Prefer: "count=exact" } });
   if (!ar.ok) return unavailable();
-  const ads = await ar.json();
-  const total = parseInt((ar.headers.get("content-range") || "").split("/")[1], 10) || ads.length;
+  let ads = await ar.json();
+  let total = parseInt((ar.headers.get("content-range") || "").split("/")[1], 10) || ads.length;
+  // A town with no ads of its own shows the newest ads from about 25 miles around it (and is kept out of Google).
+  if (city && total === 0) {
+    const d = 0.36, dl = d / Math.cos((city.lat * Math.PI) / 180);
+    ar = await fetch(base + `&cities.lat=gte.${city.lat - d}&cities.lat=lte.${city.lat + d}&cities.lng=gte.${city.lng - dl}&cities.lng=lte.${city.lng + dl}`, { headers: { ...HEADERS, Prefer: "count=exact" } });
+    if (!ar.ok) return unavailable();
+    ads = await ar.json();
+    total = parseInt((ar.headers.get("content-range") || "").split("/")[1], 10) || ads.length;
+    nearby = true;
+  }
 
   const shellRes = await fetch(url.origin + "/index.html");
   if (!shellRes.ok) return unavailable();
-  const { html: page } = buildListPage(await shellRes.text(), { catName, region: route.region, ads, total, cats });
+  const { html: page } = buildListPage(await shellRes.text(), { catName, region: route.region, ads, total, cats, city, nearby });
 
   return html(page, 200, {
     "cache-control": "public, max-age=0, must-revalidate",

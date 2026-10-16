@@ -412,7 +412,7 @@ let cur="All",q="",sort="new",me="",rad=0,view="all"   /* me: the visitor's city
 const LAND=window.__LANDING__||null;
 let regionSlug=null,regionName="",landDone=false;
 const basePath=location.pathname.startsWith("/ad/")?"/":location.pathname;   // where the address bar goes back to when a pop-up closes
-const landActive=()=>!!LAND&&!q&&cur===(LAND.cat||"All")&&(LAND.region?regionSlug===LAND.region:true);
+const landActive=()=>!!LAND&&!q&&cur===(LAND.cat||"All")&&(LAND.region?regionSlug===LAND.region:true)&&(LAND.city?me===LAND.city:true);
 const offers={};
 const SL={"Saratoga Springs, NY":["Dana R.",2021,4.9,41,"within an hour"],"Ballston Spa, NY":["Hannah K.",2022,4.7,12,"within a few hours"],"Clifton Park, NY":["Priya S.",2020,4.8,63,"within an hour"],"Schenectady, NY":["Tom W.",2023,4.5,6,"within a day"],"Albany, NY":["Marcus T.",2019,4.9,88,"within an hour"],"Troy, NY":["Leo B.",2021,4.6,27,"within a few hours"],"Glens Falls, NY":["Gail P.",2022,4.8,15,"within a day"],"Queensbury, NY":["Rick M.",2018,4.7,34,"within a few hours"],"Boston, MA":["Alex C.",2020,4.8,52,"within an hour"],"Burlington, VT":["Sam H.",2022,4.9,19,"within a few hours"],"Hartford, CT":["Jo L.",2021,4.4,9,"within a day"],"New York, NY":["Chris D.",2019,4.7,71,"within an hour"],"Pittsburgh, PA":["Nina V.",2023,5,4,"within a few hours"],"Syracuse, NY":["Omar F.",2022,4.6,11,"within a day"]};
 // Is this ad mine? (i.you = posted this session; sid = seller's account id from the database)
@@ -1400,6 +1400,8 @@ async function loadData(){
   suggestCities([]);   // until they type, the city boxes suggest the cities that have ads
   $("#fc").innerHTML=cats.map(c=>`<option>${esc(c[0])}</option>`).join("");
   if(!landDone){landDone=true;if(LAND){if(LAND.cat&&cats.some(c=>c[0]===LAND.cat))cur=LAND.cat;if(LAND.region){regionSlug=LAND.region;regionName=LAND.regionName||"";}}}
+  // A town page (/in/north-creek-ny): show that town and ads within 25 miles of it.
+  if(LAND&&LAND.city&&!me){const k=await lookupCity(LAND.city);if(k){me=k;rad=25}}
   $("#seoNav").innerHTML=`<span>Browse:</span> `+cats.map(c=>`<a href="/for-sale/${slugify(c[0])}">${esc(c[0])}</a>`).join("")+` <span>Regions:</span> `+[["capital-district","Capital District"],["adirondacks","Adirondacks"],["hudson-valley","Hudson Valley"],["upstate-new-york","Upstate NY"]].map(([s,n])=>`<a href="/in/${s}">${n}</a>`).join("");
   if(!deepDone){const sq=new URLSearchParams(location.search).get("q");if(sq&&sq.trim()){q=sq.trim().toLowerCase();$("#q").value=sq.trim()}}
   render();

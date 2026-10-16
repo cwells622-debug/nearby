@@ -52,6 +52,7 @@ function relatedLinks(ad) {
   const regs = (ad.cities && ad.cities.regions) || [];
   const r = REGION_ORDER.find((x) => regs.includes(x));
   const out = [`<a href="${browsePath(cat, null)}">More ${esc(catLabel(cat).toLowerCase())} for sale</a>`];
+  if (ad.cities && ad.cities.name && ad.cities.state) out.push(`<a href="${cityPath(ad.cities.name, ad.cities.state)}">Classifieds in ${esc(ad.cities.name)}, ${esc(ad.cities.state)}</a>`);
   if (r) {
     out.push(`<a href="${browsePath(cat, r)}">${esc(catLabel(cat))} for sale in ${esc(REGIONS[r].short)}</a>`);
     out.push(`<a href="${browsePath(null, r)}">Classifieds in ${esc(REGIONS[r].short)}</a>`);
@@ -161,16 +162,20 @@ const catBlurb = (name) => (CATEGORY_INFO[name] && CATEGORY_INFO[name].blurb) ||
 
 // How many ads a page needs before search engines are told to list it. Small or empty pages stay out of Google
 // (they still work for visitors). Raise these numbers as the site grows.
-export const INDEX_MIN = { category: 1, region: 1, combo: 3 };
+export const INDEX_MIN = { category: 1, region: 1, combo: 3, city: 1 };
 export const isIndexable = (catName, region, total) => total >= (catName && region ? INDEX_MIN.combo : catName ? INDEX_MIN.category : INDEX_MIN.region);
 
 // Page addresses
 export const browsePath = (catName, region) =>
   catName ? `/for-sale/${slugify(catName)}${region ? "/" + region : ""}` : `/in/${region}`;
+// City pages: "Saratoga Springs, NY" -> "/in/saratoga-springs-ny". (The same slugify() as ad addresses, then a dash and the state.)
+export const cityPath = (name, state) => `/in/${slugify(name)}-${String(state).toLowerCase()}`;
 // "/for-sale/auto-trucks/capital-district" -> { cat: "auto-trucks", region: "capital-district" }; null if it is not one of ours.
 export function parseBrowsePath(pathname) {
   const p = pathname.replace(/\/+$/, "").split("/").filter(Boolean);
   if (p[0] === "in" && p.length === 2 && REGIONS[p[1]]) return { cat: null, region: p[1] };
+  // "/in/north-creek-ny": anything that is not a region but looks like a town and a state. The page code checks it against the database.
+  if (p[0] === "in" && p.length === 2 && /^[a-z0-9]+(-[a-z0-9]+)*-[a-z]{2}$/.test(p[1])) return { cat: null, region: null, citySlug: p[1] };
   if (p[0] === "for-sale" && p.length === 2) return { cat: p[1], region: null };
   if (p[0] === "for-sale" && p.length === 3 && REGIONS[p[2]]) return { cat: p[1], region: p[2] };
   return null;
@@ -178,22 +183,30 @@ export function parseBrowsePath(pathname) {
 
 // Fills the home page shell with a list page: its own title, description, preview, structured data, a readable list of
 // ads, and a small "landing" note the app uses to show the same filter on screen.
-export function buildListPage(shell, { catName, region, ads, total, cats }) {
+export function buildListPage(shell, { catName, region, ads, total, cats, city, nearby }) {
   const R = region ? REGIONS[region] : null;
+  const C = city || null;                      // a city page: { name, state, regions }; "nearby" = the city has no ads of its own, so these are ads from towns around it
+  const cname = C ? `${C.name}, ${C.state}` : "";
   const label = catName ? catLabel(catName) : null;
-  const path = browsePath(catName, region);
+  const path = C ? cityPath(C.name, C.state) : browsePath(catName, region);
   // "Trucks in Upstate New York" shows the same ads as "Trucks" (the whole site is Upstate New York), so it points at the plain category page.
   const url = SITE + (catName && region === "upstate-new-york" ? browsePath(catName, null) : path);
   const where = R ? R.short : "the Capital Region and Upstate New York";
-  const h1 = catName ? `${label} for sale in ${where}` : `Local classifieds in ${where}`;
-  const pageTitle = catName
+  const h1 = C ? (nearby ? `Classifieds near ${cname}` : `Local classifieds in ${cname}`)
+    : catName ? `${label} for sale in ${where}` : `Local classifieds in ${where}`;
+  const pageTitle = C ? `Classifieds for Sale in ${cname} | ChadAds`
+    : catName
     ? `${label} for Sale in ${R ? R.short : "the Capital Region & Upstate NY"} | ChadAds`
     : `Local Classifieds in ${R.short} | ChadAds`;
-  const intro = catName
+  const intro = C ? (nearby
+      ? `There are no ads in ${cname} yet. Here are the newest ads from nearby towns in the Capital Region and Upstate New York.`
+      : `Local ads from sellers in ${cname}: vehicles, equipment, tools and more.`)
+    : catName
     ? `${catBlurb(catName)} ${R ? "Showing ads from " + R.short + ": " + R.blurb : "Browse sellers across the Capital District, the Adirondacks, the Hudson Valley and the rest of Upstate New York."}`
     : `Browse local ads in ${R.short}: ${R.blurb}`;
   const desc = clip(`${total ? total + " ad" + (total === 1 ? "" : "s") + ". " : ""}${intro} Free to list on ChadAds.`, 155);
-  const indexable = isIndexable(catName, region, total);
+  // A town page is only offered to Google when the town has ads of its own (otherwise many towns would show the same nearby ads).
+  const indexable = C ? (!nearby && total >= INDEX_MIN.city) : isIndexable(catName, region, total);
   const photos = (a) => sortedPhotos(a).map((p) => photoUrl(p.storage_path));
   const image = (ads[0] && photos(ads[0])[0]) || SITE + "/logo.webp";
 
@@ -213,6 +226,11 @@ export function buildListPage(shell, { catName, region, ads, total, cats }) {
   const crumbs = [["ChadAds", SITE + "/"]];
   if (catName) crumbs.push([label, SITE + browsePath(catName, null)]);
   if (R) crumbs.push([R.name, SITE + browsePath(catName, region)]);
+  if (C) {
+    const rr = REGION_ORDER.find((x) => (C.regions || []).includes(x));
+    if (rr) crumbs.push([REGIONS[rr].name, SITE + browsePath(null, rr)]);
+    crumbs.push([cname, SITE + path]);
+  }
   const ld = {
     "@context": "https://schema.org",
     "@graph": [
@@ -222,7 +240,7 @@ export function buildListPage(shell, { catName, region, ads, total, cats }) {
         itemListElement: ads.slice(0, 30).map((a, i) => ({ "@type": "ListItem", position: i + 1, url: SITE + adPath(a.id, a.title), name: a.title })) }] : []),
     ],
   };
-  const landing = { cat: catName || null, region: region || null, regionName: R ? R.name : null, h1, intro };
+  const landing = { cat: catName || null, region: region || null, regionName: R ? R.name : null, city: C ? cname : null, h1, intro };
   const headExtra =
     `<meta name="robots" content="${indexable ? "index,follow,max-image-preview:large" : "noindex,follow"}">\n` +
     `<script type="application/ld+json">${safeJson(ld)}</script>\n` +
@@ -258,6 +276,7 @@ export function buildSitemap(ads, todayIso) {
   };
   for (const a of ads) {
     const cat = a.categories && a.categories.name, regs = (a.cities && a.cities.regions) || [], when = day(a.created_at);
+    if (a.cities && a.cities.name && a.cities.state) bump(cityPath(a.cities.name, a.cities.state), INDEX_MIN.city, when);   // a town page, once the town has an ad
     if (cat) bump(browsePath(cat, null), INDEX_MIN.category, when);
     for (const r of regs) {
       if (!REGIONS[r]) continue;

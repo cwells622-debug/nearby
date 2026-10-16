@@ -115,3 +115,9 @@
 - `step22_block_users.sql` (run after step14_messaging.sql; RUN IT BEFORE PUSHING the page change): table `blocks` (blocker, blocked; only the blocker can see or change their own), `block_state()` function, and updated `conversation_before_insert` / `message_before_insert` triggers that refuse new conversations, messages and offers while a block exists in EITHER direction. The blocked person is not told: they see "This member is not accepting messages." The blocker sees "You have blocked this member. Unblock them to send messages."
 - On the site: in the Messages screen, each conversation has a Block / Unblock button at the top right (`toggleBlock()` in `public/index.html`). A blocked conversation shows a "Blocked" tag, its composer is disabled, and it no longer counts as unread. The "Message" button on an ad also tells you if you blocked the seller. Old messages stay readable.
 - Not built: blocking from an ad page or profile without a conversation, an admin list of blocks, auto-blocking after reports.
+
+## Town pages (/in/north-creek-ny)
+- Any town in the cities table has a page at `/in/<town>-<state>` (`cityPath()` in `netlify/edge-lib/seo.js`, built by `netlify/edge-functions/browse.js`; `findCity()` looks the town up in the database). No SQL needed. Unknown towns get the normal 404.
+- A town WITH ads shows its own ads and is offered to Google (`INDEX_MIN.city`) and listed in the sitemap. A town WITHOUT ads shows the newest ads from about 25 miles around it ("Classifieds near ..."), is marked noindex, and is not in the sitemap (so hundreds of empty towns don't look like duplicate pages).
+- The page app also opens with that town and 25 miles chosen (`LAND.city` in `public/index.html`). Ad pages link to their town page. Tiny catch: towns whose first letters are not plain a-z (accents) may not resolve.
+- Not built: town + category pages (`/for-sale/auto-trucks/saratoga-springs-ny`) and a page listing all towns.

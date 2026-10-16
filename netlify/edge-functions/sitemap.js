@@ -6,7 +6,7 @@ export default async () => {
   // 1000 rows per request is the database's limit; 10 rounds covers 10,000 ads. (Past that, split into several sitemaps.)
   for (let page = 0; page < 10; page++) {
     const res = await fetch(
-      `${SB_URL}/rest/v1/listings?select=id,title,created_at,categories!inner(name,active),cities(regions)&categories.active=eq.true&order=id.desc&limit=1000&offset=${page * 1000}`,
+      `${SB_URL}/rest/v1/listings?select=id,title,created_at,categories!inner(name,active),cities(name,state,regions)&categories.active=eq.true&order=id.desc&limit=1000&offset=${page * 1000}`,
       { headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` } }
     );
     if (!res.ok) return new Response("Temporarily unavailable", { status: 503, headers: { "retry-after": "300" } });
