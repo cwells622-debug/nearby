@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Print a For Sale sign | ChadAds</title>
+<link rel="icon" href="logo-sm.webp" type="image/webp">
+<style>
+/* A US Letter "FOR SALE" sign for one ad: photo, price, title, town and a QR code to the ad. Opens from the ad pop-up (/sign?ad=ID).
+   In the print window: Margins = None, Background graphics = on. */
+@page{size:letter;margin:0}
+:root{--ink:#1e1c19;--mute:#5b5446;--cream:#fbf7ef;--orange:#e95e0d;--navy:#164663;--mustard:#e9a70d}
+*{box-sizing:border-box}
+body{margin:0;background:#cfc8b8;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--ink);-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.bar{max-width:8.5in;margin:14px auto;padding:12px 16px;background:#fff;border-radius:12px;display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap;font-size:15px;color:#333}
+.bar button,.bar a{font:inherit;font-weight:600;background:var(--orange);color:var(--ink);border:0;border-radius:999px;padding:9px 20px;text-decoration:none;cursor:pointer}
+.bar a.alt{background:#eee;color:#222}
+.bar button:disabled{opacity:.5;cursor:default}
+.msg{max-width:8.5in;margin:40px auto;padding:30px;background:#fff;border-radius:12px;text-align:center}
+.sheet{width:8.5in;height:11in;margin:0 auto 24px;background:var(--cream);display:flex;flex-direction:column;box-shadow:0 10px 40px rgba(0,0,0,.25);overflow:hidden;position:relative}
+.top{background:var(--orange);text-align:center;padding:.2in .3in .14in;border-bottom:.1in solid var(--ink);flex:none}
+.top h1{margin:0;font-size:1.25in;line-height:1;font-weight:900;letter-spacing:.03em;color:var(--ink);white-space:nowrap}
+.photo{margin:.2in .4in 0;height:3.45in;border-radius:.14in;overflow:hidden;background:#e9dfcc;border:.05in solid var(--ink);display:grid;place-items:center;flex:none}
+.photo img{width:100%;height:100%;object-fit:cover;display:block}
+.photo .emoji{font-size:2.6in;line-height:1}
+.info{padding:.16in .45in 0;flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+.info>*{flex:none}
+.price{font-size:.8in;line-height:1;font-weight:900;color:var(--orange);letter-spacing:-.02em}
+.ttl{margin:.06in 0 0;font-size:.34in;line-height:1.15;font-weight:800;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.where{margin:.04in 0 0;font-size:.25in;font-weight:600;color:var(--mute)}
+.desc{margin:.08in 0 0;font-size:.2in;line-height:1.3;color:var(--ink);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.foot{display:flex;align-items:center;gap:.3in;padding:.1in .45in .24in;flex:none}
+.qr{flex:none;width:2in;height:2in;background:#fff;border:.04in solid var(--ink);border-radius:.1in;padding:.06in}
+.qr svg{width:100%;height:100%;display:block}
+.cta{flex:1;min-width:0}
+.cta .scan{font-size:.3in;font-weight:900;line-height:1.1;margin:0 0 .06in}
+.cta .sub{font-size:.2in;color:var(--mute);margin:0 0 .12in;line-height:1.25}
+.cta .url{font-size:.27in;font-weight:800;color:var(--navy);word-break:break-all}
+.cta img{height:.7in;width:auto;display:block;margin-top:.1in}
+.stripe{height:.14in;background:linear-gradient(90deg,var(--navy) 0 33.3%,var(--orange) 33.3% 66.6%,var(--mustard) 66.6%);flex:none}
+@media print{body{background:none}.bar{display:none}.sheet{margin:0;box-shadow:none;page-break-after:avoid}}
+@media (max-width:8.6in) and (screen){.sheet{zoom:.5}}
+</style>
+</head>
+<body>
+<div class="bar" id="bar">
+  <span id="barMsg"><b>Loading your sign…</b></span>
+  <span><button id="pr" disabled onclick="window.print()">Print</button> <a class="alt" id="back" href="/">Back to ChadAds</a></span>
+</div>
+<div id="out"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="qrcode.js"></script>
+<script>
+(async()=>{
+  const $=s=>document.querySelector(s);
+  const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  // slugify() MUST stay identical to slugify() in public/index.html (it builds the same ad address).
+  const slugify=t=>String(t||"").toLowerCase().normalize("NFKD").replace(/[̀-ͯ]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"").slice(0,60).replace(/-+$/,"")||"ad";
+  const fail=(h,t)=>{$("#out").innerHTML=`<div class="msg"><h2>${h}</h2><p>${t}</p></div>`;$("#barMsg").textContent=""};
+  const id=+new URLSearchParams(location.search).get("ad");
+  if(!id)return fail("No ad chosen","Open an ad on ChadAds and choose the printer button in its share row.");
+  try{
+    $("#back").href="/ad/"+id;
+    const sb=window.supabase.createClient(NEARBY_CONFIG.supabaseUrl,NEARBY_CONFIG.supabaseAnonKey);
+    const {data:ad,error}=await sb.from("listings").select("id,title,description,price,price_on_request,cover_y,status,cities(name,state),categories(name),listing_photos(id,storage_path,position)").eq("id",id).maybeSingle();
+    if(error)throw error;
+    if(!ad)return fail("Ad not found","This ad is not available (it may have been removed or sold).");
+    const photos=(ad.listing_photos||[]).slice().sort((a,b)=>(a.position-b.position)||(a.id-b.id));
+    const photo=photos[0]?sb.storage.from("listing-photos").getPublicUrl(photos[0].storage_path).data.publicUrl:null;
+    const money=ad.price_on_request?"Call for price":ad.price===0?"Free":"$"+Number(ad.price).toLocaleString("en-US");
+    const city=ad.cities?ad.cities.name+", "+ad.cities.state:"";
+    // The QR code and the printed address always point at the real site, even when this page is opened somewhere else.
+    const path="/ad/"+ad.id+"-"+slugify(ad.title),link="https://chadads.com"+path,short="chadads.com/ad/"+ad.id;
+    const qr=qrcode(0,"M");qr.addData(link);qr.make();
+    const svg=qr.createSvgTag({cellSize:8,margin:32,scalable:true,alt:"QR code that opens this ad on ChadAds"});
+    let desc=String(ad.description||"").replace(/\s+/g," ").trim();
+    if(desc.length>230)desc=desc.slice(0,230).replace(/\s+\S*$/,"")+"…";
+    $("#out").innerHTML=`<div class="sheet">
+      <div class="top"><h1>FOR SALE</h1></div>
+      <div class="photo">${photo?`<img id="ph" src="${esc(photo)}" alt="" style="object-position:50% ${+ad.cover_y||50}%" crossorigin="anonymous">`:`<span class="emoji" aria-hidden="true">🏷️</span>`}</div>
+      <div class="info"><div class="price">${esc(money)}</div><p class="ttl">${esc(ad.title)}</p>${city?`<p class="where">${esc(city)}</p>`:""}${desc?`<p class="desc">${esc(desc)}</p>`:""}</div>
+      <div class="foot"><div class="qr">${svg}</div>
+        <div class="cta"><p class="scan">Scan to see all the photos and message the seller</p><p class="sub">Point your phone camera at the code.</p><div class="url">${esc(short)}</div><img src="logo-sm.webp" alt="ChadAds"></div></div>
+      <div class="stripe"></div></div>`;
+    $("#barMsg").innerHTML="<b>For Sale sign</b> (US Letter). In the print window choose <b>Margins: None</b> and <b>Background graphics: on</b>.";
+    document.title="For Sale: "+ad.title+" | ChadAds";
+    const ready=()=>{$("#pr").disabled=false};
+    const ph=$("#ph");
+    if(ph&&!ph.complete){ph.addEventListener("load",ready);ph.addEventListener("error",ready);setTimeout(ready,6000)}else ready();
+  }catch(e){fail("Sorry, that did not work","The sign could not be made ("+esc(e&&e.message||"error")+"). Please try again.")}
+})();
+</script>
+</body>
+</html>

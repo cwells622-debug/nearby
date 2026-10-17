@@ -50,3 +50,9 @@
   from = "/unsubscribe"
   to = "/unsubscribe.html"
   status = 200
+
+# The printable For Sale sign for one ad (/sign?ad=48).
+[[redirects]]
+  from = "/sign"
+  to = "/sign.html"
+  status = 200

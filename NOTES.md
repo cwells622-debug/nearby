@@ -121,3 +121,9 @@
 - A town WITH ads shows its own ads and is offered to Google (`INDEX_MIN.city`) and listed in the sitemap. A town WITHOUT ads shows the newest ads from about 25 miles around it ("Classifieds near ..."), is marked noindex, and is not in the sitemap (so hundreds of empty towns don't look like duplicate pages).
 - The page app also opens with that town and 25 miles chosen (`LAND.city` in `public/index.html`). Ad pages link to their town page. Tiny catch: towns whose first letters are not plain a-z (accents) may not resolve.
 - Not built: town + category pages (`/for-sale/auto-trucks/saratoga-springs-ny`) and a page listing all towns.
+
+## Print a For Sale sign (QR code)
+- A printer icon in the ad pop-up's share row opens `/sign?ad=ID` (`public/sign.html`, new tab): a US Letter "FOR SALE" sign with the ad's first photo, price, title, town, a short description, a QR code to `https://chadads.com/ad/ID-slug` and the short address `chadads.com/ad/ID`, plus the logo. The page fetches the ad itself, so it works for any active ad (and the owner's own sold ads). Print with Margins: None and Background graphics: on (the page says so). Not indexed (`robots.txt`, `noindex`).
+- The QR code is drawn in the browser by `public/qrcode.js` = the open-source "qrcode-generator" 1.4.4 by Kazuhiko Arase (MIT license; the license text is in the file header, keep it). It only loads on the sign page. The QR always points at chadads.com, even if the page is opened somewhere else. If the slug rule changes (`slugify`), `sign.html` has a copy that must match.
+- Layout: photo 3.45in tall, text block clamps the title to 2 lines and the description to 2 lines; the sizes were checked so a long title still fits one page.
+- Not built: other sizes (half-page, 4x6), choosing a different photo, tear-off phone tabs.

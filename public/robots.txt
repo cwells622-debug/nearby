@@ -5,5 +5,6 @@ Disallow: /admin
 Disallow: /flyer
 Disallow: /s/
 Disallow: /unsubscribe
+Disallow: /sign
 
 Sitemap: https://chadads.com/sitemap.xml
