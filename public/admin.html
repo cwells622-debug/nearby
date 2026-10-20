@@ -138,7 +138,7 @@ async function start(){
   if(rc.error)return say("Couldn't load",esc(rc.error.message));
   cats=rc.data.slice().sort((a,b)=>a.name.localeCompare(b.name));
   $("#ec").innerHTML=cats.map(c=>`<option value="${c.id}">${esc(c.name)}${c.active===false?" (hidden)":""}</option>`).join("");
-  $("#main").innerHTML=`<div class="tabs"><button class="btn sm" id="tAds" type="button">Ads</button><button class="btn ghost sm" id="tRep" type="button">Reports <span class="pill" id="repN" hidden></span></button></div>
+  $("#main").innerHTML=`<div class="tabs"><button class="btn sm" id="tAds" type="button">Ads</button><button class="btn ghost sm" id="tRep" type="button">Reports <span class="pill" id="repN" hidden></span></button><button class="btn ghost sm" id="tDeal" type="button">Dealer feeds</button></div>
     <div id="adsView"><div class="filters">
       <input type="search" id="fq" placeholder="Search titles" aria-label="Search titles">
       <select id="fs" aria-label="Status"><option value="">All statuses</option><option value="active">Active</option><option value="sold">Sold</option></select>
@@ -147,7 +147,8 @@ async function start(){
       <button class="btn ghost" id="fb" title="Makes the small copy of every photo that does not have one yet (needs step16_admin_photo_upload.sql)">Create small photo copies</button></div>
     <p class="sub" id="fbMsg" role="status"></p>
     <div id="list"></div></div>
-    <div id="repView" hidden></div>`;
+    <div id="repView" hidden></div>
+    <div id="dealView" hidden></div>`;
   let t;$("#fq").addEventListener("input",()=>{clearTimeout(t);t=setTimeout(()=>load(true),300)});
   $("#fs").addEventListener("change",()=>load(true));$("#fd").addEventListener("change",()=>load(true));
   $("#fr").addEventListener("click",()=>load(true));
@@ -156,13 +157,38 @@ async function start(){
   loadReports();
 }
 
+// ---- Dealer feeds (the importer is the Supabase Edge Function "import-feed"; see NOTES.md and step23_dealer_feed.sql) ----
+function drawDealer(){
+  if($("#dealOut"))return;
+  $("#dealView").innerHTML=`<p class="sub" style="max-width:680px">Dealer ads are added, updated and hidden automatically from the dealer's inventory file. <b>Preview</b> reads the file and shows what would happen, without changing anything. <b>Import now</b> does it for real. The importer also runs by itself on a schedule.</p>
+    <div class="filters"><button class="btn ghost" id="dealPreview" type="button">Preview (no changes)</button><button class="btn" id="dealRun" type="button">Import now</button></div>
+    <div id="dealOut" role="status"></div>`;
+}
+async function runFeed(dry){
+  const out=$("#dealOut");out.innerHTML=`<p class="sub">${dry?"Reading the feed…":"Importing… this can take a minute or two."}</p>`;
+  try{
+    const {data:{session}}=await sb.auth.getSession();
+    const res=await fetch(NEARBY_CONFIG.supabaseUrl+"/functions/v1/import-feed"+(dry?"?dry=1":""),{method:"POST",headers:{Authorization:"Bearer "+session.access_token,apikey:NEARBY_CONFIG.supabaseAnonKey}});
+    const text=await res.text();let j=null;try{j=JSON.parse(text)}catch(e){}
+    if(res.status===404)return out.innerHTML=`<div class="msg"><h2>Importer not installed yet</h2><p>The "import-feed" function has not been deployed in Supabase.</p></div>`;
+    if(!j)return out.innerHTML=`<div class="msg"><h2>Unexpected answer</h2><p>${esc(text.slice(0,300))}</p></div>`;
+    if(j.error)return out.innerHTML=`<div class="msg"><h2>Not run</h2><p>${esc(j.error)}</p></div>`;
+    if(j.message)return out.innerHTML=`<div class="msg"><h2>Nothing to do</h2><p>${esc(j.message)}</p></div>`;
+    out.innerHTML=j.results.map(r=>r.error?`<div class="rep"><h3>${esc(r.dealer)}</h3><p class="err">${esc(r.error)}</p></div>`:
+      `<div class="rep"><h3>${esc(r.dealer)} ${dry?'<span class="pill">preview, nothing changed</span>':""}</h3>
+        <p>${r.rows} cars in the file. ${dry?"Would add":"Added"} <b>${r.created}</b>, ${dry?"would update":"updated"} <b>${r.updated}</b>, unchanged <b>${r.unchanged}</b>, ${dry?"would hide":"hid"} <b>${r.sold}</b> that left the file${r.reactivated?`, brought back <b>${r.reactivated}</b>`:""}${r.deferred?`, <b>${r.deferred}</b> left for the next run (out of time)`:""}${r.skipped?`, skipped <b>${r.skipped}</b>`:""}.${!dry&&r.photosCopied?` Copied ${r.photosCopied} photos.`:""}</p>
+        ${(r.notes||[]).length?`<ul>${r.notes.slice(0,8).map(n=>`<li>${esc(n)}</li>`).join("")}</ul>`:""}
+        ${(r.preview||[]).length?`<div class="wrapx"><table style="min-width:600px"><thead><tr><th>Action</th><th>Ad</th><th>Category</th><th>Price</th><th>Photos in file</th></tr></thead><tbody>${r.preview.map(p=>`<tr><td>${esc(p.action)}</td><td>${esc(p.title)}<div class="sub">VIN ${esc(p.vin)}</div></td><td>${esc(p.category)}</td><td>${esc(p.price)}</td><td>${p.photos}</td></tr>`).join("")}</tbody></table></div><p class="sub">First ${r.preview.length} cars shown.</p>`:""}</div>`).join("");
+  }catch(e){out.innerHTML=`<div class="msg"><h2>Could not reach the importer</h2><p>${esc(e&&e.message||"error")}</p></div>`}
+}
 // ---- Reports (people flagging ads; see step21_reports.sql) ----
 const REASONS={scam:"Scam or fraud",prohibited:"Prohibited or illegal item",spam:"Spam or duplicate",wrong:"Wrong category or location",misleading:"Misleading price or details",offensive:"Offensive content",sold:"Already sold",other:"Something else"};
 let reps=[],repShow="open";
 function showTab(w){
-  $("#adsView").hidden=w!=="ads";$("#repView").hidden=w!=="rep";
-  $("#tAds").className="btn sm"+(w==="ads"?"":" ghost");$("#tRep").className="btn sm"+(w==="rep"?"":" ghost");
+  $("#adsView").hidden=w!=="ads";$("#repView").hidden=w!=="rep";$("#dealView").hidden=w!=="deal";
+  $("#tAds").className="btn sm"+(w==="ads"?"":" ghost");$("#tRep").className="btn sm"+(w==="rep"?"":" ghost");$("#tDeal").className="btn sm"+(w==="deal"?"":" ghost");
   if(w==="rep")loadReports();
+  if(w==="deal")drawDealer();
 }
 async function loadReports(){
   const {data,error}=await sb.from("reports").select("id,listing_id,listing_title,reason,details,status,created_at,reporter:profiles!reporter_id(display_name),listings(id,status,seller_id,profiles!seller_id(display_name))")
@@ -359,6 +385,9 @@ document.addEventListener("click",e=>{
   if(t.id==="more"){load(false);return}
   if(t.id==="tAds"){showTab("ads");return}
   if(t.id==="tRep"||t.closest("#tRep")){showTab("rep");return}
+  if(t.id==="tDeal"){showTab("deal");return}
+  if(t.id==="dealPreview"){runFeed(true);return}
+  if(t.id==="dealRun"){if(confirm("Run the import now? This adds, updates and hides the dealer's ads."))runFeed(false);return}
   const rf=t.closest("[data-rfind]");if(rf){showTab("ads");$("#fq").value=rf.dataset.rfind;load(true);return}
   const rs=t.closest("[data-rset]");if(rs){setReport(rs.dataset.rl,rs.dataset.rid,rs.dataset.rset);return}
   if(t.id==="eDel"&&editing){const id=editing.id;$("#dEdit").close();deleteAd(id);return}
