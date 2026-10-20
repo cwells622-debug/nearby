@@ -72,6 +72,9 @@ as $$
   select exists (select 1 from private.app_secrets where name = 'import_secret' and value = s and s <> '')
 $$;
 
+-- (The first draft of this file made a version that returned a table. Postgres will not change a function's return type in place, so the old helper is dropped first. It holds no data.)
+drop function if exists public.feed_get_config();
+
 -- All active feeds, each with its active dealers, as one piece of JSON.
 create or replace function public.feed_get_config()
 returns jsonb
