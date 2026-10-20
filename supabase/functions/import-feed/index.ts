@@ -1,5 +1,6 @@
 // ChadAds dealer feed importer (a Supabase Edge Function).
-// Reads each active dealer's inventory file (CSV), then adds new cars, updates changed ones and marks cars that left the feed as sold.
+// Reads each active feed (for example carsforsale.com), a CSV that can hold the cars of MANY dealers (the DealerID column). For every
+// dealer that has been set up, it adds new cars, updates changed ones and marks cars that left the feed as sold. Unknown DealerIDs are ignored and reported.
 // Cars are matched by VIN, so running it again never duplicates anything. See NOTES.md ("Dealer feed import").
 //
 // HOW IT IS CALLED
@@ -119,7 +120,7 @@ export async function hashesFor(m, cityId) {
   return { fields, photos, combined: fields + "|" + photos };
 }
 
-// ===== I/O (talks to the database and the dealer; not part of the browser test) =====
+// ===== I/O (talks to the database and the dealers' server; not part of the browser test) =====
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 
 const BUCKET = "listing-photos", MAX_PHOTOS = 5, MAX_PHOTO_BYTES = 5 * 1024 * 1024, TIME_BUDGET_MS = 100_000;
@@ -177,26 +178,18 @@ async function replacePhotos(supabase, sellerId, listingId, urls) {
   return { ok: true, count: added.length };
 }
 
-async function runFeed(supabase, feed, dry, deadline) {
-  const out = { dealer: feed.dealer_name, rows: 0, created: 0, updated: 0, unchanged: 0, sold: 0, reactivated: 0, deferred: 0, skipped: 0, photosCopied: 0, notes: [], preview: [] };
-  const res = await fetch(feed.feed_url, { signal: AbortSignal.timeout(60000) });
-  if (!res.ok) { out.notes.push(`Could not read the feed (HTTP ${res.status}).`); return out; }
-  const text = await res.text();
-  if (text.length > 25 * 1024 * 1024) { out.notes.push("The feed file is too big (over 25 MB)."); return out; }
-  const rows = parseCsv(text);
-  out.rows = rows.length;
-  const dealer = { name: feed.dealer_name, place: `${feed.city_name}, ${feed.state}` };
-
-  const cats = await supabase.from("categories").select("id,name");
-  const catId = Object.fromEntries((cats.data || []).map((c) => [c.name, c.id]));
-  const existing = await supabase.from("listings").select("id,external_id,status,feed_hash").eq("seller_id", feed.seller_id).not("external_id", "is", null).limit(5000);
+// One dealer's cars from the feed -> their ads.
+async function processDealer(supabase, dealerCfg, rows, catId, dry, deadline) {
+  const out = { dealer: dealerCfg.name, code: dealerCfg.code, rows: rows.length, created: 0, updated: 0, unchanged: 0, sold: 0, reactivated: 0, deferred: 0, skipped: 0, photosCopied: 0, notes: [], preview: [] };
+  const dealer = { name: dealerCfg.name, place: `${dealerCfg.city_name}, ${dealerCfg.state}` };
+  const existing = await supabase.from("listings").select("id,external_id,status,feed_hash").eq("seller_id", dealerCfg.seller_id).not("external_id", "is", null).limit(5000);
   if (existing.error) { out.notes.push("Could not read existing ads: " + existing.error.message); return out; }
   const byVin = new Map((existing.data || []).map((l) => [l.external_id, l]));
   const activeNow = (existing.data || []).filter((l) => l.status === "active").length;
 
-  // Safety: a broken or empty file must never wipe out the dealer's ads.
-  if (!rows.length) { out.notes.push("The feed has no cars, so nothing was changed."); return out; }
-  if (activeNow >= 10 && rows.length < activeNow * 0.5) { out.notes.push(`The feed has ${rows.length} cars but ${activeNow} are listed, so nothing was changed (looks wrong).`); return out; }
+  // Safety: a broken, empty or half-size file must never wipe out a dealer's ads.
+  if (!rows.length) { out.notes.push("This dealer has no cars in the feed right now, so nothing was changed."); return out; }
+  if (activeNow >= 10 && rows.length < activeNow * 0.5) { out.notes.push(`The feed has ${rows.length} cars for this dealer but ${activeNow} are listed, so nothing was changed (looks wrong).`); return out; }
 
   const seen = new Set();
   for (const row of rows) {
@@ -204,17 +197,17 @@ async function runFeed(supabase, feed, dry, deadline) {
     if (!m.external_id || m.external_id.length < 11 || !m.title || !catId[m.category]) { out.skipped++; continue; }
     if (seen.has(m.external_id)) { out.skipped++; continue; }
     seen.add(m.external_id);
-    const h = await hashesFor(m, feed.city_id);
+    const h = await hashesFor(m, dealerCfg.city_id);
     const have = byVin.get(m.external_id);
     if (out.preview.length < 6) out.preview.push({ vin: m.external_id, category: m.category, title: m.title, price: m.price_on_request ? "Call for price" : m.price, photos: m.photos.length, action: !have ? "create" : have.feed_hash === h.combined ? "unchanged" : "update", description: m.description.slice(0, 400) });
-    const fields = { category_id: catId[m.category], city_id: feed.city_id, title: m.title, description: m.description, price: m.price, price_on_request: m.price_on_request, status: "active", feed_hash: h.combined };
+    const fields = { category_id: catId[m.category], city_id: dealerCfg.city_id, title: m.title, description: m.description, price: m.price, price_on_request: m.price_on_request, status: "active", feed_hash: h.combined };
 
     if (!have) {
       if (dry) { out.created++; continue; }
       if (Date.now() > deadline) { out.deferred++; continue; }   // out of time: the next run picks this car up
-      const ins = await supabase.from("listings").insert({ ...fields, seller_id: feed.seller_id, external_id: m.external_id, is_demo: false }).select("id").single();
+      const ins = await supabase.from("listings").insert({ ...fields, seller_id: dealerCfg.seller_id, external_id: m.external_id, is_demo: false }).select("id").single();
       if (ins.error) { out.skipped++; out.notes.push(`${m.external_id}: ${ins.error.message}`); continue; }
-      const ph = await replacePhotos(supabase, feed.seller_id, ins.data.id, m.photos);
+      const ph = await replacePhotos(supabase, dealerCfg.seller_id, ins.data.id, m.photos);
       out.created++; out.photosCopied += ph.count;
     } else {
       const wasHash = (have.feed_hash || "").split("|"), same = have.feed_hash === h.combined;
@@ -223,7 +216,7 @@ async function runFeed(supabase, feed, dry, deadline) {
       if (Date.now() > deadline) { out.deferred++; continue; }
       let photoNote = null;
       if (wasHash[1] !== h.photos) {
-        const ph = await replacePhotos(supabase, feed.seller_id, have.id, m.photos);
+        const ph = await replacePhotos(supabase, dealerCfg.seller_id, have.id, m.photos);
         out.photosCopied += ph.count;
         if (!ph.ok) { fields.feed_hash = h.fields + "|" + (wasHash[1] || ""); photoNote = "photos kept"; }
       }
@@ -242,22 +235,52 @@ async function runFeed(supabase, feed, dry, deadline) {
   return out;
 }
 
+// One feed file (for example carsforsale.com) -> split by DealerID -> each known dealer's cars.
+async function runSource(supabase, src, dry, deadline) {
+  const out = { source: src.name, rows: 0, dealers: [], unknown: [], notes: [] };
+  const res = await fetch(src.feed_url, { signal: AbortSignal.timeout(60000) });
+  if (!res.ok) { out.notes.push(`Could not read the feed (HTTP ${res.status}).`); return out; }
+  const text = await res.text();
+  if (text.length > 25 * 1024 * 1024) { out.notes.push("The feed file is too big (over 25 MB)."); return out; }
+  const rows = parseCsv(text);
+  out.rows = rows.length;
+  if (!rows.length) { out.notes.push("The feed file has no cars, so nothing was changed."); return out; }
+  const cats = await supabase.from("categories").select("id,name");
+  const catId = Object.fromEntries((cats.data || []).map((c) => [c.name, c.id]));
+  const dealers = src.dealers || [];
+  const hasCode = "DealerID" in rows[0];
+  const byCode = new Map(dealers.map((d) => [String(d.code), []]));
+  const unknown = new Map();
+  for (const r of rows) {
+    // A feed without a DealerID column can only belong to a single dealer.
+    const code = hasCode ? String(r.DealerID).trim() : (dealers.length === 1 ? String(dealers[0].code) : "");
+    if (byCode.has(code)) byCode.get(code).push(r); else unknown.set(code || "(none)", (unknown.get(code || "(none)") || 0) + 1);
+  }
+  out.unknown = [...unknown].map(([code, cars]) => ({ code, cars }));
+  for (const d of dealers) {
+    try { out.dealers.push(await processDealer(supabase, d, byCode.get(String(d.code)) || [], catId, dry, deadline)); }
+    catch (e) { out.dealers.push({ dealer: d.name, code: d.code, error: String((e && e.message) || e), rows: 0, notes: [] }); }
+  }
+  return out;
+}
+
 Deno.serve(async (req) => {
   const supabase = createClient(Deno.env.get("SUPABASE_URL"), Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"));
   if (!(await isAllowed(req, supabase))) return json({ error: "not allowed" }, 401);
   const dry = new URL(req.url).searchParams.get("dry") === "1";
   const cfg = await supabase.rpc("feed_get_config");
   if (cfg.error) return json({ error: "Run step23_dealer_feed.sql first (" + cfg.error.message + ")" }, 500);
-  if (!cfg.data || !cfg.data.length) return json({ dry, message: "No active dealer feeds. Add one (and set active = true) as described at the bottom of step23_dealer_feed.sql." });
+  if (!cfg.data || !cfg.data.length) return json({ dry, message: "No active feed. Add one (and set active = true) as described at the bottom of step23_dealer_feed.sql." });
   const deadline = Date.now() + TIME_BUDGET_MS, results = [];
-  for (const feed of cfg.data) {
+  for (const src of cfg.data) {
     let r;
-    try { r = await runFeed(supabase, feed, dry, deadline); }
-    catch (e) { r = { dealer: feed.dealer_name, error: String((e && e.message) || e) }; }
+    try { r = await runSource(supabase, src, dry, deadline); }
+    catch (e) { r = { source: src.name, error: String((e && e.message) || e), dealers: [], unknown: [], notes: [] }; }
     results.push(r);
     if (!dry) {
-      const summary = r.error ? "ERROR: " + r.error : `rows ${r.rows}: created ${r.created}, updated ${r.updated}, unchanged ${r.unchanged}, sold ${r.sold}, reactivated ${r.reactivated}, deferred ${r.deferred}, skipped ${r.skipped}. ${r.notes.slice(0, 5).join(" | ")}`;
-      await supabase.rpc("feed_save_result", { p_id: feed.id, p_result: summary });
+      const per = (r.dealers || []).map((d) => d.error ? `${d.dealer}: ERROR ${d.error}` : `${d.dealer}: ${d.rows} cars, +${d.created} ~${d.updated} =${d.unchanged} sold ${d.sold} back ${d.reactivated} deferred ${d.deferred} skipped ${d.skipped}${d.notes.length ? " (" + d.notes.slice(0, 3).join(" | ") + ")" : ""}`);
+      const unk = (r.unknown || []).length ? ` UNKNOWN dealers in file: ${r.unknown.map((u) => u.code + " (" + u.cars + ")").join(", ")}.` : "";
+      await supabase.rpc("feed_save_result", { p_id: src.id, p_result: (r.error ? "ERROR: " + r.error : per.join(" ; ")) + unk + (r.notes || []).join(" ") });
     }
   }
   return json({ dry, results });

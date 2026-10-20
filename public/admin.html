@@ -164,6 +164,19 @@ function drawDealer(){
     <div class="filters"><button class="btn ghost" id="dealPreview" type="button">Preview (no changes)</button><button class="btn" id="dealRun" type="button">Import now</button></div>
     <div id="dealOut" role="status"></div>`;
 }
+// Turns the importer's answer into readable cards: one block per feed, one card per dealer.
+function renderFeed(j,dry){
+  const dealerCard=r=>r.error?`<div class="rep"><h3>${esc(r.dealer)}</h3><p class="err">${esc(r.error)}</p></div>`:
+    `<div class="rep"><h3>${esc(r.dealer)} <span class="pill">DealerID ${esc(r.code)}</span> ${dry?'<span class="pill">preview, nothing changed</span>':""}</h3>
+      <p>${r.rows} cars in the file. ${dry?"Would add":"Added"} <b>${r.created}</b>, ${dry?"would update":"updated"} <b>${r.updated}</b>, unchanged <b>${r.unchanged}</b>, ${dry?"would hide":"hid"} <b>${r.sold}</b> that left the file${r.reactivated?`, brought back <b>${r.reactivated}</b>`:""}${r.deferred?`, <b>${r.deferred}</b> left for the next run (out of time)`:""}${r.skipped?`, skipped <b>${r.skipped}</b>`:""}.${!dry&&r.photosCopied?` Copied ${r.photosCopied} photos.`:""}</p>
+      ${(r.notes||[]).length?`<ul>${r.notes.slice(0,8).map(n=>`<li>${esc(n)}</li>`).join("")}</ul>`:""}
+      ${(r.preview||[]).length?`<div class="wrapx"><table style="min-width:600px"><thead><tr><th>Action</th><th>Ad</th><th>Category</th><th>Price</th><th>Photos in file</th></tr></thead><tbody>${r.preview.map(p=>`<tr><td>${esc(p.action)}</td><td>${esc(p.title)}<div class="sub">VIN ${esc(p.vin)}</div></td><td>${esc(p.category)}</td><td>${esc(p.price)}</td><td>${p.photos}</td></tr>`).join("")}</tbody></table></div><p class="sub">First ${r.preview.length} cars shown.</p>`:""}</div>`;
+  return j.results.map(s=>`<h2 style="margin:18px 0 8px;font-size:18px">${esc(s.source)} <span class="sub">${s.rows||0} cars in the file</span></h2>
+    ${s.error?`<p class="err">${esc(s.error)}</p>`:""}
+    ${(s.notes||[]).map(n=>`<p class="err">${esc(n)}</p>`).join("")}
+    ${(s.unknown||[]).length?`<div class="rep"><h3>Dealers in the file that are not set up yet</h3><p class="sub">Their cars are ignored until you add them (see "Adding a dealer" in NOTES.md).</p><ul>${s.unknown.map(u=>`<li>DealerID <b>${esc(u.code)}</b>: ${u.cars} car${u.cars===1?"":"s"}</li>`).join("")}</ul></div>`:""}
+    ${(s.dealers||[]).map(dealerCard).join("")||`<p class="sub">No dealers are set up for this feed.</p>`}`).join("");
+}
 async function runFeed(dry){
   const out=$("#dealOut");out.innerHTML=`<p class="sub">${dry?"Reading the feed…":"Importing… this can take a minute or two."}</p>`;
   try{
@@ -174,11 +187,7 @@ async function runFeed(dry){
     if(!j)return out.innerHTML=`<div class="msg"><h2>Unexpected answer</h2><p>${esc(text.slice(0,300))}</p></div>`;
     if(j.error)return out.innerHTML=`<div class="msg"><h2>Not run</h2><p>${esc(j.error)}</p></div>`;
     if(j.message)return out.innerHTML=`<div class="msg"><h2>Nothing to do</h2><p>${esc(j.message)}</p></div>`;
-    out.innerHTML=j.results.map(r=>r.error?`<div class="rep"><h3>${esc(r.dealer)}</h3><p class="err">${esc(r.error)}</p></div>`:
-      `<div class="rep"><h3>${esc(r.dealer)} ${dry?'<span class="pill">preview, nothing changed</span>':""}</h3>
-        <p>${r.rows} cars in the file. ${dry?"Would add":"Added"} <b>${r.created}</b>, ${dry?"would update":"updated"} <b>${r.updated}</b>, unchanged <b>${r.unchanged}</b>, ${dry?"would hide":"hid"} <b>${r.sold}</b> that left the file${r.reactivated?`, brought back <b>${r.reactivated}</b>`:""}${r.deferred?`, <b>${r.deferred}</b> left for the next run (out of time)`:""}${r.skipped?`, skipped <b>${r.skipped}</b>`:""}.${!dry&&r.photosCopied?` Copied ${r.photosCopied} photos.`:""}</p>
-        ${(r.notes||[]).length?`<ul>${r.notes.slice(0,8).map(n=>`<li>${esc(n)}</li>`).join("")}</ul>`:""}
-        ${(r.preview||[]).length?`<div class="wrapx"><table style="min-width:600px"><thead><tr><th>Action</th><th>Ad</th><th>Category</th><th>Price</th><th>Photos in file</th></tr></thead><tbody>${r.preview.map(p=>`<tr><td>${esc(p.action)}</td><td>${esc(p.title)}<div class="sub">VIN ${esc(p.vin)}</div></td><td>${esc(p.category)}</td><td>${esc(p.price)}</td><td>${p.photos}</td></tr>`).join("")}</tbody></table></div><p class="sub">First ${r.preview.length} cars shown.</p>`:""}</div>`).join("");
+    out.innerHTML=renderFeed(j,dry);
   }catch(e){out.innerHTML=`<div class="msg"><h2>Could not reach the importer</h2><p>${esc(e&&e.message||"error")}</p></div>`}
 }
 // ---- Reports (people flagging ads; see step21_reports.sql) ----
