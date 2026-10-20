@@ -124,7 +124,10 @@ export async function hashesFor(m, cityId) {
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 
 const BUCKET = "listing-photos", MAX_PHOTOS = 5, MAX_PHOTO_BYTES = 5 * 1024 * 1024, TIME_BUDGET_MS = 100_000;
-const json = (o, status = 200) => new Response(JSON.stringify(o, null, 2), { status, headers: { "content-type": "application/json" } });
+// The admin page calls this function from chadads.com, so the browser first sends a harmless "preflight" (OPTIONS) check. It must be answered with these headers.
+// (This does not open anything up: every real request still needs the secret or an admin login.)
+const CORS = { "access-control-allow-origin": "*", "access-control-allow-headers": "authorization, apikey, content-type, x-client-info, x-import-secret", "access-control-allow-methods": "POST, OPTIONS" };
+const json = (o, status = 200) => new Response(JSON.stringify(o, null, 2), { status, headers: { ...CORS, "content-type": "application/json" } });
 
 async function isAllowed(req, supabase) {
   const secret = req.headers.get("x-import-secret");
@@ -265,6 +268,7 @@ async function runSource(supabase, src, dry, deadline) {
 }
 
 Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   const supabase = createClient(Deno.env.get("SUPABASE_URL"), Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"));
   if (!(await isAllowed(req, supabase))) return json({ error: "not allowed" }, 401);
   const dry = new URL(req.url).searchParams.get("dry") === "1";

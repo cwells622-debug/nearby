@@ -142,3 +142,4 @@
 ## Sign-in emails (Supabase Auth)
 - Sender name "ChadAds" needs custom SMTP in the Supabase dashboard (Authentication > Emails > SMTP Settings): host smtp.resend.com, port 465, user `resend`, password = a Resend API key made for this (never in GitHub), sender `notifications@chadads.com`, sender name `ChadAds`. This also lifts Supabase's very low built-in email limit.
 - Branded email bodies are in `supabase/email-templates/` (confirm-signup, invite-user, reset-password). Paste each into Authentication > Emails > Templates (the subject is written at the top of each file as a comment). They use `{{ .ConfirmationURL }}`, which Supabase fills in.
+- The importer must answer the browser's OPTIONS "preflight" with CORS headers (`CORS` in index.ts), otherwise the admin page's Preview / Import now buttons say "Failed to fetch". Whenever index.ts changes it must be pasted into the Supabase dashboard again (Edge Functions > import-feed > edit > Deploy).
