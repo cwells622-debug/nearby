@@ -138,3 +138,7 @@
 - Deploy: Supabase dashboard > Edge Functions > Deploy a new function > name `import-feed` > paste index.ts > Deploy, then in its settings turn OFF "Verify JWT" (the function checks the caller itself: the `import_secret` header or an admin login). No Netlify variables are used.
 - Ads from a dealer show a "Dealer" tag next to the seller name in the ad pop-up. Cars that leave the feed are set to status "sold" (hidden). RUN step23 BEFORE pushing the page change (the site now asks for `profiles.is_dealer`).
 - Not built: choosing categories by VIN lookup, a per-dealer boilerplate list in the database, SFTP feeds, thumbnails for imported photos (the site falls back to the full photo), a "Dealer" badge on cards, an admin screen for adding dealers (it is one SQL line for now).
+
+## Sign-in emails (Supabase Auth)
+- Sender name "ChadAds" needs custom SMTP in the Supabase dashboard (Authentication > Emails > SMTP Settings): host smtp.resend.com, port 465, user `resend`, password = a Resend API key made for this (never in GitHub), sender `notifications@chadads.com`, sender name `ChadAds`. This also lifts Supabase's very low built-in email limit.
+- Branded email bodies are in `supabase/email-templates/` (confirm-signup, invite-user, reset-password). Paste each into Authentication > Emails > Templates (the subject is written at the top of each file as a comment). They use `{{ .ConfirmationURL }}`, which Supabase fills in.
