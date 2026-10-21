@@ -15,6 +15,9 @@
 // MAPPING (pure functions, no network)
 // ======================================================================
 
+// The feed's column names are matched ignoring capital letters (one export says "images", another "Images"; "NewUsed" or "NEWUSED").
+const CANON = Object.fromEntries(["DealerID", "NEWUSED", "VIN", "StockNumber", "Make", "Model", "ModelYear", "Trim", "BodyStyle", "Mileage", "EngineDescription", "Cylinders", "FuelType", "Transmission", "Price", "ExteriorColor", "InteriorColor", "Options", "Description", "Images"].map((n) => [n.toLowerCase(), n]));
+
 // Reads a CSV file where every field may be in quotes and may contain commas. Returns [{header: value, ...}, ...].
 export function parseCsv(text) {
   text = String(text).replace(/^﻿/, "").replace(/\r/g, "");
@@ -31,7 +34,7 @@ export function parseCsv(text) {
   }
   if (field !== "" || row.length) { row.push(field); if (row.length > 1 || row[0] !== "") rows.push(row); }
   if (!rows.length) return [];
-  const head = rows.shift().map((h) => h.trim());
+  const head = rows.shift().map((h) => { h = h.trim(); return CANON[h.toLowerCase()] || h; });
   return rows.map((r) => Object.fromEntries(head.map((h, i) => [h, (r[i] ?? "").trim()])));
 }
 
@@ -52,21 +55,43 @@ const SUV_RE = /^(MDX|RDX|ZDX|CR-?V|PILOT|HR-?V|PASSPORT|RAV-?4|HIGHLANDER|4RUNN
 const TRUCK_RE = /^(F-?\d{3}.*|SUPER DUTY.*|RANGER|MAVERICK|RAM( ?\d+)?.*|SILVERADO.*|SIERRA.*|COLORADO|CANYON|TACOMA|TUNDRA|FRONTIER|TITAN.*|RIDGELINE|GLADIATOR|TRANSIT.*|SPRINTER.*|PROMASTER.*|EXPRESS.*|SAVANA.*|E-?\d{3}.*)$/i;
 export function categoryFor(row) {
   const model = String(row.Model || "").trim(), body = String(row.BodyStyle || "");
+  if (/MOTORCYCLE|SCOOTER/i.test(body)) return "Motorcycles";
+  if (/SNOWMOBILE/i.test(body)) return "Snowmobiles";
+  if (/\bATV\b|\bUTV\b|SIDE.?BY.?SIDE/i.test(body)) return "ATV";
+  if (/BOAT|PONTOON|WATERCRAFT|PERSONAL WATER/i.test(body)) return "Boats";
+  if (/MOTOR ?HOME|TRAVEL TRAILER|CAMPER|FIFTH WHEEL|\bRV\b/i.test(body)) return "Campers";
+  if (/TRAILER/i.test(body)) return "Trailers";
   if (TRUCK_RE.test(model) || /PICKUP|CREW ?CAB|EXT(ENDED)? ?CAB|REG(ULAR)? ?CAB|SUPER ?CAB|SUPER ?CREW|TRUCK/i.test(body)) return "Auto Trucks";
   if (SUV_RE.test(model) || /\bSUV\b|SPORT UTILITY/i.test(body)) return "Auto SUVs";
   return "Auto Cars";
 }
 
+// "Sport 4DR 4WD SUV" -> "Sport 4WD": door counts and body words are noise in a title (the category already says it).
+const TRIM_NOISE = /\b[2-5]\s?dr\b|\b(suv|sedan|coupe|hatchback|wagon|convertible|roadster|pickup|crew cab|extended cab|regular cab|van|minivan)\b/gi;
 export function titleFor(row) {
-  const t = [row.ModelYear, niceCase(row.Make), niceCase(row.Model), niceCase(row.Trim)].filter(Boolean).join(" ").replace(/\s+/g, " ").trim();
-  return t.length > 60 ? t.slice(0, 59).replace(/\s+\S*$/, "") + "…" : t;
+  const cleaned = String(row.Trim || "").replace(TRIM_NOISE, " ").replace(/\s+/g, " ").trim();
+  const trim = cleaned || String(row.Trim || "").trim();   // if only body words were there ("Coupe" for a Business model), keep them
+  const t = [row.ModelYear, niceCase(row.Make), niceCase(row.Model), niceCase(trim)].filter(Boolean).join(" ").replace(/\s+/g, " ").trim();
+  return t.length > 60 ? t.slice(0, 59).replace(/\s+\S*$/, "") + "\u2026" : t;
 }
 
 // Dealers paste the same sales paragraph on every car. Sentences that match these are dropped. Add more here for other dealers.
 const BOILERPLATE = [/our primary goal/i, /online dealership/i, /enhance the buying experience/i];
+// Dealer descriptions often contain HTML. Turn line breaks into new lines, remove the other tags, and decode the common "&amp;" codes.
+export function htmlToText(s) {
+  return String(s || "")
+    .replace(/<\s*br\s*\/?\s*>/gi, "\n").replace(/<\/\s*(p|div|li|h\d)\s*>/gi, "\n").replace(/<\s*li[^>]*>/gi, "- ")
+    .replace(/<[^>]*>/g, "")
+    .replace(/&nbsp;/gi, " ").replace(/&amp;/gi, "&").replace(/&lt;/gi, "<").replace(/&gt;/gi, ">").replace(/&quot;/gi, '"').replace(/&#0?39;|&apos;/gi, "'")
+    .replace(/&#(\d+);/g, (_, n) => { try { return String.fromCodePoint(+n); } catch (_e) { return ""; } })
+    .replace(/[ \t\f\v]+/g, " ").replace(/ ?\n ?/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+}
 function salesLine(s) {
-  const sentences = String(s || "").replace(/\s+/g, " ").trim().split(/(?<=[.!?])\s+/);
-  return sentences.filter((x) => x && !BOILERPLATE.some((re) => re.test(x))).join(" ").trim();
+  const paragraphs = htmlToText(s).split("\n").map((p) => p.trim()).filter(Boolean);
+  const kept = paragraphs.map((p) => p.split(/(?<=[.!?])\s+/).filter((x) => x && !BOILERPLATE.some((re) => re.test(x))).join(" ")).filter(Boolean);
+  let out = kept.join("\n");
+  if (out.length > 1400) out = out.slice(0, 1399).replace(/\s+\S*$/, "") + "\u2026";   // leave room for the specs and the dealer line (the ad limit is 2000)
+  return out;
 }
 
 export function descriptionFor(row, dealer) {
@@ -77,9 +102,10 @@ export function descriptionFor(row, dealer) {
   const cond = String(row.NEWUSED).toUpperCase() === "N" ? "New" : "Used";
   lines.push(`${titleFor(row)} (${cond}${miles > 0 ? ", " + miles.toLocaleString("en-US") + " miles" : ""}).`);
   const spec = [];
-  if (row.EngineDescription) spec.push("Engine: " + row.EngineDescription);
-  if (row.Transmission) spec.push("Transmission: " + row.Transmission);
-  if (row.FuelType) spec.push("Fuel: " + row.FuelType);
+  const real = (v) => v && !/^(unspecified|unknown|n\/a|none)$/i.test(String(v).trim());
+  if (real(row.EngineDescription)) spec.push("Engine: " + row.EngineDescription);
+  if (real(row.Transmission)) spec.push("Transmission: " + row.Transmission);
+  if (real(row.FuelType)) spec.push("Fuel: " + row.FuelType);
   if (row.ExteriorColor) spec.push("Exterior: " + niceCase(row.ExteriorColor));
   if (row.InteriorColor) spec.push("Interior: " + niceCase(row.InteriorColor));
   if (spec.length) lines.push(spec.join(". ") + ".");
@@ -95,11 +121,20 @@ export function descriptionFor(row, dealer) {
   return d;
 }
 
+// A car's ID in ChadAds: its real 17-character VIN, or "STK-" plus the stock number when there is no usable VIN (classic cars, motorcycles...).
+// Empty means the row cannot be tracked and is skipped.
+export function idFor(row) {
+  const vin = String(row.VIN || "").replace(/\s/g, "").toUpperCase();
+  if (/^[A-HJ-NPR-Z0-9]{17}$/.test(vin)) return vin;
+  const stock = String(row.StockNumber || "").replace(/\s+/g, " ").trim().toUpperCase();
+  return stock ? "STK-" + stock.slice(0, 40) : "";
+}
+
 // One feed row -> the fields of a ChadAds ad (plus the photo links).
 export function mapRow(row, dealer) {
   const price = Math.round(Number(String(row.Price).replace(/[^0-9.]/g, "")) || 0);
   return {
-    external_id: String(row.VIN || "").trim().toUpperCase(),
+    external_id: idFor(row),
     category: categoryFor(row),
     title: titleFor(row),
     description: descriptionFor(row, dealer),
@@ -197,7 +232,7 @@ async function processDealer(supabase, dealerCfg, rows, catId, dry, deadline) {
   const seen = new Set();
   for (const row of rows) {
     const m = mapRow(row, dealer);
-    if (!m.external_id || m.external_id.length < 11 || !m.title || !catId[m.category]) { out.skipped++; continue; }
+    if (!m.external_id || !m.title || !catId[m.category]) { out.skipped++; continue; }
     if (seen.has(m.external_id)) { out.skipped++; continue; }
     seen.add(m.external_id);
     const h = await hashesFor(m, dealerCfg.city_id);
