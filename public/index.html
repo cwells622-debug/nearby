@@ -712,6 +712,7 @@ function open(id){
     ${safeUrl(i.link)?`<p style="margin:0"><a href="${esc(safeUrl(i.link))}" data-ext target="_blank" rel="noopener noreferrer nofollow ugc" style="color:var(--link);font-weight:600">🔗 ${esc(new URL(i.link).hostname)}</a></p>`:""}
     <button class="seller sbtn" data-prof="${i.id}"><div class="av">${esc(s.n[0])}</div><span><b>${esc(s.n)}</b>${i.sd?` <span class="pill dealer">Dealer</span>`:""}<br>${rate(s)} · View profile</span></button>
     ${mine?(i.sid?`<div class="ctas"><button class="btn lg" data-edit="${i.id}">Edit this ad</button><button class="btn ghost lg" data-del="${i.id}">Delete this ad</button></div>`:""):
+      i.sd&&safeUrl(i.sw)?`<div class="ctas"><a class="btn lg" href="${esc(safeUrl(i.sw))}" data-ext target="_blank" rel="noopener noreferrer nofollow" style="text-decoration:none;display:inline-block;text-align:center">Visit the dealer's website</a><p class="note" style="margin:6px 0 0;font-size:13px">Contact the dealer on their own website. Messages are not taken in ChadAds.</p></div>`:
       `<div class="ctas"><button class="btn lg" data-msg="${i.id}">Message ${esc(s.n)}</button><div id="offer">${offerHtml(i,s)}</div></div>`}
     ${shareHtml(i)}
     ${mine?"":`<p class="rep"><button type="button" class="linkbtn" data-report="${i.id}">Report this ad</button></p>`}
@@ -969,6 +970,7 @@ async function startConversation(adId){
   const i=items.find(x=>x.id===adId);if(!i)return;
   if(!user){needLogin("Please log in or create an account to message the seller.");return}
   if(!i.sid){alert("This is a sample ad, so messages can't be sent.");return}
+  if(i.sd&&safeUrl(i.sw)){alert("This is a dealer ad. Please use the dealer's website button to contact them.");return}
   if(isMine(i))return;
   await openMessages();
   if(blocked.has(i.sid)){alert("You have blocked this member. Open your conversation with them in Messages to unblock them.");return}
@@ -1373,7 +1375,7 @@ async function loadData(){
   // city boxes search the database as you type (see searchCities).
   const [rc,rl]=await Promise.all([
     sb.from("categories").select("*").order("id"),
-    sb.from("listings").select("id,seller_id,category_id,city_id,title,description,price,price_on_request,link,video_link,cover_y,created_at,cities(id,name,state,lat,lng,regions),profiles!seller_id(display_name,created_at,is_dealer),listing_photos(id,storage_path,position),listing_videos(id,storage_path)")
+    sb.from("listings").select("id,seller_id,category_id,city_id,title,description,price,price_on_request,link,video_link,cover_y,created_at,cities(id,name,state,lat,lng,regions),profiles!seller_id(display_name,created_at,is_dealer,dealer_website),listing_photos(id,storage_path,position),listing_videos(id,storage_path)")
       .eq("status","active").order("created_at",{ascending:false}).limit(500)
       .order("position",{referencedTable:"listing_photos"})   // the cover photo first,
       .order("id",{referencedTable:"listing_photos"})         // then in the order they were added
@@ -1398,7 +1400,7 @@ async function loadData(){
     const vurl=vpath?sb.storage.from(VBUCKET).getPublicUrl(vpath).data.publicUrl:null,emb=videoEmbed(r.video_link);
     const media=[...imgs.map((u,k)=>({t:"img",u,th:thumbs[k],alt:r.title})),...(vurl?[{t:"vid",u:vurl}]:[]),...(emb?[{t:"emb",u:emb}]:[])];
     return{id:r.id,paths,imgs,img,thumb,coverY:r.cover_y,media,vpath,vlink:r.video_link,hasVideo:!!(vurl||emb),link:r.link,t:r.title,p:r.price,pr:!!r.price_on_request,c:c[0],loc:cityById[r.city_id],reg:cityRegions[cityById[r.city_id]]||[],d:r.description,ago:agoText(hrs),hrs,e:c[1],h:c[2],
-      sid:r.seller_id,sn:r.profiles&&r.profiles.display_name,sd:!!(r.profiles&&r.profiles.is_dealer),sy:r.profiles&&new Date(r.profiles.created_at).getFullYear()}
+      sid:r.seller_id,sn:r.profiles&&r.profiles.display_name,sd:!!(r.profiles&&r.profiles.is_dealer),sw:r.profiles&&r.profiles.dealer_website,sy:r.profiles&&new Date(r.profiles.created_at).getFullYear()}
   }).filter(i=>i.loc);
   // Fill the city suggestions and the category list in the Post form.
   suggestCities([]);   // until they type, the city boxes suggest the cities that have ads
