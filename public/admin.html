@@ -214,6 +214,8 @@ function renderFeed(j,dry){
       ${(r.notes||[]).length?`<ul>${r.notes.slice(0,8).map(n=>`<li>${esc(n)}</li>`).join("")}</ul>`:""}
       ${(r.preview||[]).length?`<div class="wrapx"><table style="min-width:600px"><thead><tr><th>Action</th><th>Ad</th><th>Category</th><th>Price</th><th>Photos in file</th></tr></thead><tbody>${r.preview.map(p=>`<tr><td>${esc(p.action)}</td><td>${esc(p.title)}<div class="sub">VIN ${esc(p.vin)}</div></td><td>${esc(p.category)}</td><td>${esc(p.price)}</td><td>${p.photos}</td></tr>`).join("")}</tbody></table></div><p class="sub">First ${r.preview.length} cars shown.</p>`:""}</div>`;
   return j.results.map(s=>`<h2 style="margin:18px 0 8px;font-size:18px">${esc(s.source)} <span class="sub">${s.rows||0} cars in the file</span></h2>
+    ${s.file?`<p class="sub">Drop-box file: <b>${esc(s.file.name)}</b>, received ${esc(new Date(s.file.modified).toLocaleString())}, ${Math.round(s.file.size/1024)} KB</p>`:""}
+    ${(s.info||[]).map(n=>`<p class="sub">${esc(n)}</p>`).join("")}
     ${s.error?`<p class="err">${esc(s.error)}</p>`:""}
     ${(s.notes||[]).map(n=>`<p class="err">${esc(n)}</p>`).join("")}
     ${(s.unknown||[]).length?`<div class="rep"><h3>Dealers in the file that are not set up yet</h3><p class="sub">Their cars are ignored until you add them (see "Adding a dealer" in NOTES.md).</p><ul>${s.unknown.map(u=>`<li>DealerID <b>${esc(u.code)}</b>: ${u.cars} car${u.cars===1?"":"s"}</li>`).join("")}</ul></div>`:""}

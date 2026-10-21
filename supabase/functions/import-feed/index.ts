@@ -273,12 +273,55 @@ async function processDealer(supabase, dealerCfg, rows, catId, dry, deadline) {
   return out;
 }
 
+// ---- ftpGrid drop box (carsforsale.com pushes its file here by FTP; we read the newest file through ftpGrid's REST API) ----
+// Docs: https://docs.ftpgrid.com  (login: POST api.ftpgrid.com/apiaccess/auth; list: POST <server>/api/list/files; download: POST <server>/api/download/single?path=...)
+async function ftpGridFind(ftp) {
+  const server = String(ftp.server).replace(/^https?:\/\//i, "").replace(/\/.*$/, "");
+  const auth = await fetch("https://api.ftpgrid.com/apiaccess/auth", {
+    method: "POST", headers: { "content-type": "application/json" }, signal: AbortSignal.timeout(30000),
+    body: JSON.stringify({ AssociationKey: ftp.association_key, AccessKey: ftp.access_key, SecretKey: ftp.secret_key }),
+  });
+  if (!auth.ok) throw new Error(`ftpGrid refused the login (HTTP ${auth.status}). Check the three keys.`);
+  const token = ((await auth.json()) || {}).token;
+  if (!token) throw new Error("ftpGrid did not return a login token.");
+  const folder = "/" + String(ftp.folder || "/").replace(/^\/+|\/+$/g, "");
+  const list = await fetch(`https://${server}/api/list/files`, {
+    method: "POST", headers: { Authorization: `Bearer ${token}`, "content-type": "application/json" }, signal: AbortSignal.timeout(30000),
+    body: JSON.stringify({ Params: folder === "/" ? "/" : folder + "/" }),
+  });
+  if (!list.ok) throw new Error(`Could not list the files in ftpGrid (HTTP ${list.status}). Check the server name and folder.`);
+  const files = ((await list.json()) || []).filter((x) => x && x.type === "file" && /\.(csv|txt)$/i.test(x.name || ""));
+  files.sort((a, b) => b.lastModified - a.lastModified);
+  const file = files[0] || null;
+  return { server, token, folder, file, stamp: file ? `${file.name}|${file.lastModified}|${file.size}` : "" };
+}
+async function ftpGridDownload(info) {
+  const path = (info.folder === "/" ? "" : info.folder) + "/" + info.file.name;
+  const res = await fetch(`https://${info.server}/api/download/single?path=${encodeURIComponent(path)}`, {
+    method: "POST", headers: { Authorization: `Bearer ${info.token}` }, signal: AbortSignal.timeout(90000),
+  });
+  if (!res.ok) throw new Error(`Could not download ${info.file.name} from ftpGrid (HTTP ${res.status}).`);
+  return await res.text();
+}
+
 // One feed file (for example carsforsale.com) -> split by DealerID -> each known dealer's cars.
 // "uploaded" is the text of a file the admin uploaded (the feed link is not used then); otherwise the feed link is fetched.
 async function runSource(supabase, src, dry, deadline, uploaded) {
-  const out = { source: src.name, rows: 0, dealers: [], unknown: [], notes: [] };
+  const out = { source: src.name, rows: 0, dealers: [], unknown: [], notes: [], info: [] };
   let text;
   if (uploaded != null) text = uploaded;
+  else if (src.ftp && src.ftp.server) {
+    const found = await ftpGridFind(src.ftp);
+    if (!found.file) { out.notes.push("There is no .csv or .txt file in the ftpGrid drop box yet."); return out; }
+    out.file = { name: found.file.name, modified: found.file.lastModified, size: found.file.size };
+    out.stamp = found.stamp;
+    const ageDays = (Date.now() - found.file.lastModified) / 86400000;
+    if (ageDays > 3) out.notes.push(`The newest file is ${Math.floor(ageDays)} days old. Has the feed stopped sending?`);
+    // The same file as last time: nothing to do (this keeps the hourly run from downloading it again). A preview always reads it.
+    if (!dry && found.stamp === src.ftp.last_stamp) { out.info.push("No new file since the last import."); out.noNewFile = true; return out; }
+    if (found.file.size > 25 * 1024 * 1024) { out.notes.push("The file in the drop box is over 25 MB."); return out; }
+    text = await ftpGridDownload(found);
+  } else if (!src.feed_url) { out.notes.push("This feed has no link and no ftpGrid drop box set up. You can still upload a file."); return out; }
   else {
     const res = await fetch(src.feed_url, { signal: AbortSignal.timeout(60000) });
     if (!res.ok) { out.notes.push(`Could not read the feed (HTTP ${res.status}).`); return out; }
@@ -338,7 +381,12 @@ Deno.serve(async (req) => {
     try { r = await runSource(supabase, src, dry, deadline); }
     catch (e) { r = { source: src.name, error: String((e && e.message) || e), dealers: [], unknown: [], notes: [] }; }
     results.push(r);
-    if (!dry) await saveResult(supabase, src, r, "");
+    if (!dry && !r.noNewFile) {
+      await saveResult(supabase, src, r, "");
+      // Remember which ftpGrid file was processed, but only when every car was handled (otherwise the next run must read it again to continue).
+      const finished = r.stamp && !r.error && (r.dealers || []).every((d) => !d.error && !d.deferred);
+      if (finished) await supabase.rpc("feed_save_stamp", { p_id: src.id, p_stamp: r.stamp });
+    }
   }
   return json({ dry, results });
 });
