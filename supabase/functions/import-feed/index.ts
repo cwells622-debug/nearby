@@ -274,11 +274,16 @@ async function processDealer(supabase, dealerCfg, rows, catId, dry, deadline) {
 }
 
 // One feed file (for example carsforsale.com) -> split by DealerID -> each known dealer's cars.
-async function runSource(supabase, src, dry, deadline) {
+// "uploaded" is the text of a file the admin uploaded (the feed link is not used then); otherwise the feed link is fetched.
+async function runSource(supabase, src, dry, deadline, uploaded) {
   const out = { source: src.name, rows: 0, dealers: [], unknown: [], notes: [] };
-  const res = await fetch(src.feed_url, { signal: AbortSignal.timeout(60000) });
-  if (!res.ok) { out.notes.push(`Could not read the feed (HTTP ${res.status}).`); return out; }
-  const text = await res.text();
+  let text;
+  if (uploaded != null) text = uploaded;
+  else {
+    const res = await fetch(src.feed_url, { signal: AbortSignal.timeout(60000) });
+    if (!res.ok) { out.notes.push(`Could not read the feed (HTTP ${res.status}).`); return out; }
+    text = await res.text();
+  }
   if (text.length > 25 * 1024 * 1024) { out.notes.push("The feed file is too big (over 25 MB)."); return out; }
   const rows = parseCsv(text);
   out.rows = rows.length;
@@ -306,21 +311,41 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   const supabase = createClient(Deno.env.get("SUPABASE_URL"), Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"));
   if (!(await isAllowed(req, supabase))) return json({ error: "not allowed" }, 401);
-  const dry = new URL(req.url).searchParams.get("dry") === "1";
+  const url = new URL(req.url), dry = url.searchParams.get("dry") === "1";
+
+  // UPLOAD MODE (admin page, "Upload a feed file"): the body of the request is the CSV text, the feed is named in ?source=.
+  if (url.searchParams.get("upload") === "1") {
+    const name = url.searchParams.get("source") || "";
+    const body = await req.text();
+    if (!body.trim()) return json({ error: "The file is empty." }, 400);
+    if (body.length > 25 * 1024 * 1024) return json({ error: "The file is too big (over 25 MB)." }, 400);
+    const g = await supabase.rpc("feed_get_source", { p_name: name });
+    if (g.error) return json({ error: "Run step25_feed_upload.sql first (" + g.error.message + ")" }, 500);
+    if (!g.data) return json({ error: `There is no feed called "${name}". Add it first (step23_dealer_feed.sql, section 6).` }, 400);
+    let r;
+    try { r = await runSource(supabase, g.data, dry, Date.now() + TIME_BUDGET_MS, body); }
+    catch (e) { r = { source: g.data.name, error: String((e && e.message) || e), dealers: [], unknown: [], notes: [] }; }
+    if (!dry) await saveResult(supabase, g.data, r, "(uploaded file) ");
+    return json({ dry, upload: true, results: [r] });
+  }
+
   const cfg = await supabase.rpc("feed_get_config");
   if (cfg.error) return json({ error: "Run step23_dealer_feed.sql first (" + cfg.error.message + ")" }, 500);
-  if (!cfg.data || !cfg.data.length) return json({ dry, message: "No active feed. Add one (and set active = true) as described at the bottom of step23_dealer_feed.sql." });
+  if (!cfg.data || !cfg.data.length) return json({ dry, message: "No active feed link. You can still use \"Upload a feed file\". To fetch a link automatically, set it and set active = true (step23_dealer_feed.sql, section 6)." });
   const deadline = Date.now() + TIME_BUDGET_MS, results = [];
   for (const src of cfg.data) {
     let r;
     try { r = await runSource(supabase, src, dry, deadline); }
     catch (e) { r = { source: src.name, error: String((e && e.message) || e), dealers: [], unknown: [], notes: [] }; }
     results.push(r);
-    if (!dry) {
-      const per = (r.dealers || []).map((d) => d.error ? `${d.dealer}: ERROR ${d.error}` : `${d.dealer}: ${d.rows} cars, +${d.created} ~${d.updated} =${d.unchanged} sold ${d.sold} back ${d.reactivated} deferred ${d.deferred} skipped ${d.skipped}${d.notes.length ? " (" + d.notes.slice(0, 3).join(" | ") + ")" : ""}`);
-      const unk = (r.unknown || []).length ? ` UNKNOWN dealers in file: ${r.unknown.map((u) => u.code + " (" + u.cars + ")").join(", ")}.` : "";
-      await supabase.rpc("feed_save_result", { p_id: src.id, p_result: (r.error ? "ERROR: " + r.error : per.join(" ; ")) + unk + (r.notes || []).join(" ") });
-    }
+    if (!dry) await saveResult(supabase, src, r, "");
   }
   return json({ dry, results });
 });
+
+// Writes a one-line summary of a run next to the feed, so you can see it later (select name, last_run_at, last_result from private.feed_sources).
+async function saveResult(supabase, src, r, prefix) {
+  const per = (r.dealers || []).map((d) => d.error ? `${d.dealer}: ERROR ${d.error}` : `${d.dealer}: ${d.rows} cars, +${d.created} ~${d.updated} =${d.unchanged} sold ${d.sold} back ${d.reactivated} deferred ${d.deferred} skipped ${d.skipped}${d.notes.length ? " (" + d.notes.slice(0, 3).join(" | ") + ")" : ""}`);
+  const unk = (r.unknown || []).length ? ` UNKNOWN dealers in file: ${r.unknown.map((u) => u.code + " (" + u.cars + ")").join(", ")}.` : "";
+  await supabase.rpc("feed_save_result", { p_id: src.id, p_result: prefix + (r.error ? "ERROR: " + r.error : per.join(" ; ")) + unk + (r.notes || []).join(" ") });
+}

@@ -160,9 +160,51 @@ async function start(){
 // ---- Dealer feeds (the importer is the Supabase Edge Function "import-feed"; see NOTES.md and step23_dealer_feed.sql) ----
 function drawDealer(){
   if($("#dealOut"))return;
-  $("#dealView").innerHTML=`<p class="sub" style="max-width:680px">Dealer ads are added, updated and hidden automatically from the dealer's inventory file. <b>Preview</b> reads the file and shows what would happen, without changing anything. <b>Import now</b> does it for real. The importer also runs by itself on a schedule.</p>
-    <div class="filters"><button class="btn ghost" id="dealPreview" type="button">Preview (no changes)</button><button class="btn" id="dealRun" type="button">Import now</button></div>
+  $("#dealView").innerHTML=`<p class="sub" style="max-width:700px">Dealer ads are added, updated and hidden from the dealers' inventory file. Cars are matched by VIN (or stock number when there is no VIN), so a newer file updates the same ads, and a car missing from a dealer's part of the file is hidden as sold. <b>Preview</b> shows what would happen without changing anything.</p>
+    <h3 style="margin:18px 0 6px;font-size:17px">Upload a feed file</h3>
+    <p class="sub" style="max-width:700px">Download the inventory file (CSV) from carsforsale.com or the dealer, choose it here, press <b>Preview file</b>, and if it looks right press <b>Import file</b>. A big file imports in several rounds by itself.</p>
+    <div class="filters"><input type="file" id="feedFile" accept=".csv,.txt,text/csv,text/plain" aria-label="Feed file"><label style="flex-direction:row;align-items:center;gap:8px">Feed name <input id="feedName" value="carsforsale.com" style="width:170px"></label>
+      <button class="btn ghost" id="upPreview" type="button">Preview file (no changes)</button><button class="btn" id="upRun" type="button">Import file</button></div>
+    <h3 style="margin:18px 0 6px;font-size:17px">Or read the feed link</h3>
+    <p class="sub" style="max-width:700px">Only when a feed link has been set and switched on (see NOTES.md). The same link is read by the hourly schedule.</p>
+    <div class="filters"><button class="btn ghost" id="dealPreview" type="button">Preview link (no changes)</button><button class="btn ghost" id="dealRun" type="button">Import from link now</button></div>
     <div id="dealOut" role="status"></div>`;
+}
+// Uploads the chosen file to the importer. A big file may need several rounds (the importer stops after about 100 seconds); we repeat until it is done.
+async function runUpload(dry){
+  const out=$("#dealOut"),f=$("#feedFile").files[0],name=($("#feedName").value||"").trim();
+  if(!f)return out.innerHTML=`<p class="err">Choose a file first.</p>`;
+  if(!name)return out.innerHTML=`<p class="err">Type the feed name (for example carsforsale.com).</p>`;
+  let text;try{text=await f.text()}catch(e){return out.innerHTML=`<p class="err">Could not read that file.</p>`}
+  if(text.length>25*1024*1024)return out.innerHTML=`<p class="err">That file is over 25 MB.</p>`;
+  const {data:{session}}=await sb.auth.getSession();
+  const url=NEARBY_CONFIG.supabaseUrl+"/functions/v1/import-feed?upload=1&source="+encodeURIComponent(name)+(dry?"&dry=1":"");
+  const sums={};let last=null,round=0,left=0;
+  for(round=1;round<=12;round++){
+    out.innerHTML=`<p class="sub">${dry?"Reading the fileâ¦":"Importingâ¦ round "+round+". Large files take a few minutes; please keep this page open."}</p>`+(last?renderFeed(totals(last,sums),dry):"");
+    let res,raw,j=null;
+    try{res=await fetch(url,{method:"POST",headers:{Authorization:"Bearer "+session.access_token,apikey:NEARBY_CONFIG.supabaseAnonKey,"Content-Type":"text/csv"},body:text});raw=await res.text()}
+    catch(e){return out.innerHTML=`<div class="msg"><h2>Could not reach the importer</h2><p>${esc(e&&e.message||"error")}</p></div>`}
+    try{j=JSON.parse(raw)}catch(e){}
+    if(res.status===404&&!j)return out.innerHTML=`<div class="msg"><h2>Importer not installed yet</h2><p>The "import-feed" function has not been deployed (or is an older version without uploads).</p></div>`;
+    if(!j)return out.innerHTML=`<div class="msg"><h2>Unexpected answer</h2><p>${esc(raw.slice(0,300))}</p></div>`;
+    if(j.error)return out.innerHTML=`<div class="msg"><h2>Not run</h2><p>${esc(j.error)}</p></div>`;
+    for(const d of (j.results[0].dealers||[])){const s=sums[d.code]=sums[d.code]||{created:0,updated:0,sold:0,reactivated:0,photosCopied:0,unchangedBefore:0};
+      s.created+=d.created||0;s.updated+=d.updated||0;s.sold+=d.sold||0;s.reactivated+=d.reactivated||0;s.photosCopied+=d.photosCopied||0}
+    last=j;
+    left=(j.results[0].dealers||[]).reduce((a,d)=>a+(d.deferred||0),0);
+    if(dry||!left)break;
+  }
+  out.innerHTML=renderFeed(totals(last,sums),dry)+(left?`<p class="err">${left} cars are still waiting (the importer ran out of rounds or time). Press <b>Import file</b> again to continue; cars already done are skipped.</p>`:"");
+}
+// Adds up what every round did, so the result card shows the whole import and not only the last round.
+function totals(j,sums){
+  if(!sums||!Object.keys(sums).length)return j;
+  const c=JSON.parse(JSON.stringify(j));
+  for(const d of (c.results[0].dealers||[])){const s=sums[d.code];if(!s)continue;
+    const doneEarlier=s.created+s.updated+s.reactivated-(d.created||0)-(d.updated||0)-(d.reactivated||0);
+    d.unchanged=Math.max(0,(d.unchanged||0)-doneEarlier);d.created=s.created;d.updated=s.updated;d.sold=s.sold;d.reactivated=s.reactivated;d.photosCopied=s.photosCopied}
+  return c;
 }
 // Turns the importer's answer into readable cards: one block per feed, one card per dealer.
 function renderFeed(j,dry){
@@ -396,6 +438,8 @@ document.addEventListener("click",e=>{
   if(t.id==="tRep"||t.closest("#tRep")){showTab("rep");return}
   if(t.id==="tDeal"){showTab("deal");return}
   if(t.id==="dealPreview"){runFeed(true);return}
+  if(t.id==="upPreview"){runUpload(true);return}
+  if(t.id==="upRun"){if(confirm("Import this file now? This adds, updates and hides the dealers' ads."))runUpload(false);return}
   if(t.id==="dealRun"){if(confirm("Run the import now? This adds, updates and hides the dealer's ads."))runFeed(false);return}
   const rf=t.closest("[data-rfind]");if(rf){showTab("ads");$("#fq").value=rf.dataset.rfind;load(true);return}
   const rs=t.closest("[data-rset]");if(rs){setReport(rs.dataset.rl,rs.dataset.rid,rs.dataset.rset);return}
