@@ -377,6 +377,69 @@ dialog .dlg.msgs{padding:0;gap:0}
 // Filled in from Supabase by loadData() at the bottom of the page.
 // cats: [name, icon, hue]   items: the listings   T: "City, ST" -> [lat, lng]
 const HUES={"Auto Cars":210,"Auto Trucks":220,"Auto SUVs":215,Vehicles:210,Property:150,Electronics:190,Furniture:30,Clothing:330,Sports:100,Jobs:260,Boats:200,Snowmobiles:195,"Auto Parts":225,ATV:20,Appliances:170,Campers:120,"Real Estate":140,Medical:350,Motorcycles:0,Antiques:40,"Lawn and Garden":90,"Heavy Machinery":50};
+// ---- Ads are loaded a page at a time (step30_browse_ads.sql): the database picks and orders the ads, the page only holds what it shows. ----
+const HOME=[42.65,-73.75];   // the Albany area: where "nearby first" is measured from until the visitor chooses a city
+const PAGE=48;               // ads per page
+const cache={};              // id -> ad: every ad this visitor has loaded so far (the pop-ups, messages and editing look ads up here)
+let catByIdG={},viewIds=[],totalAds=0,catCounts={},allCount=0,loadingAds=false,reqSeq=0,qTimer=0;
+const AD_SELECT="id,seller_id,category_id,city_id,title,description,price,price_on_request,link,video_link,cover_y,created_at,cities(id,name,state,lat,lng,regions),profiles!seller_id(display_name,created_at,is_dealer,dealer_website),listing_photos(id,storage_path,position),listing_videos(id,storage_path)";
+// One database row -> the object the page works with.
+function mapAd(r){
+  const c=catByIdG[r.category_id];if(!c||!c[4]||!r.cities)return null;
+  const loc=addCity(r.cities);adCities[loc]=1;
+  const hrs=Math.max(0,Math.floor((Date.now()-new Date(r.created_at))/36e5));
+  const paths=(r.listing_photos||[]).map(p=>p.storage_path);
+  const imgs=paths.map(p=>sb.storage.from(BUCKET).getPublicUrl(p).data.publicUrl),img=imgs[0]||null;
+  const thumbs=paths.map(p=>sb.storage.from(BUCKET).getPublicUrl(thumbPath(p)).data.publicUrl),thumb=thumbs[0]||null;
+  // Everything shown in the ad's gallery: photos first, then the uploaded video, then a YouTube/Vimeo player.
+  const vpath=(r.listing_videos&&r.listing_videos[0])?r.listing_videos[0].storage_path:null;
+  const vurl=vpath?sb.storage.from(VBUCKET).getPublicUrl(vpath).data.publicUrl:null,emb=videoEmbed(r.video_link);
+  const media=[...imgs.map((u,k)=>({t:"img",u,th:thumbs[k],alt:r.title})),...(vurl?[{t:"vid",u:vurl}]:[]),...(emb?[{t:"emb",u:emb}]:[])];
+  return{id:r.id,paths,imgs,img,thumb,coverY:r.cover_y,media,vpath,vlink:r.video_link,hasVideo:!!(vurl||emb),link:r.link,t:r.title,p:r.price,pr:!!r.price_on_request,c:c[0],loc,reg:r.cities.regions||[],d:r.description,ago:agoText(hrs),hrs,e:c[1],h:c[2],
+    sid:r.seller_id,sn:r.profiles&&r.profiles.display_name,sd:!!(r.profiles&&r.profiles.is_dealer),sw:r.profiles&&r.profiles.dealer_website,sy:r.profiles&&new Date(r.profiles.created_at).getFullYear()};
+}
+// Loads these ads (with photos, seller and town) into the cache. Returns the ads that were found.
+async function fetchAds(ids){
+  ids=[...new Set(ids)].filter(Boolean);
+  const got=[];
+  for(let k=0;k<ids.length;k+=100){
+    const {data,error}=await sb.from("listings").select(AD_SELECT).in("id",ids.slice(k,k+100))
+      .order("position",{referencedTable:"listing_photos"}).order("id",{referencedTable:"listing_photos"});
+    if(error)throw error;
+    (data||[]).forEach(r=>{const a=mapAd(r);if(a){cache[a.id]=a;got.push(a)}});
+  }
+  items=Object.values(cache);
+  return got;
+}
+async function openAd(id){if(!cache[id])await fetchAds([+id]).catch(()=>{});if(cache[id])open(id)}
+// Asks the database for the ads that match the current choices (category, search, city and distance, region, sort), one page at a time.
+// reset=true starts again from the first page; reset=false adds the next page ("Show more").
+async function reload(reset=true){
+  if(!sb||!cats.length)return;
+  const my=++reqSeq,saving=cur==="Saved",byCat=cur==="All"&&!q&&view==="cat";
+  if(saving&&!saved.size){viewIds=[];totalAds=0;loadingAds=false;render();return}
+  if(reset){loadingAds=true;viewIds=[];render()}
+  const c=cats.find(x=>x[0]===cur),here=T[me],useDist=!regionSlug&&here&&rad>0;
+  const where={p_q:q||null,p_region:regionSlug||null,p_lat:here?here[0]:HOME[0],p_lng:here?here[1]:HOME[1],p_radius:useDist?rad:0,p_dealer:"all"};
+  try{
+    const [res,cnt]=await Promise.all([
+      sb.rpc("browse_ads",{...where,p_cat:c?c[3]:null,p_sort:sort,p_ids:saving?[...saved]:null,p_per_cat:byCat?4:null,p_limit:byCat?200:PAGE,p_offset:reset||byCat?0:viewIds.length}),
+      reset?sb.rpc("browse_counts",where):Promise.resolve(null)
+    ]);
+    if(my!==reqSeq)return;   // the visitor changed something meanwhile: this answer is out of date
+    if(res.error)throw res.error;
+    const ids=(res.data||[]).map(r=>+r.id);
+    totalAds=ids.length?+res.data[0].total:0;
+    await fetchAds(ids.filter(id=>!cache[id]));
+    if(my!==reqSeq)return;
+    viewIds=reset?ids:viewIds.concat(ids.filter(id=>!viewIds.includes(id)));
+    if(cnt&&!cnt.error&&cnt.data){catCounts={};allCount=0;cnt.data.forEach(r=>{const cc=Object.values(catByIdG).find(x=>x[3]===+r.category_id);if(cc){catCounts[cc[0]]=+r.n;allCount+=+r.n}})}
+    loadingAds=false;render();
+  }catch(e){
+    if(my!==reqSeq)return;
+    loadingAds=false;$("#main").innerHTML=`<div class="empty"><h2>Couldn't load listings</h2><p>${esc(e&&e.message||"Please try again.")}</p></div>`;
+  }
+}
 let cats=[],items=[];
 const T={};   // "Albany, NY" -> [lat,lng] for the cities this visitor has needed so far (cities with ads, plus any they searched for)
 const adCities={};   // "Albany, NY" -> 1, only for cities that have ads
@@ -408,7 +471,7 @@ async function lookupCity(text){
   data.forEach(addCity);
   return data.map(c=>c.name+", "+c.state).find(n=>n.toLowerCase()===want)||null;
 }
-let cur="All",q="",sort="new",me="",rad=0,view="all"   /* me: the visitor's city (empty = no city chosen yet; set it to e.g. "Saratoga Springs, NY" for a default). rad: miles from "me"; 0 = any distance. Use 50 or 25 once there are plenty of ads. */,showLoc=false,geoMsg="",ow=false;
+let cur="All",q="",sort="best",me="",rad=0,view="all"   /* me: the visitor's city (empty = no city chosen yet; set it to e.g. "Saratoga Springs, NY" for a default). rad: miles from "me"; 0 = any distance. Use 50 or 25 once there are plenty of ads. */,showLoc=false,geoMsg="",ow=false;
 // Category / region pages (/for-sale/auto-trucks, /in/capital-district) arrive with a note from the server (window.__LANDING__)
 // saying which filter they represent. regionSlug filters by the database's region lists instead of by distance.
 const LAND=window.__LANDING__||null;
@@ -421,9 +484,19 @@ const SL={"Saratoga Springs, NY":["Dana R.",2021,4.9,41,"within an hour"],"Balls
 const isMine=i=>!!(i.you||(user&&i.sid&&i.sid===user.id));
 const sel=i=>{if(isMine(i))return{n:"You",y:"today",r:0,rv:0,rt:""};if(i.sn)return{n:i.sn,y:i.sy,r:0,rv:0,rt:""};const a=SL[i.loc]||["Local seller",2023,0,0,"within a day"];return{n:a[0],y:a[1],r:a[2],rv:a[3],rt:a[4]}};
 const rate=s=>s.r?`★ ${s.r} (${s.rv} reviews)`:"No reviews yet";
-function prof(id){
+async function prof(id){
   $("#view").className="dlg";$("#dView").classList.remove("wide");
-  const i=items.find(x=>x.id==id),s=sel(i),l=items.filter(x=>isMine(i)?isMine(x):i.sid?x.sid===i.sid:(!x.sid&&!isMine(x)&&x.loc===i.loc));
+  const i=cache[id]||items.find(x=>x.id==id);if(!i)return;
+  const s=sel(i);
+  let l=[];
+  if(i.sid){
+    try{
+      const {data}=await sb.from("listings").select(AD_SELECT).eq("seller_id",i.sid).eq("status","active").order("created_at",{ascending:false}).limit(48)
+        .order("position",{referencedTable:"listing_photos"}).order("id",{referencedTable:"listing_photos"});
+      (data||[]).forEach(r=>{const a=mapAd(r);if(a){cache[a.id]=a;l.push(a)}});items=Object.values(cache);
+    }catch(e){}
+  }
+  if(!l.length)l=items.filter(x=>isMine(i)?isMine(x):i.sid?x.sid===i.sid:(!x.sid&&!isMine(x)&&x.loc===i.loc));
   $("#view").innerHTML=`<div class="top"><button class="link" data-back="${i.id}">← Back to listing</button><button class="x" data-close aria-label="Close">✕</button></div>
   <div class="seller"><div class="av" style="width:56px;height:56px;font-size:22px">${esc(s.n[0])}</div><div><h2 style="color:var(--ink)">${esc(s.n)}</h2><span>${esc(i.loc)} · Member since ${s.y}</span></div></div>
   <div>${rate(s)}${s.rt?` · Replies ${s.rt}`:""}</div>
@@ -453,7 +526,7 @@ function locate(){
   if(!navigator.geolocation){geoMsg="Location isn't available here. Type your city instead.";render();return}
   navigator.geolocation.getCurrentPosition(async p=>{const {data}=await sb.rpc("nearest_city",{p_lat:p.coords.latitude,p_lng:p.coords.longitude});
     if(data&&data.length){me=addCity(data[0]);geoMsg="Set to the closest city we have: "+me+"."}else geoMsg="Couldn't find a city near you. Type your city instead.";
-    render()},()=>{geoMsg="Couldn't get your location. Type your city instead.";render()},{timeout:8000});
+    reload()},()=>{geoMsg="Couldn't get your location. Type your city instead.";render()},{timeout:8000});
 }
 const dd=i=>{if(!T[me])return"";const d=dist(i);return d<1?"Under 1 mi":Math.round(d)+" mi away"};
 const inR=i=>regionSlug?(i.reg||[]).includes(regionSlug):(!rad||!T[me]||dist(i)<=rad);
@@ -468,7 +541,7 @@ const card=i=>`<div class="cw"><button class="card" data-id="${i.id}"><div class
 // The page keeps a copy in "saved" so hearts can be drawn instantly.
 function paintHearts(id,on){
   document.querySelectorAll(`[data-save="${id}"]`).forEach(b=>{b.setAttribute("aria-pressed",on);b.textContent=b.classList.contains("heart")?(on?"♥":"♡"):(on?"♥ Saved":"♡ Save")});
-  side();if(cur==="Saved")render();
+  side();if(cur==="Saved"&&!on){viewIds=viewIds.filter(x=>x!==id);totalAds=Math.max(0,totalAds-1);render()}
 }
 async function toggleSave(id){
   id=+id;
@@ -482,13 +555,12 @@ async function toggleSave(id){
 function side(){
   const row=(n,e,k)=>`<button class="cat" data-cat="${n}" aria-pressed="${cur===n}">${n}<span class="n">${k}</span></button>`;
   const box=$("#cats"),sl=box.scrollLeft,st=box.scrollTop;
-  box.innerHTML=row("All","🏷️",items.length)+row("Saved","♥",items.filter(i=>saved.has(i.id)).length)+cats.map(c=>row(c[0],c[1],items.filter(i=>i.c===c[0]).length)).join("");
+  box.innerHTML=row("All","🏷️",allCount)+row("Saved","♥",saved.size)+cats.map(c=>row(c[0],c[1],catCounts[c[0]]||0)).join("");
   box.scrollLeft=sl;box.scrollTop=st;   // keep the list where the visitor scrolled it
 }
 function render(){
   side();
-  const match=i=>(cur==="Saved"?saved.has(i.id):(cur==="All"||i.c===cur)&&inR(i))&&(!q||(i.t+" "+i.d+" "+i.loc).toLowerCase().includes(q));
-  let list=items.filter(match);
+  let list=viewIds.map(id=>cache[id]).filter(Boolean);
   const main=$("#main");
   const gm=geoMsg;geoMsg="";
   const counts={};items.forEach(i=>{counts[i.loc]=(counts[i.loc]||0)+1});
@@ -500,15 +572,13 @@ function render(){
   const tog=cur==="All"&&!q?`<div class="tog"><button data-view="cat" aria-pressed="${view==="cat"}">By category</button><button data-view="all" aria-pressed="${view==="all"}">View all</button></div>`:"";
   // One slim row (location + view switch); the full location controls open underneath on demand.
   const nb=cur==="Saved"?"":`<div class="toolbar">${pill}${tog}</div>`+(showLoc&&!regionSlug?bar:"");
-  if(!list.length){main.innerHTML=nb+`<div class="empty">${cur==="Saved"?user?`<h2>Nothing saved yet</h2><p>Tap the heart on any ad to save it here.</p>`:`<h2>Log in to see your saved ads</h2><p>Saved ads are kept in your account, so you can see them on any device.</p>`:`<h2>No listings found</h2><p>Try a wider distance, a different search, or post an ad.</p>`}</div>`;return}
+  if(!list.length){main.innerHTML=nb+`<div class="empty">${loadingAds?`<h2>Loading…</h2>`:cur==="Saved"?user?`<h2>Nothing saved yet</h2><p>Tap the heart on any ad to save it here.</p>`:`<h2>Log in to see your saved ads</h2><p>Saved ads are kept in your account, so you can see them on any device.</p>`:`<h2>No listings found</h2><p>Try a wider distance, a different search, or post an ad.</p>`}</div>`;return}
   if(cur==="All"&&!q&&view==="cat"){
-    main.innerHTML=nb+cats.map(c=>{const l=items.filter(i=>i.c===c[0]&&inR(i)).sort((a,b)=>dist(a)-dist(b));if(!l.length)return"";
-      return `<section class="sec"><div class="hd"><h2>${c[0]}</h2><button class="link" data-cat="${c[0]}">See all ${l.length}</button></div><div class="grid">${l.slice(0,4).map(card).join("")}</div></section>`}).join("");
+    main.innerHTML=nb+cats.map(c=>{const l=list.filter(i=>i.c===c[0]);if(!l.length)return"";
+      return `<section class="sec"><div class="hd"><h2>${c[0]}</h2><button class="link" data-cat="${c[0]}">See all ${catCounts[c[0]]||l.length}</button></div><div class="grid">${l.slice(0,4).map(card).join("")}</div></section>`}).join("");
     return;
   }
-  const pv=i=>i.pr?1e12:i.p;   // "Call for price" ads go to the end of price sorts
-  if(sort==="low")list.sort((a,b)=>pv(a)-pv(b));else if(sort==="high")list.sort((a,b)=>(b.pr?-1:b.p)-(a.pr?-1:a.p));else if(sort==="near")list.sort((a,b)=>dist(a)-dist(b));else if(sort==="old")list.sort((a,b)=>b.hrs-a.hrs||a.id-b.id);else list.sort((a,b)=>a.hrs-b.hrs||b.id-a.id);
-  main.innerHTML=nb+`<div class="bar"><h1>${landActive()?esc(LAND.h1):q?`Results for “${esc(q)}”`:cur==="All"?"All listings":cur==="Saved"?"Saved listings":esc(cur)}</h1><select id="sort" aria-label="Sort"><option value="new">Newest first</option><option value="old">Oldest first</option>${T[me]?`<option value="near">Nearest</option>`:""}<option value="low">Price: low to high</option><option value="high">Price: high to low</option></select></div>${landActive()?`<p class="note">${esc(LAND.intro)}</p>`:""}<div class="grid">${list.map(card).join("")}</div>`;
+  main.innerHTML=nb+`<div class="bar"><h1>${landActive()?esc(LAND.h1):q?`Results for “${esc(q)}”`:cur==="All"?"All listings":cur==="Saved"?"Saved listings":esc(cur)}</h1><select id="sort" aria-label="Sort"><option value="best">Best match (nearby first)</option><option value="new">Newest first</option><option value="old">Oldest first</option>${T[me]?`<option value="near">Nearest</option>`:""}<option value="low">Price: low to high</option><option value="high">Price: high to low</option></select></div>${landActive()?`<p class="note">${esc(LAND.intro)}</p>`:""}<div class="grid">${list.map(card).join("")}</div>${list.length<totalAds?`<div style="text-align:center;margin:24px 0"><button class="btn ghost" id="moreAds" type="button">Show more (${totalAds-list.length} more)</button></div>`:""}`;
   $("#sort").value=sort;
 }
 // ---- Sharing: every ad has its own page address, like  https://chadads.com/ad/38-2017-jeep-rubicon ----
@@ -692,7 +762,8 @@ function showPhoto(n){
   document.querySelectorAll(".gthumbs button").forEach((b,k)=>b.setAttribute("aria-pressed",k===gi));
 }
 function open(id){
-  const i=items.find(x=>x.id==id),s=sel(i),n=(i.media||[]).length,mine=isMine(i);
+  const i=cache[id]||items.find(x=>x.id==id);if(!i)return;
+  const s=sel(i),n=(i.media||[]).length,mine=isMine(i);
   gId=i.id;gi=0;
   $("#view").className="dlg ad";$("#dView").classList.add("wide");
   $("#view").innerHTML=`<div class="adg"><div class="gwrap">
@@ -769,7 +840,7 @@ document.addEventListener("click",e=>{
   const mg=t.closest("[data-msg]");if(mg){startConversation(+mg.dataset.msg);return}
   const mc2=t.closest("[data-conv]");if(mc2){openThread(+mc2.dataset.conv);return}
   if(t.closest("[data-mback]")){backToList();return}
-  const va=t.closest("[data-viewad]");if(va){$("#dMsg").close();open(+va.dataset.viewad);return}
+  const va=t.closest("[data-viewad]");if(va){$("#dMsg").close();openAd(+va.dataset.viewad);return}
   if(t.id==="msend"){sendFromComposer();return}
   if(t.closest("#msgsBtn")){openMessages();return}
   const sv=t.closest("[data-save]");if(sv){toggleSave(sv.dataset.save);return}
@@ -778,12 +849,13 @@ document.addEventListener("click",e=>{
   const so=t.closest("[data-sendoffer]");if(so){sendOffer(so.dataset.sendoffer);return}
   const pf=t.closest("[data-prof]");if(pf){prof(pf.dataset.prof);return}
   const bk=t.closest("[data-back]");if(bk){open(bk.dataset.back);return}
-  const ct=t.closest("[data-city]");if(ct){me=ct.dataset.city;render();return}
+  const ct=t.closest("[data-city]");if(ct){me=ct.dataset.city;reload();return}
   if(t.closest("#locToggle")){showLoc=!showLoc;render();return}
-  if(t.closest("#clearRegion")){regionSlug=null;rad=0;try{history.replaceState(null,"","/")}catch(e){};render();return}
+  if(t.closest("#clearRegion")){regionSlug=null;rad=0;try{history.replaceState(null,"","/")}catch(e){};reload();return}
   if(t.id==="geo"){locate();return}
-  const vw=t.closest("[data-view]");if(vw){view=vw.dataset.view;render();return}
-  const cat=t.closest("[data-cat]");if(cat){cur=cat.dataset.cat;q="";$("#q").value="";render();window.scrollTo({top:0});return}
+  const vw=t.closest("[data-view]");if(vw){view=vw.dataset.view;reload();return}
+  if(t.id==="moreAds"){reload(false);return}
+  const cat=t.closest("[data-cat]");if(cat){cur=cat.dataset.cat;q="";$("#q").value="";reload();window.scrollTo({top:0});return}
   const c=t.closest(".card");if(c){open(c.dataset.id);return}
   if(t.closest("[data-close]")){t.closest("dialog").close();return}
   if(t.id==="post"){startPost();return}
@@ -791,9 +863,9 @@ document.addEventListener("click",e=>{
   const dl=t.closest("[data-del]");if(dl){deleteAd(+dl.dataset.del);return}
   if(t.tagName==="DIALOG")t.close();
 });
-document.addEventListener("change",e=>{const t=e.target;if(t.id==="sort")sort=t.value;else if(t.id==="rad")rad=+t.value;else return;render()});
-document.addEventListener("input",e=>{const t=e.target;if(t.id==="oa")ow=false;if(t.id==="me"){const k=Object.keys(T).find(n=>n.toLowerCase()===t.value.trim().toLowerCase());if(k&&k!==me){me=k;render()}else if(!t.value.trim()&&me){me="";render()}else if(!k){searchCities(t.value,()=>{const k2=Object.keys(T).find(n=>n.toLowerCase()===t.value.trim().toLowerCase());if(k2&&k2!==me){me=k2;render()}})}}});
-$("#q").addEventListener("input",e=>{q=e.target.value.trim().toLowerCase();render()});
+document.addEventListener("change",e=>{const t=e.target;if(t.id==="sort")sort=t.value;else if(t.id==="rad")rad=+t.value;else return;reload()});
+document.addEventListener("input",e=>{const t=e.target;if(t.id==="oa")ow=false;if(t.id==="me"){const k=Object.keys(T).find(n=>n.toLowerCase()===t.value.trim().toLowerCase());if(k&&k!==me){me=k;reload()}else if(!t.value.trim()&&me){me="";reload()}else if(!k){searchCities(t.value,()=>{const k2=Object.keys(T).find(n=>n.toLowerCase()===t.value.trim().toLowerCase());if(k2&&k2!==me){me=k2;reload()}})}}});
+$("#q").addEventListener("input",e=>{q=e.target.value.trim().toLowerCase();clearTimeout(qTimer);qTimer=setTimeout(()=>reload(),250)});
 $("#fl").addEventListener("input",e=>{e.target.setCustomValidity("");searchCities(e.target.value)});
 </script>
 
@@ -827,7 +899,7 @@ async function loadFavorites(){
   const {data,error}=await sb.from("favorites").select("listing_id");
   if(error)return;
   saved.clear();data.forEach(r=>saved.add(r.listing_id));
-  if(items.length)render();
+  side();if(cur==="Saved")reload();else if(items.length)render();
 }
 // Update the header to match who is signed in (user is null when signed out).
 function showUser(u){
@@ -929,10 +1001,10 @@ async function openThread(id,quiet){
   curConv=id;pendingAd=null;
   const {data,error}=await sb.from("messages").select("*").eq("conversation_id",id).order("created_at",{ascending:true}).limit(500);
   if(error){threadShell(`<div class="mt1">${esc(otherName(c))}</div>`,`<div class="mempty">Couldn't load this conversation.</div>`);return}
-  const adLive=c.listing_id&&items.some(x=>x.id===c.listing_id);
+  const adLive=!!c.listing_id;
   const keepText=quiet&&$("#mtxt")?$("#mtxt").value:"";
   const oid=otherId(c),isB=blocked.has(oid);
-  threadShell(`<div class="mt1">${esc(otherName(c))}</div><div class="mt2">${esc(c.listing_title||"Ad removed")}${adLive?` · <a href="${esc(adPath(items.find(x=>x.id===c.listing_id)))}" data-viewad="${c.listing_id}">View ad</a>`:""}</div>`,
+  threadShell(`<div class="mt1">${esc(otherName(c))}</div><div class="mt2">${esc(c.listing_title||"Ad removed")}${adLive?` · <a href="/ad/${c.listing_id}" data-viewad="${c.listing_id}">View ad</a>`:""}</div>`,
     data.map(bubble).join("")||`<div class="mempty">No messages yet.</div>`,keepText,{oid,isB});
   if(isB){$("#mtxt").disabled=true;$("#msend").disabled=true;$("#merr").textContent="You have blocked this member. Unblock them to send messages."}
   const sc=$("#mscroll");sc.scrollTop=sc.scrollHeight;
@@ -1373,35 +1445,13 @@ async function loadData(){
   // also connected through favorites, so Supabase needs to be told.
   // Cities are NOT all loaded any more (there are 30,000+ places). Each ad brings its own city along, and the
   // city boxes search the database as you type (see searchCities).
-  const [rc,rl]=await Promise.all([
-    sb.from("categories").select("*").order("id"),
-    sb.from("listings").select("id,seller_id,category_id,city_id,title,description,price,price_on_request,link,video_link,cover_y,created_at,cities(id,name,state,lat,lng,regions),profiles!seller_id(display_name,created_at,is_dealer,dealer_website),listing_photos(id,storage_path,position),listing_videos(id,storage_path)")
-      .eq("status","active").order("created_at",{ascending:false}).limit(500)
-      .order("position",{referencedTable:"listing_photos"})   // the cover photo first,
-      .order("id",{referencedTable:"listing_photos"})         // then in the order they were added
-  ]);
-  const err=rc.error||rl.error;
-  if(err){main.innerHTML=`<div class="empty"><h2>Couldn't load listings</h2><p>${esc(err.message)}</p></div>`;return}
-
-  const catById={},cityById={},cityRegions={};
+  const rc=await sb.from("categories").select("*").order("id");
+  if(rc.error){main.innerHTML=`<div class="empty"><h2>Couldn't load listings</h2><p>${esc(rc.error.message)}</p></div>`;return}
   // Hidden categories (active = false) are left out of the menus, the Post form and the listings.
-  rc.data.forEach(c=>{catById[c.id]=[c.name,c.icon,HUES[c.name]||200,c.id,c.active!==false]});
-  cats=Object.values(catById).filter(r=>r[4]).sort((a,b)=>a[0].localeCompare(b[0]));   // A to Z
-  rl.data.forEach(r=>{const c=r.cities;if(!c)return;const k=addCity(c);cityById[c.id]=k;cityRegions[k]=c.regions||[];adCities[k]=1});
+  catByIdG={};rc.data.forEach(c=>{catByIdG[c.id]=[c.name,c.icon,HUES[c.name]||200,c.id,c.active!==false]});
+  cats=Object.values(catByIdG).filter(r=>r[4]).sort((a,b)=>a[0].localeCompare(b[0]));   // A to Z
   if(!T[me])me="";   // no default city until there are more ads (see "me" at the top of the script)
-  const now=Date.now();
-  items=rl.data.filter(r=>catById[r.category_id]&&catById[r.category_id][4]).map(r=>{
-    const c=catById[r.category_id],hrs=Math.max(0,Math.floor((now-new Date(r.created_at))/36e5));
-    const paths=(r.listing_photos||[]).map(p=>p.storage_path);
-    const imgs=paths.map(p=>sb.storage.from(BUCKET).getPublicUrl(p).data.publicUrl),img=imgs[0]||null;
-    const thumbs=paths.map(p=>sb.storage.from(BUCKET).getPublicUrl(thumbPath(p)).data.publicUrl),thumb=thumbs[0]||null;
-    // Everything shown in the ad's gallery: photos first, then the uploaded video, then a YouTube/Vimeo player.
-    const vpath=(r.listing_videos&&r.listing_videos[0])?r.listing_videos[0].storage_path:null;
-    const vurl=vpath?sb.storage.from(VBUCKET).getPublicUrl(vpath).data.publicUrl:null,emb=videoEmbed(r.video_link);
-    const media=[...imgs.map((u,k)=>({t:"img",u,th:thumbs[k],alt:r.title})),...(vurl?[{t:"vid",u:vurl}]:[]),...(emb?[{t:"emb",u:emb}]:[])];
-    return{id:r.id,paths,imgs,img,thumb,coverY:r.cover_y,media,vpath,vlink:r.video_link,hasVideo:!!(vurl||emb),link:r.link,t:r.title,p:r.price,pr:!!r.price_on_request,c:c[0],loc:cityById[r.city_id],reg:cityRegions[cityById[r.city_id]]||[],d:r.description,ago:agoText(hrs),hrs,e:c[1],h:c[2],
-      sid:r.seller_id,sn:r.profiles&&r.profiles.display_name,sd:!!(r.profiles&&r.profiles.is_dealer),sw:r.profiles&&r.profiles.dealer_website,sy:r.profiles&&new Date(r.profiles.created_at).getFullYear()}
-  }).filter(i=>i.loc);
+  Object.keys(cache).forEach(k=>delete cache[k]);items=[];   // after posting, editing or deleting an ad everything is read fresh
   // Fill the city suggestions and the category list in the Post form.
   suggestCities([]);   // until they type, the city boxes suggest the cities that have ads
   $("#fc").innerHTML=cats.map(c=>`<option>${esc(c[0])}</option>`).join("");
@@ -1410,7 +1460,7 @@ async function loadData(){
   if(LAND&&LAND.city&&!me){const k=await lookupCity(LAND.city);if(k){me=k;rad=25}}
   $("#seoNav").innerHTML=`<span>Browse:</span> `+cats.map(c=>`<a href="/for-sale/${slugify(c[0])}">${esc(c[0])}</a>`).join("")+` <span>Regions:</span> `+[["capital-district","Capital District"],["adirondacks","Adirondacks"],["hudson-valley","Hudson Valley"],["upstate-new-york","Upstate NY"]].map(([s,n])=>`<a href="/in/${s}">${n}</a>`).join("");
   if(!deepDone){const sq=new URLSearchParams(location.search).get("q");if(sq&&sq.trim()){q=sq.trim().toLowerCase();$("#q").value=sq.trim()}}
-  render();
+  await reload();
   // "Post your ad" buttons (on /sell and flyers) link to /?post=1: open the Post form, or ask them to log in first.
   if(!postDone){postDone=true;if(new URLSearchParams(location.search).has("post")){
     try{history.replaceState(null,"","/")}catch(e){}
@@ -1429,7 +1479,7 @@ async function loadData(){
     });
   }
   // Someone arrived through a shared link like /ad/38-2017-jeep-rubicon (or the older ?ad=38): show that ad straight away.
-  if(!deepDone){deepDone=true;const pm=location.pathname.match(/^\/ad\/(\d+)/),id=pm?+pm[1]:+new URLSearchParams(location.search).get("ad");if(id&&items.some(x=>x.id===id))open(id)}
+  if(!deepDone){deepDone=true;const pm=location.pathname.match(/^\/ad\/(\d+)/),id=pm?+pm[1]:+new URLSearchParams(location.search).get("ad");if(id){if(!cache[id])await fetchAds([id]).catch(()=>{});if(cache[id])open(id)}}
 }
 loadData();
 </script>
