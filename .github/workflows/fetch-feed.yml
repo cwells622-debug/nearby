@@ -1,0 +1,49 @@
+# ChadAds dealer feed courier: every few hours, pick up the newest file from the ftpGrid drop box and hand it to the importer.
+# Free on GitHub Actions. It does nothing unless the secrets below are set (Settings > Secrets and variables > Actions).
+# To run it right now: Actions tab > "Fetch dealer feed" > Run workflow. Details: NOTES.md, section "GitHub job".
+name: Fetch dealer feed
+
+on:
+  schedule:
+    - cron: "17 */3 * * *"   # at 17 minutes past every third hour (GitHub may start it a few minutes late)
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fetch-dealer-feed
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Is the job set up yet?
+        id: cfg
+        run: echo "ready=${{ secrets.FEED_HOST != '' && secrets.IMPORT_SECRET != '' }}" >> "$GITHUB_OUTPUT"
+      - name: Not set up yet (add the secrets, see NOTES.md)
+        if: steps.cfg.outputs.ready != 'true'
+        run: echo "FEED_HOST or IMPORT_SECRET is not set, so there is nothing to do yet."
+      - uses: actions/checkout@v4
+        if: steps.cfg.outputs.ready == 'true'
+      - uses: actions/setup-python@v5
+        if: steps.cfg.outputs.ready == 'true'
+        with:
+          python-version: "3.12"
+      - name: Install the SFTP library
+        if: steps.cfg.outputs.ready == 'true'
+        run: pip install paramiko==3.4.0
+      - name: Fetch the newest file and send it to ChadAds
+        if: steps.cfg.outputs.ready == 'true'
+        run: python .github/scripts/fetch_feed.py
+        env:
+          FEED_PROTOCOL: ${{ secrets.FEED_PROTOCOL }}
+          FEED_HOST: ${{ secrets.FEED_HOST }}
+          FEED_PORT: ${{ secrets.FEED_PORT }}
+          FEED_USER: ${{ secrets.FEED_USER }}
+          FEED_PASS: ${{ secrets.FEED_PASS }}
+          FEED_FOLDER: ${{ secrets.FEED_FOLDER }}
+          FEED_NAME: ${{ secrets.FEED_NAME }}
+          IMPORT_SECRET: ${{ secrets.IMPORT_SECRET }}
