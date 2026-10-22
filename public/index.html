@@ -381,6 +381,7 @@ const HUES={"Auto Cars":210,"Auto Trucks":220,"Auto SUVs":215,Vehicles:210,Prope
 const HOME=[42.65,-73.75];   // the Albany area: where "nearby first" is measured from until the visitor chooses a city
 const PAGE=48;               // ads per page
 const cache={};              // id -> ad: every ad this visitor has loaded so far (the pop-ups, messages and editing look ads up here)
+let who=["private","dealer"].includes(new URLSearchParams(location.search).get("who"))?new URLSearchParams(location.search).get("who"):"all";   // whose ads to show: everyone, private sellers or dealers (?who=dealer opens that view)
 let catByIdG={},viewIds=[],totalAds=0,catCounts={},allCount=0,loadingAds=false,reqSeq=0,qTimer=0;
 const AD_SELECT="id,seller_id,category_id,city_id,title,description,price,price_on_request,link,video_link,cover_y,created_at,cities(id,name,state,lat,lng,regions),profiles!seller_id(display_name,created_at,is_dealer,dealer_website),listing_photos(id,storage_path,position),listing_videos(id,storage_path)";
 // One database row -> the object the page works with.
@@ -420,7 +421,7 @@ async function reload(reset=true){
   if(saving&&!saved.size){viewIds=[];totalAds=0;loadingAds=false;render();return}
   if(reset){loadingAds=true;viewIds=[];render()}
   const c=cats.find(x=>x[0]===cur),here=T[me],useDist=!regionSlug&&here&&rad>0;
-  const where={p_q:q||null,p_region:regionSlug||null,p_lat:here?here[0]:HOME[0],p_lng:here?here[1]:HOME[1],p_radius:useDist?rad:0,p_dealer:"all"};
+  const where={p_q:q||null,p_region:regionSlug||null,p_lat:here?here[0]:HOME[0],p_lng:here?here[1]:HOME[1],p_radius:useDist?rad:0,p_dealer:who};
   try{
     const [res,cnt]=await Promise.all([
       sb.rpc("browse_ads",{...where,p_cat:c?c[3]:null,p_sort:sort,p_ids:saving?[...saved]:null,p_per_cat:byCat?4:null,p_limit:byCat?200:PAGE,p_offset:reset||byCat?0:viewIds.length}),
@@ -477,7 +478,7 @@ let cur="All",q="",sort="best",me="",rad=0,view="all"   /* me: the visitor's cit
 const LAND=window.__LANDING__||null;
 let regionSlug=null,regionName="",landDone=false;
 const basePath=location.pathname.startsWith("/ad/")?"/":location.pathname;   // where the address bar goes back to when a pop-up closes
-const landActive=()=>!!LAND&&!q&&cur===(LAND.cat||"All")&&(LAND.region?regionSlug===LAND.region:true)&&(LAND.city?me===LAND.city:true);
+const landActive=()=>!!LAND&&!q&&cur===(LAND.cat||"All")&&(LAND.region?regionSlug===LAND.region:true)&&(LAND.city?me===LAND.city:true)&&who==="all";
 const offers={};
 const SL={"Saratoga Springs, NY":["Dana R.",2021,4.9,41,"within an hour"],"Ballston Spa, NY":["Hannah K.",2022,4.7,12,"within a few hours"],"Clifton Park, NY":["Priya S.",2020,4.8,63,"within an hour"],"Schenectady, NY":["Tom W.",2023,4.5,6,"within a day"],"Albany, NY":["Marcus T.",2019,4.9,88,"within an hour"],"Troy, NY":["Leo B.",2021,4.6,27,"within a few hours"],"Glens Falls, NY":["Gail P.",2022,4.8,15,"within a day"],"Queensbury, NY":["Rick M.",2018,4.7,34,"within a few hours"],"Boston, MA":["Alex C.",2020,4.8,52,"within an hour"],"Burlington, VT":["Sam H.",2022,4.9,19,"within a few hours"],"Hartford, CT":["Jo L.",2021,4.4,9,"within a day"],"New York, NY":["Chris D.",2019,4.7,71,"within an hour"],"Pittsburgh, PA":["Nina V.",2023,5,4,"within a few hours"],"Syracuse, NY":["Omar F.",2022,4.6,11,"within a day"]};
 // Is this ad mine? (i.you = posted this session; sid = seller's account id from the database)
@@ -571,14 +572,15 @@ function render(){
   const pill=regionSlug?`<button class="locpill" id="clearRegion" type="button" title="Show everywhere again">📍 ${esc(regionName)} ✕</button>`:`<button class="locpill" id="locToggle" type="button" aria-expanded="${showLoc}">${me?`📍 ${esc(me)} · ${rad?rad+" mi":"Any distance"}`:"📍 Anywhere · choose your city"}</button>`;
   const tog=cur==="All"&&!q?`<div class="tog"><button data-view="cat" aria-pressed="${view==="cat"}">By category</button><button data-view="all" aria-pressed="${view==="all"}">View all</button></div>`:"";
   // One slim row (location + view switch); the full location controls open underneath on demand.
-  const nb=cur==="Saved"?"":`<div class="toolbar">${pill}${tog}</div>`+(showLoc&&!regionSlug?bar:"");
+  const whoTog=`<div class="tog" role="group" aria-label="Whose ads">${[["all","Everyone"],["private","Private sellers"],["dealer","Dealers"]].map(([k,n])=>`<button data-who="${k}" aria-pressed="${who===k}">${n}</button>`).join("")}</div>`;
+  const nb=cur==="Saved"?"":`<div class="toolbar">${pill}<div style="display:flex;gap:8px;flex-wrap:wrap">${whoTog}${tog}</div></div>`+(showLoc&&!regionSlug?bar:"");
   if(!list.length){main.innerHTML=nb+`<div class="empty">${loadingAds?`<h2>Loading…</h2>`:cur==="Saved"?user?`<h2>Nothing saved yet</h2><p>Tap the heart on any ad to save it here.</p>`:`<h2>Log in to see your saved ads</h2><p>Saved ads are kept in your account, so you can see them on any device.</p>`:`<h2>No listings found</h2><p>Try a wider distance, a different search, or post an ad.</p>`}</div>`;return}
   if(cur==="All"&&!q&&view==="cat"){
     main.innerHTML=nb+cats.map(c=>{const l=list.filter(i=>i.c===c[0]);if(!l.length)return"";
       return `<section class="sec"><div class="hd"><h2>${c[0]}</h2><button class="link" data-cat="${c[0]}">See all ${catCounts[c[0]]||l.length}</button></div><div class="grid">${l.slice(0,4).map(card).join("")}</div></section>`}).join("");
     return;
   }
-  main.innerHTML=nb+`<div class="bar"><h1>${landActive()?esc(LAND.h1):q?`Results for “${esc(q)}”`:cur==="All"?"All listings":cur==="Saved"?"Saved listings":esc(cur)}</h1><select id="sort" aria-label="Sort"><option value="best">Best match (nearby first)</option><option value="new">Newest first</option><option value="old">Oldest first</option>${T[me]?`<option value="near">Nearest</option>`:""}<option value="low">Price: low to high</option><option value="high">Price: high to low</option></select></div>${landActive()?`<p class="note">${esc(LAND.intro)}</p>`:""}<div class="grid">${list.map(card).join("")}</div>${list.length<totalAds?`<div style="text-align:center;margin:24px 0"><button class="btn ghost" id="moreAds" type="button">Show more (${totalAds-list.length} more)</button></div>`:""}`;
+  main.innerHTML=nb+`<div class="bar"><h1>${landActive()?esc(LAND.h1):q?`Results for “${esc(q)}”`:(cur==="All"?"All listings":cur==="Saved"?"Saved listings":esc(cur))+(who==="dealer"&&cur!=="Saved"?" from dealers":who==="private"&&cur!=="Saved"?" from private sellers":"")}</h1><select id="sort" aria-label="Sort"><option value="best">Best match (nearby first)</option><option value="new">Newest first</option><option value="old">Oldest first</option>${T[me]?`<option value="near">Nearest</option>`:""}<option value="low">Price: low to high</option><option value="high">Price: high to low</option></select></div>${landActive()?`<p class="note">${esc(LAND.intro)}</p>`:""}<div class="grid">${list.map(card).join("")}</div>${list.length<totalAds?`<div style="text-align:center;margin:24px 0"><button class="btn ghost" id="moreAds" type="button">Show more (${totalAds-list.length} more)</button></div>`:""}`;
   $("#sort").value=sort;
 }
 // ---- Sharing: every ad has its own page address, like  https://chadads.com/ad/38-2017-jeep-rubicon ----
@@ -855,6 +857,7 @@ document.addEventListener("click",e=>{
   if(t.id==="geo"){locate();return}
   const vw=t.closest("[data-view]");if(vw){view=vw.dataset.view;reload();return}
   if(t.id==="moreAds"){reload(false);return}
+  const wh=t.closest("[data-who]");if(wh){who=wh.dataset.who;reload();return}
   const cat=t.closest("[data-cat]");if(cat){cur=cat.dataset.cat;q="";$("#q").value="";reload();window.scrollTo({top:0});return}
   const c=t.closest(".card");if(c){open(c.dataset.id);return}
   if(t.closest("[data-close]")){t.closest("dialog").close();return}
