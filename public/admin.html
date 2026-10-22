@@ -161,6 +161,19 @@ async function start(){
 function drawDealer(){
   if($("#dealOut"))return;
   $("#dealView").innerHTML=`<p class="sub" style="max-width:700px">Dealer ads are added, updated and hidden from the dealers' inventory file. Cars are matched by VIN (or stock number when there is no VIN), so a newer file updates the same ads, and a car missing from a dealer's part of the file is hidden as sold. <b>Preview</b> shows what would happen without changing anything.</p>
+    <h3 style="margin:18px 0 6px;font-size:17px">Dealers</h3>
+    <p class="sub" style="max-width:700px">Add each dealer once. The DealerID is the number in the feed's first column. Dealers never log in: a hidden placeholder account is created for them. Cars from a DealerID that is not listed here are ignored.</p>
+    <div id="dealerList" class="sub">Loadingâ¦</div>
+    <form id="addDealerForm" class="filters" style="align-items:flex-end" onsubmit="return false">
+      <label>Feed name<input id="adFeed" value="carsforsale.com" style="width:150px"></label>
+      <label>DealerID<input id="adCode" placeholder="1035978" style="width:110px"></label>
+      <label>Dealer name<input id="adName" placeholder="Caruso Classics" maxlength="40" style="width:190px"></label>
+      <label>Town<input id="adCity" placeholder="Cohasset" style="width:140px"></label>
+      <label>State<input id="adState" placeholder="MA" maxlength="2" style="width:60px;text-transform:uppercase"></label>
+      <label>Website<input id="adSite" placeholder="https://www.example.com/" style="width:230px"></label>
+      <button class="btn" id="addDealerBtn" type="button">Add dealer</button>
+    </form>
+    <p class="sub" id="addDealerMsg" role="status"></p>
     <h3 style="margin:18px 0 6px;font-size:17px">Upload a feed file</h3>
     <p class="sub" style="max-width:700px">Download the inventory file (CSV) from carsforsale.com or the dealer, choose it here, press <b>Preview file</b>, and if it looks right press <b>Import file</b>. A big file imports in several rounds by itself.</p>
     <div class="filters"><input type="file" id="feedFile" accept=".csv,.txt,text/csv,text/plain" aria-label="Feed file"><label style="flex-direction:row;align-items:center;gap:8px">Feed name <input id="feedName" value="carsforsale.com" style="width:170px"></label>
@@ -169,6 +182,36 @@ function drawDealer(){
     <p class="sub" style="max-width:700px">Only when a feed link has been set and switched on (see NOTES.md). The same link is read by the hourly schedule.</p>
     <div class="filters"><button class="btn ghost" id="dealPreview" type="button">Preview link (no changes)</button><button class="btn ghost" id="dealRun" type="button">Import from link now</button></div>
     <div id="dealOut" role="status"></div>`;
+  loadDealers();
+}
+// ---- Dealers: list and add (importer modes ?dealers=1 and ?add_dealer=1; needs step28_add_dealer.sql) ----
+async function importerCall(query,body){
+  const {data:{session}}=await sb.auth.getSession();
+  const res=await fetch(NEARBY_CONFIG.supabaseUrl+"/functions/v1/import-feed?"+query,{method:"POST",headers:{Authorization:"Bearer "+session.access_token,apikey:NEARBY_CONFIG.supabaseAnonKey,"Content-Type":"application/json"},body:body?JSON.stringify(body):undefined});
+  const raw=await res.text();let j=null;try{j=JSON.parse(raw)}catch(e){}
+  return {status:res.status,json:j,raw};
+}
+async function loadDealers(){
+  const box=$("#dealerList");if(!box)return;
+  try{
+    const r=await importerCall("dealers=1&source="+encodeURIComponent(($("#adFeed").value||"").trim()));
+    if(!r.json){box.textContent=r.status===404?"The importer is not installed yet.":"Could not read the dealer list.";return}
+    if(r.json.error){box.textContent=r.json.error;return}
+    const list=r.json.dealers||[];
+    box.innerHTML=list.length?`<div class="wrapx"><table style="min-width:420px"><thead><tr><th>DealerID</th><th>Dealer</th><th>Town</th></tr></thead><tbody>${list.map(d=>`<tr><td>${esc(d.code)}</td><td>${esc(d.name)}</td><td>${esc(d.city_name)}, ${esc(d.state)}</td></tr>`).join("")}</tbody></table></div>`:"No dealers added yet.";
+  }catch(e){box.textContent="Could not reach the importer."}
+}
+async function addDealer(){
+  const msg=$("#addDealerMsg"),v=id=>($("#"+id).value||"").trim();
+  msg.className="sub";msg.textContent="Addingâ¦";
+  try{
+    const r=await importerCall("add_dealer=1",{source:v("adFeed"),code:v("adCode"),name:v("adName"),city:v("adCity"),state:v("adState"),website:v("adSite")});
+    if(!r.json){msg.className="err";msg.textContent=r.status===404?"The importer is not installed yet (or is an older version).":"Unexpected answer: "+r.raw.slice(0,200);return}
+    if(r.json.error){msg.className="err";msg.textContent=r.json.error;return}
+    msg.className="ok";msg.textContent=r.json.message||"Added.";
+    ["adCode","adName","adCity","adState","adSite"].forEach(id=>{$("#"+id).value=""});
+    loadDealers();
+  }catch(e){msg.className="err";msg.textContent="Could not reach the importer ("+(e&&e.message||"error")+")."}
 }
 // Uploads the chosen file to the importer. A big file may need several rounds (the importer stops after about 100 seconds); we repeat until it is done.
 async function runUpload(dry){
@@ -440,6 +483,7 @@ document.addEventListener("click",e=>{
   if(t.id==="tRep"||t.closest("#tRep")){showTab("rep");return}
   if(t.id==="tDeal"){showTab("deal");return}
   if(t.id==="dealPreview"){runFeed(true);return}
+  if(t.id==="addDealerBtn"){addDealer();return}
   if(t.id==="upPreview"){runUpload(true);return}
   if(t.id==="upRun"){if(confirm("Import this file now? This adds, updates and hides the dealers' ads."))runUpload(false);return}
   if(t.id==="dealRun"){if(confirm("Run the import now? This adds, updates and hides the dealer's ads."))runFeed(false);return}

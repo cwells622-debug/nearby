@@ -314,6 +314,32 @@ Deno.serve(async (req) => {
   if (!(await isAllowed(req, supabase))) return json({ error: "not allowed" }, 401);
   const url = new URL(req.url), dry = url.searchParams.get("dry") === "1";
 
+  // LIST DEALERS (admin page): ?dealers=1&source=<feed name>
+  if (url.searchParams.get("dealers") === "1") {
+    const g = await supabase.rpc("feed_get_source", { p_name: url.searchParams.get("source") || "" });
+    if (g.error) return json({ error: "Run step23/step25 first (" + g.error.message + ")" }, 500);
+    if (!g.data) return json({ error: "There is no feed with that name." }, 400);
+    return json({ dealers: g.data.dealers || [] });
+  }
+
+  // ADD A DEALER (admin page form): creates a placeholder account nobody logs into, then links DealerID -> account -> town (step28_add_dealer.sql)
+  if (url.searchParams.get("add_dealer") === "1") {
+    let b; try { b = await req.json(); } catch (_) { return json({ error: "Bad request." }, 400); }
+    const clean = (v, n) => String(v || "").trim().slice(0, n);
+    const source = clean(b.source, 60), code = clean(b.code, 40), name = clean(b.name, 40), city = clean(b.city, 80), state = clean(b.state, 2).toUpperCase(), website = clean(b.website, 300);
+    let email = clean(b.email, 120).toLowerCase();
+    if (!source || !code || !name || !city || !/^[A-Z]{2}$/.test(state)) return json({ error: "Please fill in the feed name, DealerID, dealer name, town and two-letter state." }, 400);
+    if (!/^[A-Za-z0-9._-]+$/.test(code)) return json({ error: "The DealerID may only contain letters, numbers, dots, dashes and underscores." }, 400);
+    if (website && !/^https?:\/\/\S+$/i.test(website)) return json({ error: "The website must start with https://" }, 400);
+    if (!email) email = `dealer-${code.toLowerCase()}@chadads.com`;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json({ error: "That email address does not look right." }, 400);
+    const created = await supabase.auth.admin.createUser({ email, password: crypto.randomUUID() + crypto.randomUUID(), email_confirm: true, user_metadata: { display_name: name } });
+    if (created.error && !/already|registered|exists/i.test(created.error.message)) return json({ error: "Could not create the account: " + created.error.message }, 500);
+    const r = await supabase.rpc("feed_add_dealer", { p_source: source, p_code: code, p_email: email, p_name: name, p_city: city, p_state: state, p_website: website || null });
+    if (r.error) return json({ error: r.error.message }, 400);
+    return json({ ok: true, message: r.data });
+  }
+
   // CHECK MODE (the GitHub job): "is this the file you already imported?" ?check=1&source=<feed name>&stamp=<file name|time|size>
   if (url.searchParams.get("check") === "1") {
     const g = await supabase.rpc("feed_get_source", { p_name: url.searchParams.get("source") || "" });
