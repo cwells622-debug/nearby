@@ -115,24 +115,79 @@ def newest(files):
 
 
 # ---- the importer -------------------------------------------------------------------------------------------------------
-def call_importer(url, secret, query, body=None):
+def call_importer(url, secret, query, body=None, content_type="text/csv", soft=False):
     request = urllib.request.Request(
         url + "?" + urllib.parse.urlencode(query),
         data=body,
         method="POST",
-        headers={"x-import-secret": secret, "content-type": "text/csv"},
+        headers={"x-import-secret": secret, "content-type": content_type},
     )
     try:
         with urllib.request.urlopen(request, timeout=300) as response:
             return json.loads(response.read().decode("utf-8"))
     except urllib.error.HTTPError as e:
         detail = e.read().decode("utf-8", "replace")[:300]
+        if soft:  # small copies are optional: report the problem and carry on
+            try:
+                return json.loads(detail)
+            except ValueError:
+                return {"error": f"HTTP {e.code}: {detail}"}
         fail(f"The importer answered HTTP {e.code}: {detail}")
     except Exception as e:  # network trouble, bad JSON ...
+        if soft:
+            return {"error": str(e)}
         fail(f"Could not reach the importer: {e}")
 
 
-def main():
+# ---- small copies (thumbnails) for the photos the importer copied in ------------------------------------------------------
+def make_thumb(data):
+    """A JPEG about 600 px on its longest side (the same size the site makes for member uploads)."""
+    from PIL import Image, ImageOps
+
+    image = Image.open(io.BytesIO(data))
+    image = ImageOps.exif_transpose(image).convert("RGB")
+    image.thumbnail((600, 600), getattr(Image, "Resampling", Image).LANCZOS)
+    out = io.BytesIO()
+    image.save(out, "JPEG", quality=82, optimize=True)
+    return out.getvalue()
+
+
+def make_thumbnails(url, secret, max_rounds=15, batch=100):
+    """Asks the importer which dealer photos still lack a small copy, makes each one and sends it back."""
+    made = failed = 0
+    for round_number in range(1, max_rounds + 1):
+        listing = call_importer(url, secret, {"thumbs": "list", "limit": str(batch)}, soft=True)
+        if listing.get("error"):
+            print(f"::warning::Small copies skipped: {listing['error']}")
+            return
+        items = listing.get("items") or []
+        if not items:
+            break
+        done_this_round = 0
+        for item in items:
+            try:
+                with urllib.request.urlopen(urllib.request.Request(item["url"]), timeout=60) as response:
+                    original = response.read()
+                small = make_thumb(original)
+                answer = call_importer(url, secret, {"thumb": str(item["id"])}, small, "image/jpeg", soft=True)
+                if answer.get("ok"):
+                    made += 1
+                    done_this_round += 1
+                else:
+                    failed += 1
+                    print(f"Photo {item.get('id')}: {answer.get('error')}")
+            except SystemExit:
+                raise
+            except Exception as e:
+                failed += 1
+                print(f"Could not make a small copy for photo {item.get('id')}: {e}")
+        print(f"Small copies, round {round_number}: made {done_this_round} of {len(items)}.")
+        if done_this_round == 0:
+            break  # nothing worked this round (the same photos would come back): stop instead of looping
+    print(f"Small copies: {made} made, {failed} failed.")
+
+
+def import_file():
     protocol = env("FEED_PROTOCOL", "sftp").lower()
     host = env("FEED_HOST", required=True)
     port = env("FEED_PORT")
@@ -208,6 +263,12 @@ def main():
             return
         print(f"{deferred} cars are still waiting (the importer ran out of time). Continuing ...")
     print("::warning::Some cars are still waiting after 10 rounds. The next run will continue where this one stopped.")
+
+
+def main():
+    import_file()
+    if env("PREVIEW", "false").lower() != "true":
+        make_thumbnails(env("IMPORT_URL", DEFAULT_IMPORT_URL), env("IMPORT_SECRET", required=True))
 
 
 if __name__ == "__main__":

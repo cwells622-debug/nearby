@@ -159,6 +159,8 @@ export async function hashesFor(m, cityId) {
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 
 const BUCKET = "listing-photos", MAX_PHOTOS = 5, MAX_PHOTO_BYTES = 5 * 1024 * 1024, TIME_BUDGET_MS = 100_000;
+// Every photo can have a small copy next to it: "abc.jpg" -> "abc_t.jpg". MUST match thumbPath() in public/index.html and netlify/edge-lib/seo.js.
+const thumbOf = (p) => p.replace(/\.[A-Za-z0-9]+$/, "_t.jpg");
 // The admin page calls this function from chadads.com, so the browser first sends a harmless "preflight" (OPTIONS) check. It must be answered with these headers.
 // (This does not open anything up: every real request still needs the secret or an admin login.)
 const CORS = { "access-control-allow-origin": "*", "access-control-allow-headers": "authorization, apikey, content-type, x-client-info, x-import-secret", "access-control-allow-methods": "POST, OPTIONS" };
@@ -210,7 +212,7 @@ async function replacePhotos(supabase, sellerId, listingId, urls) {
   if (urls.length && !added.length) return { ok: false, count: 0 };   // none of the photos could be fetched: keep the old ones
   if (old.data && old.data.length) {
     await supabase.from("listing_photos").delete().eq("listing_id", listingId);
-    await supabase.storage.from(BUCKET).remove(old.data.map((r) => r.storage_path));
+    await supabase.storage.from(BUCKET).remove(old.data.flatMap((r) => [r.storage_path, thumbOf(r.storage_path)]));
   }
   if (added.length) await supabase.from("listing_photos").insert(added.map((storage_path, position) => ({ listing_id: listingId, storage_path, position })));
   return { ok: true, count: added.length };
@@ -330,6 +332,29 @@ Deno.serve(async (req) => {
   const supabase = createClient(Deno.env.get("SUPABASE_URL"), Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"));
   if (!(await isAllowed(req, supabase))) return json({ error: "not allowed" }, 401);
   const url = new URL(req.url), dry = url.searchParams.get("dry") === "1";
+
+  // THUMBNAILS (the GitHub job makes the small copies; photos copied in by this importer have none):
+  //   ?thumbs=list&limit=N   -> the photos of active dealer ads that still need a small copy
+  //   POST ?thumb=<photo id>  with the JPEG bytes as the body -> stores it next to the photo and notes it is done (step31_photo_thumbs.sql)
+  if (url.searchParams.get("thumbs") === "list") {
+    const lim = Math.min(Math.max(parseInt(url.searchParams.get("limit") || "100", 10) || 100, 1), 300);
+    const r = await supabase.rpc("feed_thumb_candidates", { p_limit: lim });
+    if (r.error) return json({ error: "Run step31_photo_thumbs.sql first (" + r.error.message + ")" }, 500);
+    const base = `${Deno.env.get("SUPABASE_URL")}/storage/v1/object/public/${BUCKET}/`;
+    return json({ items: (r.data || []).map((p) => ({ id: p.id, path: p.storage_path, url: base + p.storage_path.split("/").map(encodeURIComponent).join("/") })) });
+  }
+  const thumbId = parseInt(url.searchParams.get("thumb") || "", 10);
+  if (thumbId > 0) {
+    const bytes = new Uint8Array(await req.arrayBuffer());
+    if (bytes.length < 200 || bytes.length > 400 * 1024) return json({ error: "The small copy has an odd size." }, 400);
+    if (!(bytes[0] === 0xff && bytes[1] === 0xd8)) return json({ error: "The small copy must be a JPEG." }, 400);
+    const t = await supabase.rpc("feed_thumb_target", { p_id: thumbId });
+    if (t.error || !t.data) return json({ error: "That photo is not a dealer photo." }, 400);
+    const up = await supabase.storage.from(BUCKET).upload(thumbOf(t.data), bytes, { contentType: "image/jpeg", upsert: true });
+    if (up.error) return json({ error: "Could not store it: " + up.error.message }, 500);
+    await supabase.rpc("feed_thumb_done", { p_id: thumbId });
+    return json({ ok: true });
+  }
 
   // LIST DEALERS (admin page): ?dealers=1&source=<feed name>
   if (url.searchParams.get("dealers") === "1") {

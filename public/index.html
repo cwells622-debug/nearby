@@ -537,7 +537,7 @@ const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"
 const fmt=p=>p===0?"Free":"$"+p.toLocaleString();
 const pt=i=>i.pr?"Call for price":fmt(i.p);   // an ad's price as text: "Call for price", "Free" or "$5,000"
 const saved=new Set();
-const card=i=>`<div class="cw"><button class="card" data-id="${i.id}"><div class="ph" style="--h:${i.h}">${i.img?`<img src="${esc(i.thumb||i.img)}" data-full="${esc(i.img)}" ${FALLBACK} alt="${esc(i.t)}" loading="lazy" decoding="async" style="object-position:50% ${+i.coverY||50}%">`:`<span>${i.e}</span>`}${i.hasVideo?`<span class="vbadge">▶ Video</span>`:""}</div><div class="cb"><b>${pt(i)}</b><span class="t">${esc(i.t)}</span><span class="m">${where2(i)}</span></div></button><button class="heart" data-save="${i.id}" aria-pressed="${saved.has(i.id)}" aria-label="Save listing">${saved.has(i.id)?"♥":"♡"}</button></div>`;
+const card=i=>`<div class="cw"><button class="card" data-id="${i.id}"><div class="ph" style="--h:${i.h}">${i.img?`<img src="${esc(i.thumb||i.img)}" data-full="${esc(i.img)}" ${FALLBACK} alt="${esc(i.t)}" loading="lazy" decoding="async" style="object-position:50% ${+i.coverY||50}%">`:`<span>${i.e}</span>`}${i.hasVideo?`<span class="vbadge">▶ Video</span>`:""}</div><div class="cb"><b>${pt(i)}${i.sd?` <span class="pill dealer">Dealer</span>`:""}</b><span class="t">${esc(i.t)}</span><span class="m">${where2(i)}</span></div></button><button class="heart" data-save="${i.id}" aria-pressed="${saved.has(i.id)}" aria-label="Save listing">${saved.has(i.id)?"♥":"♡"}</button></div>`;
 // Saved ads live in the database (favorites table), private to the signed-in user.
 // The page keeps a copy in "saved" so hearts can be drawn instantly.
 function paintHearts(id,on){
