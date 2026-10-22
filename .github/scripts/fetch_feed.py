@@ -77,6 +77,18 @@ class DropBox:
                     found.append((name, int(facts.get("size", 0)), when))
         return found
 
+    def describe_root(self):
+        """A short list of what is at the top level of the drop box, to help pick the right FEED_FOLDER."""
+        try:
+            if self.protocol == "sftp":
+                names = self.sftp.listdir("/")
+            else:
+                self.ftp.cwd("/")
+                names = self.ftp.nlst()
+            return "At the top level of the drop box I can see: " + (", ".join(sorted(names)[:20]) or "(nothing)") + "."
+        except Exception as e:
+            return f"(I could not list the top level either: {e})"
+
     def read(self, name):
         if self.protocol == "sftp":
             with self.sftp.open(posixpath.join(self.folder, name), "rb") as handle:
@@ -133,7 +145,11 @@ def main():
 
     box = DropBox(protocol, host, port, user, password, folder)
     try:
-        latest = newest(box.files())
+        try:
+            listing = box.files()
+        except Exception as e:
+            fail(f"Could not open the folder {folder} in the drop box ({e}). {box.describe_root()} Set the GitHub secret FEED_FOLDER to one of those folders, or to / for the top level.")
+        latest = newest(listing)
         if not latest:
             print(f"No .csv or .txt file is in {folder} yet. Nothing to do.")
             return

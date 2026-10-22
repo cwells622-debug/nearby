@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   fetch:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - name: Is the job set up yet?
@@ -37,7 +37,7 @@ jobs:
         run: pip install paramiko==3.4.0
       - name: Fetch the newest file and send it to ChadAds
         if: steps.cfg.outputs.ready == 'true'
-        run: python .github/scripts/fetch_feed.py
+        run: python -W ignore .github/scripts/fetch_feed.py
         env:
           FEED_PROTOCOL: ${{ secrets.FEED_PROTOCOL }}
           FEED_HOST: ${{ secrets.FEED_HOST }}
