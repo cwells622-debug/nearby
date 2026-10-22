@@ -82,7 +82,7 @@ label input:focus,label select:focus,label textarea:focus{outline:none;border-co
   </div>
   <div class="row">
     <label>City<input name="loc" id="el" list="cl" required autocomplete="off"></label>
-    <label>Status<select name="s"><option value="active">Active (visible)</option><option value="sold">Sold (hidden from public)</option></select></label>
+    <label>Status<select name="s"><option value="active">Active (visible)</option><option value="sold">Sold (hidden from public)</option><option value="hidden">Hidden (no pictures yet)</option></select></label>
   </div>
   <datalist id="cl"></datalist>
   <label>Description<textarea name="d" rows="4" required maxlength="2000"></textarea></label>
@@ -141,7 +141,7 @@ async function start(){
   $("#main").innerHTML=`<div class="tabs"><button class="btn sm" id="tAds" type="button">Ads</button><button class="btn ghost sm" id="tRep" type="button">Reports <span class="pill" id="repN" hidden></span></button><button class="btn ghost sm" id="tDeal" type="button">Dealer feeds</button></div>
     <div id="adsView"><div class="filters">
       <input type="search" id="fq" placeholder="Search titles" aria-label="Search titles">
-      <select id="fs" aria-label="Status"><option value="">All statuses</option><option value="active">Active</option><option value="sold">Sold</option></select>
+      <select id="fs" aria-label="Status"><option value="">All statuses</option><option value="active">Active</option><option value="sold">Sold</option><option value="hidden">Hidden (no pictures)</option></select>
       <select id="fd" aria-label="Source"><option value="">User and demo ads</option><option value="user">User ads only</option><option value="demo">Demo ads only</option></select>
       <button class="btn ghost" id="fr">Refresh</button>
       <button class="btn ghost" id="fb" title="Makes the small copy of every photo that does not have one yet (needs step16_admin_photo_upload.sql)">Create small photo copies</button></div>
@@ -253,7 +253,7 @@ function totals(j,sums){
 function renderFeed(j,dry){
   const dealerCard=r=>r.error?`<div class="rep"><h3>${esc(r.dealer)}</h3><p class="err">${esc(r.error)}</p></div>`:
     `<div class="rep"><h3>${esc(r.dealer)} <span class="pill">DealerID ${esc(r.code)}</span> ${dry?'<span class="pill">preview, nothing changed</span>':""}</h3>
-      <p>${r.rows} cars in the file. ${dry?"Would add":"Added"} <b>${r.created}</b>, ${dry?"would update":"updated"} <b>${r.updated}</b>, unchanged <b>${r.unchanged}</b>, ${dry?"would hide":"hid"} <b>${r.sold}</b> that left the file${r.reactivated?`, brought back <b>${r.reactivated}</b>`:""}${r.deferred?`, <b>${r.deferred}</b> left for the next run (out of time)`:""}${r.skipped?`, skipped <b>${r.skipped}</b>`:""}.${!dry&&r.photosCopied?` Copied ${r.photosCopied} photos.`:""}</p>
+      <p>${r.rows} cars in the file. ${dry?"Would add":"Added"} <b>${r.created}</b>, ${dry?"would update":"updated"} <b>${r.updated}</b>, unchanged <b>${r.unchanged}</b>, ${dry?"would hide":"hid"} <b>${r.sold}</b> that left the file${r.reactivated?`, brought back <b>${r.reactivated}</b>`:""}${r.waiting?`, <b>${r.waiting}</b> waiting for pictures (not shown)`:""}${r.hidden?`, <b>${r.hidden}</b> hidden because they have no pictures`:""}${r.deferred?`, <b>${r.deferred}</b> left for the next run (out of time)`:""}${r.skipped?`, skipped <b>${r.skipped}</b>`:""}.${!dry&&r.photosCopied?` Copied ${r.photosCopied} photos.`:""}</p>
       ${(r.notes||[]).length?`<ul>${r.notes.slice(0,8).map(n=>`<li>${esc(n)}</li>`).join("")}</ul>`:""}
       ${(r.preview||[]).length?`<div class="wrapx"><table style="min-width:600px"><thead><tr><th>Action</th><th>Ad</th><th>Category</th><th>Price</th><th>Photos in file</th></tr></thead><tbody>${r.preview.map(p=>`<tr><td>${esc(p.action)}</td><td>${esc(p.title)}<div class="sub">VIN ${esc(p.vin)}</div></td><td>${esc(p.category)}</td><td>${esc(p.price)}</td><td>${p.photos}</td></tr>`).join("")}</tbody></table></div><p class="sub">First ${r.preview.length} cars shown.</p>`:""}</div>`;
   return j.results.map(s=>`<h2 style="margin:18px 0 8px;font-size:18px">${esc(s.source)} <span class="sub">${s.rows||0} cars in the file</span></h2>

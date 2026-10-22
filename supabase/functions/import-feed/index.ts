@@ -218,9 +218,9 @@ async function replacePhotos(supabase, sellerId, listingId, urls) {
 
 // One dealer's cars from the feed -> their ads.
 async function processDealer(supabase, dealerCfg, rows, catId, dry, deadline) {
-  const out = { dealer: dealerCfg.name, code: dealerCfg.code, rows: rows.length, created: 0, updated: 0, unchanged: 0, sold: 0, reactivated: 0, deferred: 0, skipped: 0, photosCopied: 0, notes: [], preview: [] };
+  const out = { dealer: dealerCfg.name, code: dealerCfg.code, rows: rows.length, created: 0, updated: 0, unchanged: 0, sold: 0, reactivated: 0, hidden: 0, waiting: 0, deferred: 0, skipped: 0, photosCopied: 0, notes: [], preview: [] };
   const dealer = { name: dealerCfg.name, place: `${dealerCfg.city_name}, ${dealerCfg.state}` };
-  const existing = await supabase.from("listings").select("id,external_id,status,feed_hash").eq("seller_id", dealerCfg.seller_id).not("external_id", "is", null).limit(5000);
+  const existing = await supabase.from("listings").select("id,external_id,status,feed_hash,listing_photos(id)").eq("seller_id", dealerCfg.seller_id).not("external_id", "is", null).limit(5000);
   if (existing.error) { out.notes.push("Could not read existing ads: " + existing.error.message); return out; }
   const byVin = new Map((existing.data || []).map((l) => [l.external_id, l]));
   const activeNow = (existing.data || []).filter((l) => l.status === "active").length;
@@ -229,6 +229,7 @@ async function processDealer(supabase, dealerCfg, rows, catId, dry, deadline) {
   if (!rows.length) { out.notes.push("This dealer has no cars in the feed right now, so nothing was changed."); return out; }
   if (activeNow >= 10 && rows.length < activeNow * 0.5) { out.notes.push(`The feed has ${rows.length} cars for this dealer but ${activeNow} are listed, so nothing was changed (looks wrong).`); return out; }
 
+  // RULE: a dealer car with no pictures is not shown. It waits (status "hidden", see step29_hidden_status.sql) until the feed has photos for it.
   const seen = new Set();
   for (const row of rows) {
     const m = mapRow(row, dealer);
@@ -237,32 +238,46 @@ async function processDealer(supabase, dealerCfg, rows, catId, dry, deadline) {
     seen.add(m.external_id);
     const h = await hashesFor(m, dealerCfg.city_id);
     const have = byVin.get(m.external_id);
-    if (out.preview.length < 6) out.preview.push({ vin: m.external_id, category: m.category, title: m.title, price: m.price_on_request ? "Call for price" : m.price, photos: m.photos.length, action: !have ? "create" : have.feed_hash === h.combined ? "unchanged" : "update", description: m.description.slice(0, 400) });
+    const nPhotos = have ? (have.listing_photos || []).length : 0;
+    if (out.preview.length < 6) out.preview.push({ vin: m.external_id, category: m.category, title: m.title, price: m.price_on_request ? "Call for price" : m.price, photos: m.photos.length, action: !m.photos.length && nPhotos === 0 ? "wait (no photos)" : !have ? "create" : have.feed_hash === h.combined && nPhotos > 0 ? "unchanged" : "update", description: m.description.slice(0, 400) });
     const fields = { category_id: catId[m.category], city_id: dealerCfg.city_id, title: m.title, description: m.description, price: m.price, price_on_request: m.price_on_request, status: "active", feed_hash: h.combined };
 
     if (!have) {
+      if (!m.photos.length) { out.waiting++; continue; }          // no pictures yet: do not publish
       if (dry) { out.created++; continue; }
       if (Date.now() > deadline) { out.deferred++; continue; }   // out of time: the next run picks this car up
       const ins = await supabase.from("listings").insert({ ...fields, seller_id: dealerCfg.seller_id, external_id: m.external_id, is_demo: false }).select("id").single();
       if (ins.error) { out.skipped++; out.notes.push(`${m.external_id}: ${ins.error.message}`); continue; }
       const ph = await replacePhotos(supabase, dealerCfg.seller_id, ins.data.id, m.photos);
-      // The feed had photo links but none could be copied (a hiccup): do not remember the photo fingerprint, so the next run tries again.
-      if (m.photos.length && !ph.ok) await supabase.from("listings").update({ feed_hash: h.fields + "|" }).eq("id", ins.data.id);
-      out.created++; out.photosCopied += ph.count;
+      if (ph.ok) { out.created++; out.photosCopied += ph.count; }
+      else {
+        // The feed has photo links but none could be copied right now: keep the car hidden and try again on the next run.
+        await supabase.from("listings").update({ status: "hidden", feed_hash: h.fields + "|" }).eq("id", ins.data.id);
+        out.waiting++;
+      }
     } else {
+      if (!m.photos.length && nPhotos === 0) {                    // no pictures at all: do not show it
+        if (have.status === "active") { out.hidden++; if (!dry) await supabase.from("listings").update({ status: "hidden" }).eq("id", have.id); }
+        else out.waiting++;
+        continue;
+      }
       const wasHash = (have.feed_hash || "").split("|"), same = have.feed_hash === h.combined;
-      if (same && have.status === "active") { out.unchanged++; continue; }
+      const needPhotos = m.photos.length > 0 && (nPhotos === 0 || wasHash[1] !== h.photos);
+      if (same && have.status === "active" && !(m.photos.length && nPhotos === 0)) { out.unchanged++; continue; }
       if (dry) { out.updated++; continue; }
       if (Date.now() > deadline) { out.deferred++; continue; }
       let photoNote = null;
-      if (wasHash[1] !== h.photos) {
+      if (needPhotos) {
         const ph = await replacePhotos(supabase, dealerCfg.seller_id, have.id, m.photos);
         out.photosCopied += ph.count;
         if (!ph.ok) { fields.feed_hash = h.fields + "|" + (wasHash[1] || ""); photoNote = "photos kept"; }
+        if (nPhotos === 0 && ph.count === 0) fields.status = "hidden";   // still no pictures
       }
       const up = await supabase.from("listings").update(fields).eq("id", have.id);
       if (up.error) { out.skipped++; out.notes.push(`${m.external_id}: ${up.error.message}`); continue; }
-      if (have.status !== "active") out.reactivated++; else out.updated++;
+      if (fields.status === "hidden") out.waiting++;
+      else if (have.status !== "active") out.reactivated++;
+      else out.updated++;
       if (photoNote) out.notes.push(`${m.external_id}: ${photoNote}`);
     }
   }
@@ -392,7 +407,7 @@ Deno.serve(async (req) => {
 
 // Writes a one-line summary of a run next to the feed, so you can see it later (select name, last_run_at, last_result from private.feed_sources).
 async function saveResult(supabase, src, r, prefix) {
-  const per = (r.dealers || []).map((d) => d.error ? `${d.dealer}: ERROR ${d.error}` : `${d.dealer}: ${d.rows} cars, +${d.created} ~${d.updated} =${d.unchanged} sold ${d.sold} back ${d.reactivated} deferred ${d.deferred} skipped ${d.skipped}${d.notes.length ? " (" + d.notes.slice(0, 3).join(" | ") + ")" : ""}`);
+  const per = (r.dealers || []).map((d) => d.error ? `${d.dealer}: ERROR ${d.error}` : `${d.dealer}: ${d.rows} cars, +${d.created} ~${d.updated} =${d.unchanged} sold ${d.sold} back ${d.reactivated} hidden-no-photos ${d.hidden || 0} waiting-for-photos ${d.waiting || 0} deferred ${d.deferred} skipped ${d.skipped}${d.notes.length ? " (" + d.notes.slice(0, 3).join(" | ") + ")" : ""}`);
   const unk = (r.unknown || []).length ? ` UNKNOWN dealers in file: ${r.unknown.map((u) => u.code + " (" + u.cars + ")").join(", ")}.` : "";
   await supabase.rpc("feed_save_result", { p_id: src.id, p_result: prefix + (r.error ? "ERROR: " + r.error : per.join(" ; ")) + unk + (r.notes || []).join(" ") });
 }

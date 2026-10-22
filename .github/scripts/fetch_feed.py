@@ -198,7 +198,7 @@ def main():
             print(
                 f"{'PREVIEW ' if preview else ''}Round {round_number} - {d.get('dealer')}: {d.get('rows')} cars in the file; "
                 f"{'would add' if preview else 'added'} {d.get('created')}, updated {d.get('updated')}, unchanged {d.get('unchanged')}, "
-                f"{'would hide' if preview else 'hid'} {d.get('sold')}, skipped {d.get('skipped')}, still waiting {d.get('deferred')}"
+                f"{'would hide' if preview else 'hid'} {d.get('sold')}, skipped {d.get('skipped')}, no pictures yet (not shown) {d.get('waiting', 0) + d.get('hidden', 0)}, still waiting {d.get('deferred')}"
             )
         if preview:
             print("PREVIEW ONLY: nothing was changed. Run the workflow again without Preview ticked to import.")
