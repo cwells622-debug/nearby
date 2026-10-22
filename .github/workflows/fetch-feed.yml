@@ -6,7 +6,12 @@ name: Fetch dealer feed
 on:
   schedule:
     - cron: "17 */3 * * *"   # at 17 minutes past every third hour (GitHub may start it a few minutes late)
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      preview:
+        description: "Preview only: read the newest file and report what WOULD happen, change nothing"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -47,3 +52,4 @@ jobs:
           FEED_FOLDER: ${{ secrets.FEED_FOLDER }}
           FEED_NAME: ${{ secrets.FEED_NAME }}
           IMPORT_SECRET: ${{ secrets.IMPORT_SECRET }}
+          PREVIEW: ${{ inputs.preview }}

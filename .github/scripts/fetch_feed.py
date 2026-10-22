@@ -142,6 +142,7 @@ def main():
     feed = env("FEED_NAME", "carsforsale.com")
     url = env("IMPORT_URL", DEFAULT_IMPORT_URL)
     secret = env("IMPORT_SECRET", required=True)
+    preview = env("PREVIEW", "false").lower() == "true"   # "Run workflow" with Preview ticked: report only, change nothing
 
     box = DropBox(protocol, host, port, user, password, folder)
     try:
@@ -162,10 +163,13 @@ def main():
         if size > MAX_BYTES:
             fail(f"{name} is over 25 MB.")
 
-        checked = call_importer(url, secret, {"check": "1", "source": feed, "stamp": stamp})
-        if checked.get("error"):
-            fail(checked["error"])
-        if not checked.get("changed"):
+        if preview:
+            print("PREVIEW ONLY: reading the newest file and reporting what would happen. Nothing will be changed.")
+        else:
+            checked = call_importer(url, secret, {"check": "1", "source": feed, "stamp": stamp})
+            if checked.get("error"):
+                fail(checked["error"])
+        if not preview and not checked.get("changed"):
             print("This is the same file as last time. Nothing to do.")
             return
 
@@ -175,7 +179,10 @@ def main():
 
     print(f"Downloaded {len(data):,} bytes. Sending it to the importer ...")
     for round_number in range(1, 11):
-        answer = call_importer(url, secret, {"upload": "1", "source": feed, "stamp": stamp, "filename": name}, data)
+        query = {"upload": "1", "source": feed, "stamp": stamp, "filename": name}
+        if preview:
+            query["dry"] = "1"
+        answer = call_importer(url, secret, query, data)
         if answer.get("error"):
             fail(answer["error"])
         result = (answer.get("results") or [{}])[0]
@@ -189,10 +196,13 @@ def main():
                 fail(f"{d.get('dealer')}: {d['error']}")
             deferred += d.get("deferred", 0)
             print(
-                f"Round {round_number} - {d.get('dealer')}: {d.get('rows')} cars in the file; "
-                f"added {d.get('created')}, updated {d.get('updated')}, unchanged {d.get('unchanged')}, "
-                f"hid {d.get('sold')}, skipped {d.get('skipped')}, still waiting {d.get('deferred')}"
+                f"{'PREVIEW ' if preview else ''}Round {round_number} - {d.get('dealer')}: {d.get('rows')} cars in the file; "
+                f"{'would add' if preview else 'added'} {d.get('created')}, updated {d.get('updated')}, unchanged {d.get('unchanged')}, "
+                f"{'would hide' if preview else 'hid'} {d.get('sold')}, skipped {d.get('skipped')}, still waiting {d.get('deferred')}"
             )
+        if preview:
+            print("PREVIEW ONLY: nothing was changed. Run the workflow again without Preview ticked to import.")
+            return
         if not deferred:
             print("Done. The whole file has been imported.")
             return
