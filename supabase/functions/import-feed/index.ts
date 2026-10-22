@@ -246,6 +246,8 @@ async function processDealer(supabase, dealerCfg, rows, catId, dry, deadline) {
       const ins = await supabase.from("listings").insert({ ...fields, seller_id: dealerCfg.seller_id, external_id: m.external_id, is_demo: false }).select("id").single();
       if (ins.error) { out.skipped++; out.notes.push(`${m.external_id}: ${ins.error.message}`); continue; }
       const ph = await replacePhotos(supabase, dealerCfg.seller_id, ins.data.id, m.photos);
+      // The feed had photo links but none could be copied (a hiccup): do not remember the photo fingerprint, so the next run tries again.
+      if (m.photos.length && !ph.ok) await supabase.from("listings").update({ feed_hash: h.fields + "|" }).eq("id", ins.data.id);
       out.created++; out.photosCopied += ph.count;
     } else {
       const wasHash = (have.feed_hash || "").split("|"), same = have.feed_hash === h.combined;
