@@ -248,6 +248,8 @@ dialog .dlg.msgs{padding:0;gap:0}
 .alertrow input{width:auto;padding:0;margin:0}
 .pill{display:inline-block;border-radius:999px;padding:1px 9px;font-size:12px;font-weight:600;background:var(--soft);color:var(--ink);vertical-align:middle}
 .pill.dealer{background:var(--ink);color:var(--bg)}
+.pill.feat{background:var(--acc);color:var(--acc-ink)}
+.cw.feat .ph{box-shadow:0 0 0 3px var(--acc)}
 .rep{margin:2px 0 0;text-align:center}
 .linkbtn{border:0;background:none;color:var(--mute);text-decoration:underline;padding:4px;font-size:13px;cursor:pointer}
 .igprev{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:4px}
@@ -383,7 +385,7 @@ const PAGE=48;               // ads per page
 const cache={};              // id -> ad: every ad this visitor has loaded so far (the pop-ups, messages and editing look ads up here)
 let who=["private","dealer"].includes(new URLSearchParams(location.search).get("who"))?new URLSearchParams(location.search).get("who"):"all";   // whose ads to show: everyone, private sellers or dealers (?who=dealer opens that view)
 let catByIdG={},viewIds=[],totalAds=0,catCounts={},allCount=0,loadingAds=false,reqSeq=0,qTimer=0;
-const AD_SELECT="id,seller_id,category_id,city_id,title,description,price,price_on_request,link,video_link,cover_y,created_at,cities(id,name,state,lat,lng,regions),profiles!seller_id(display_name,created_at,is_dealer,dealer_website),listing_photos(id,storage_path,position),listing_videos(id,storage_path)";
+const AD_SELECT="id,seller_id,category_id,city_id,title,description,price,price_on_request,featured,link,video_link,cover_y,created_at,cities(id,name,state,lat,lng,regions),profiles!seller_id(display_name,created_at,is_dealer,dealer_website),listing_photos(id,storage_path,position),listing_videos(id,storage_path)";
 // One database row -> the object the page works with.
 function mapAd(r){
   const c=catByIdG[r.category_id];if(!c||!c[4]||!r.cities)return null;
@@ -396,7 +398,7 @@ function mapAd(r){
   const vpath=(r.listing_videos&&r.listing_videos[0])?r.listing_videos[0].storage_path:null;
   const vurl=vpath?sb.storage.from(VBUCKET).getPublicUrl(vpath).data.publicUrl:null,emb=videoEmbed(r.video_link);
   const media=[...imgs.map((u,k)=>({t:"img",u,th:thumbs[k],alt:r.title})),...(vurl?[{t:"vid",u:vurl}]:[]),...(emb?[{t:"emb",u:emb}]:[])];
-  return{id:r.id,paths,imgs,img,thumb,coverY:r.cover_y,media,vpath,vlink:r.video_link,hasVideo:!!(vurl||emb),link:r.link,t:r.title,p:r.price,pr:!!r.price_on_request,c:c[0],loc,reg:r.cities.regions||[],d:r.description,ago:agoText(hrs),hrs,e:c[1],h:c[2],
+  return{id:r.id,paths,imgs,img,thumb,coverY:r.cover_y,media,vpath,vlink:r.video_link,hasVideo:!!(vurl||emb),link:r.link,t:r.title,p:r.price,pr:!!r.price_on_request,ft:!!r.featured,c:c[0],loc,reg:r.cities.regions||[],d:r.description,ago:agoText(hrs),hrs,e:c[1],h:c[2],
     sid:r.seller_id,sn:r.profiles&&r.profiles.display_name,sd:!!(r.profiles&&r.profiles.is_dealer),sw:r.profiles&&r.profiles.dealer_website,sy:r.profiles&&new Date(r.profiles.created_at).getFullYear()};
 }
 // Loads these ads (with photos, seller and town) into the cache. Returns the ads that were found.
@@ -537,7 +539,7 @@ const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"
 const fmt=p=>p===0?"Free":"$"+p.toLocaleString();
 const pt=i=>i.pr?"Call for price":fmt(i.p);   // an ad's price as text: "Call for price", "Free" or "$5,000"
 const saved=new Set();
-const card=i=>`<div class="cw"><button class="card" data-id="${i.id}"><div class="ph" style="--h:${i.h}">${i.img?`<img src="${esc(i.thumb||i.img)}" data-full="${esc(i.img)}" ${FALLBACK} alt="${esc(i.t)}" loading="lazy" decoding="async" style="object-position:50% ${+i.coverY||50}%">`:`<span>${i.e}</span>`}${i.hasVideo?`<span class="vbadge">▶ Video</span>`:""}</div><div class="cb"><b>${pt(i)}${i.sd?` <span class="pill dealer">Dealer</span>`:""}</b><span class="t">${esc(i.t)}</span><span class="m">${where2(i)}</span></div></button><button class="heart" data-save="${i.id}" aria-pressed="${saved.has(i.id)}" aria-label="Save listing">${saved.has(i.id)?"♥":"♡"}</button></div>`;
+const card=i=>`<div class="cw${i.ft?" feat":""}"><button class="card" data-id="${i.id}"><div class="ph" style="--h:${i.h}">${i.img?`<img src="${esc(i.thumb||i.img)}" data-full="${esc(i.img)}" ${FALLBACK} alt="${esc(i.t)}" loading="lazy" decoding="async" style="object-position:50% ${+i.coverY||50}%">`:`<span>${i.e}</span>`}${i.hasVideo?`<span class="vbadge">▶ Video</span>`:""}</div><div class="cb"><b>${pt(i)}${i.ft?` <span class="pill feat">★ Featured</span>`:""}${i.sd?` <span class="pill dealer">Dealer</span>`:""}</b><span class="t">${esc(i.t)}</span><span class="m">${where2(i)}</span></div></button><button class="heart" data-save="${i.id}" aria-pressed="${saved.has(i.id)}" aria-label="Save listing">${saved.has(i.id)?"♥":"♡"}</button></div>`;
 // Saved ads live in the database (favorites table), private to the signed-in user.
 // The page keeps a copy in "saved" so hearts can be drawn instantly.
 function paintHearts(id,on){
@@ -777,7 +779,7 @@ function open(id){
     ${n>1?`<div class="gthumbs">${i.media.map((m,k)=>`<button type="button" data-gi="${k}" aria-pressed="${k===0}" aria-label="Show ${m.t==="img"?"photo":"video"} ${k+1}">${m.t==="img"?`<img src="${esc(m.th||m.u)}" data-full="${esc(m.u)}" ${FALLBACK} alt="">`:`<span class="vt">▶</span>`}</button>`).join("")}</div>`:""}
   </div>
   <div class="adi">
-    <span class="tag">${esc(i.c)}</span>
+    <span class="tag">${esc(i.c)}</span>${i.ft?` <span class="pill feat">★ Featured</span>`:""}
     <div class="prow"><div class="price">${pt(i)}</div><button class="savebtn" data-save="${i.id}" aria-pressed="${saved.has(i.id)}">${saved.has(i.id)?"♥ Saved":"♡ Save"}</button></div>
     <h2 class="adt">${esc(i.t)}</h2>
     <div class="m" style="color:var(--mute)">${where2(i)} · Posted ${i.ago==="Just now"?"just now":i.ago+" ago"}</div>

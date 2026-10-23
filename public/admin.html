@@ -83,6 +83,7 @@ label input:focus,label select:focus,label textarea:focus{outline:none;border-co
   <div class="row">
     <label>City<input name="loc" id="el" list="cl" required autocomplete="off"></label>
     <label>Status<select name="s"><option value="active">Active (visible)</option><option value="sold">Sold (hidden from public)</option><option value="hidden">Hidden (no pictures yet)</option></select></label>
+    <label style="flex-direction:row;align-items:center;gap:8px"><input type="checkbox" name="ft" id="eft" style="width:auto;padding:0;margin:0"> Featured ad (premium placement: shown first, with a Featured badge)</label>
   </div>
   <datalist id="cl"></datalist>
   <label>Description<textarea name="d" rows="4" required maxlength="2000"></textarea></label>
@@ -143,6 +144,7 @@ async function start(){
       <input type="search" id="fq" placeholder="Search titles" aria-label="Search titles">
       <select id="fs" aria-label="Status"><option value="">All statuses</option><option value="active">Active</option><option value="sold">Sold</option><option value="hidden">Hidden (no pictures)</option></select>
       <select id="fd" aria-label="Source"><option value="">User and demo ads</option><option value="user">User ads only</option><option value="demo">Demo ads only</option></select>
+      <select id="ff" aria-label="Featured"><option value="">All ads</option><option value="1">Featured ads only</option></select>
       <button class="btn ghost" id="fr">Refresh</button>
       <button class="btn ghost" id="fb" title="Makes the small copy of every photo that does not have one yet (needs step16_admin_photo_upload.sql)">Create small photo copies</button></div>
     <p class="sub" id="fbMsg" role="status"></p>
@@ -321,12 +323,13 @@ document.addEventListener("click",e=>{if(e.target.id==="repRefresh")loadReports(
 async function load(reset){
   if(busy)return;busy=true;
   if(reset){from=0;rows=[]}
-  let q=sb.from("listings").select("id,seller_id,title,description,price,price_on_request,link,status,is_demo,created_at,category_id,city_id,video_link,categories(name),cities(name,state),profiles!seller_id(display_name),listing_photos(id,storage_path,position),listing_videos(id,storage_path)")
+  let q=sb.from("listings").select("id,seller_id,title,description,price,price_on_request,featured,link,status,is_demo,created_at,category_id,city_id,video_link,categories(name),cities(name,state),profiles!seller_id(display_name),listing_photos(id,storage_path,position),listing_videos(id,storage_path)")
     .order("created_at",{ascending:false}).order("position",{referencedTable:"listing_photos"}).range(from,from+PAGE-1);
   const text=($("#fq").value||"").replace(/[%_*,()]/g," ").trim(),st=$("#fs").value,src=$("#fd").value;
   if(text)q=q.ilike("title","%"+text+"%");
   if(st)q=q.eq("status",st);
   if(src)q=q.eq("is_demo",src==="demo");
+  if($("#ff").value)q=q.eq("featured",true);
   const {data,error}=await q;busy=false;
   if(error){$("#list").innerHTML=`<div class="msg"><h2>Couldn't load ads</h2><p>${esc(error.message)}</p></div>`;return}
   rows=rows.concat(data);more=data.length===PAGE;from+=data.length;draw();
@@ -342,7 +345,7 @@ function draw(){
   rows.map(r=>{
     const ph=(r.listing_photos||[])[0],when=new Date(r.created_at).toLocaleDateString(undefined,{year:"numeric",month:"short",day:"numeric"});
     return `<tr><td class="th">${ph?`<img src="${esc(photoUrl(thumbPath(ph.storage_path)))}" data-full="${esc(photoUrl(ph.storage_path))}" onerror="this.onerror=null;this.src=this.dataset.full" alt="" loading="lazy">`:`<span>none</span>`}</td>
-      <td><div class="ttl" title="${esc(r.title)}">${esc(r.title)}</div><div class="sub">#${r.id}${(r.listing_photos||[]).length>1?` · ${r.listing_photos.length} photos`:""}${(r.listing_videos||[]).length?" · video":""}${r.video_link?" · video link":""}</div></td>
+      <td><div class="ttl" title="${esc(r.title)}">${r.featured?`<span class="pill" style="background:var(--acc);color:var(--acc-ink);margin-right:6px">★ Featured</span>`:""}${esc(r.title)}</div><div class="sub">#${r.id}${(r.listing_photos||[]).length>1?` · ${r.listing_photos.length} photos`:""}${(r.listing_videos||[]).length?" · video":""}${r.video_link?" · video link":""}</div></td>
       <td>${r.is_demo?`<span class="pill demo">Demo</span>`:esc(r.profiles?r.profiles.display_name:"(unknown)")}</td>
       <td>${esc(r.categories?r.categories.name:"")}</td>
       <td>${esc(r.cities?r.cities.name+", "+r.cities.state:"")}</td>
@@ -388,7 +391,7 @@ async function openEdit(id){
   $("#eTitle").textContent="Edit ad #"+r.id+(r.is_demo?" (demo)":"");
   e.t.value=r.title;e.c.value=r.category_id;e.p.value=r.price;e.por.checked=!!r.price_on_request;e.p.disabled=e.por.checked;e.loc.value=r.cities?r.cities.name+", "+r.cities.state:"";
   if(r.cities)cityIds[r.cities.name+", "+r.cities.state]=r.city_id;
-  e.s.value=r.status;e.d.value=r.description;e.link.value=r.link||"";e.vlink.value=r.video_link||"";
+  e.s.value=r.status;e.ft.checked=!!r.featured;e.d.value=r.description;e.link.value=r.link||"";e.vlink.value=r.video_link||"";
   $("#eVidRow").hidden=!(r.listing_videos||[]).length;e.rmv.checked=false;
   $("#eErr").textContent="";
   $("#ePhotos").innerHTML=(r.listing_photos||[]).map(p=>`<label><img src="${esc(photoUrl(p.storage_path))}" alt=""><span><input type="checkbox" name="rm" value="${esc(p.storage_path)}"> Remove</span></label>`).join("");
@@ -409,7 +412,7 @@ $("#fe").addEventListener("submit",async ev=>{
   const removed=[...ev.target.querySelectorAll('[name=rm]:checked')].map(x=>x.value);
   const go=$("#eGo");go.disabled=true;
   const {data,error}=await sb.from("listings").update({title:e.t.value.trim(),category_id:+e.c.value,city_id:cityId,
-    price:e.por.checked?0:Math.max(0,Math.round(+e.p.value||0)),price_on_request:e.por.checked,status:e.s.value,description:e.d.value.trim(),link,video_link:vl||null}).eq("id",editing.id).select("id");
+    price:e.por.checked?0:Math.max(0,Math.round(+e.p.value||0)),price_on_request:e.por.checked,featured:e.ft.checked,status:e.s.value,description:e.d.value.trim(),link,video_link:vl||null}).eq("id",editing.id).select("id");
   if(error||!data.length){go.disabled=false;err.textContent=error?error.message:"Not saved. Are you still an admin?";return}
   if(removed.length){
     const d=await sb.from("listing_photos").delete().eq("listing_id",editing.id).in("storage_path",removed);
