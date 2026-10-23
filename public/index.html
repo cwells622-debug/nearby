@@ -660,17 +660,11 @@ function igCover(i,photo,logo){
   drawStripe(ctx,IG_H-16,16);
   return c;
 }
-// Other slides: the whole photo on a dark backdrop, with a thin ChadAds strip at the bottom.
-function igPhoto(i,photo,logo){
+// Other slides: just the whole photo on a dark blue background (no ChadAds branding; the first slide carries it).
+function igPhoto(i,photo){
   const c=document.createElement("canvas");c.width=IG_W;c.height=IG_H;const ctx=c.getContext("2d");
-  ctx.fillStyle="#1e1c19";ctx.fillRect(0,0,IG_W,IG_H);
-  ctx.globalAlpha=.3;drawCover(ctx,photo,0,0,IG_W,IG_H,50);ctx.globalAlpha=1;
-  drawContain(ctx,photo,0,0,IG_W,IG_H-130);
-  ctx.fillStyle="#fbf7ef";ctx.fillRect(0,IG_H-130,IG_W,130);
-  if(logo){const lh=70,lw=logo.width*lh/logo.height;ctx.drawImage(logo,40,IG_H-130+30,lw,lh)}
-  ctx.textBaseline="middle";ctx.fillStyle="#e95e0d";ctx.textAlign="right";fitText(ctx,pt(i),"800",48,28,420);ctx.fillText(pt(i),IG_W-40,IG_H-130+65);
-  ctx.textAlign="left";ctx.textBaseline="alphabetic";
-  drawStripe(ctx,IG_H-12,12);
+  ctx.fillStyle="#0f2a44";ctx.fillRect(0,0,IG_W,IG_H);
+  drawContain(ctx,photo,0,0,IG_W,IG_H);
   return c;
 }
 function igCaption(i){
@@ -692,7 +686,7 @@ async function openIg(id){
     const logo=await loadImg("/logo-sm.webp").catch(()=>null);
     const photos=[];
     for(const src of (i.imgs||[]).slice(0,10)){try{photos.push(await loadImg(src))}catch(e){}}
-    const canvases=[igCover(i,photos[0]||null,logo),...photos.slice(1).map(p=>igPhoto(i,p,logo))];
+    const canvases=[igCover(i,photos[0]||null,logo),...photos.slice(1).map(p=>igPhoto(i,p))];
     const blobs=await Promise.all(canvases.map(c=>new Promise((ok,no)=>c.toBlob(b=>b?ok(b):no(new Error("blob")),"image/jpeg",.92))));
     if(igId!==id)return;
     igFiles=blobs.map((b,n)=>new File([b],"chadads-ad-"+i.id+"-"+(n+1)+".jpg",{type:"image/jpeg"}));

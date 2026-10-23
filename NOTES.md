@@ -204,3 +204,6 @@
 
 ## "Call for price" display
 - A "Call for price" ad shows NO price line anywhere: cards (only the title and town), the Instagram post and caption, the share text, the For Sale sign, the messages header. In the ad pop-up the words "Call for price" are plain text right after the description. (`pt()` in `public/index.html` returns an empty string for these ads; `public/sign.html` hides the price.) Search-engine text (`netlify/edge-lib/seo.js`) still says "Call for price" on purpose.
+
+## Instagram post pictures
+- Slide 1 (cover) keeps the ChadAds look (price, title, town, logo, colour stripe). Slides 2 and up are only the whole photo on a dark blue background (`#0f2a44`), with no logo, price or stripe (`igPhoto()` in `public/index.html`).
