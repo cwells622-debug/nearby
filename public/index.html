@@ -779,10 +779,11 @@ function open(id){
   </div>
   <div class="adi">
     <span class="tag">${esc(i.c)}</span>${i.ft?` <span class="pill feat">★ Featured</span>`:""}
-    <div class="prow"><div class="price">${pt(i)}</div><button class="savebtn" data-save="${i.id}" aria-pressed="${saved.has(i.id)}">${saved.has(i.id)?"♥ Saved":"♡ Save"}</button></div>
+    <div class="prow">${i.pr?`<span></span>`:`<div class="price">${pt(i)}</div>`}<button class="savebtn" data-save="${i.id}" aria-pressed="${saved.has(i.id)}">${saved.has(i.id)?"♥ Saved":"♡ Save"}</button></div>
     <h2 class="adt">${esc(i.t)}</h2>
     <div class="m" style="color:var(--mute)">${where2(i)} · Posted ${i.ago==="Just now"?"just now":i.ago+" ago"}</div>
     <p class="d">${esc(i.d)}</p>
+    ${i.pr?`<p class="d">Call for price</p>`:""}
     ${safeUrl(i.link)?`<p style="margin:0"><a href="${esc(safeUrl(i.link))}" data-ext target="_blank" rel="noopener noreferrer nofollow ugc" style="color:var(--link);font-weight:600">🔗 ${esc(new URL(i.link).hostname)}</a></p>`:""}
     <button class="seller sbtn" data-prof="${i.id}"><div class="av">${esc(s.n[0])}</div><span><b>${esc(s.n)}</b>${i.sd?` <span class="pill dealer">Dealer</span>`:""}<br>${rate(s)} · View profile</span></button>
     ${mine?(i.sid?`<div class="ctas"><button class="btn lg" data-edit="${i.id}">Edit this ad</button><button class="btn ghost lg" data-del="${i.id}">Delete this ad</button></div>`:""):
