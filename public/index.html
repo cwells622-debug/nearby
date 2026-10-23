@@ -613,8 +613,6 @@ function shareHtml(i){
   return `<div class="share"><span class="sh">Share this ad</span><div class="sharerow">
     ${navigator.share?`<button class="sico" type="button" data-nshare="${i.id}" aria-label="Share" title="Share">${ICON.share}</button>`:""}
     ${link("https://www.facebook.com/sharer/sharer.php?u="+u,"Share on Facebook",ICON.fb,1)}
-    ${link("https://twitter.com/intent/tweet?url="+u+"&text="+t,"Share on X",ICON.x,1)}
-    ${link("https://wa.me/?text="+encodeURIComponent(txt+" "+url),"Share on WhatsApp",ICON.wa,1)}
     ${link("mailto:?subject="+t+"&body="+encodeURIComponent(txt+"\n"+url),"Share by email",ICON.mail,0)}
     <button class="sico" type="button" data-ig="${i.id}" aria-label="Make an Instagram post" title="Make an Instagram post">${ICON.ig}</button>
     <a class="sico" href="/sign?ad=${i.id}" target="_blank" rel="noopener" aria-label="Print a For Sale sign with a QR code" title="Print a For Sale sign with a QR code">${ICON.print}</a>
