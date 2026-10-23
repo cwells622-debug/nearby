@@ -189,3 +189,9 @@
 - `step32_featured.sql`: `listings.featured` (default false); a trigger lets ONLY an administrator change it (members cannot feature their own ads, new member ads are forced to false); `browse_ads` puts featured ads first in "Best match", "Newest" and "Nearest" (not in Oldest or price sorts). Run it BEFORE pushing the page/admin/browse.js changes (they read the new column).
 - Admin: "Featured ad" checkbox in the edit dialog, a "Featured" pill in the ads table, and a "Featured ads only" filter. On the site: "★ Featured" pill and an accent outline on the photo in cards, and a pill in the pop-up. SEO pages (`netlify/edge-functions/browse.js`) list featured ads first.
 - Not done: expiry date for featuring, a cap on how many can be featured, a way for sellers to pay for it.
+
+## Security review (October 2026)
+- Checked: no secrets in code or Git history (only the public Supabase publishable key and Cloudflare token); RLS on every table; private tables and importer-only functions locked; user/dealer text escaped on the page and in the server-rendered pages; importer accepts only the import secret or an admin login.
+- Fixed: `step33_status_guard.sql` - a member could set an ad an admin had hidden back to "active". Now only an administrator can hide an ad or un-hide one (members can still switch active/sold). Tested on a real Postgres engine (PGlite). The importer and the SQL Editor are not affected.
+- Removed: the temporary `public/feedtest-7c4e91b2.csv` sample file (still in Git history; it held only sample dealer inventory).
+- Not done: a Content-Security-Policy header (would need report-only testing with Supabase, Cloudflare and the QR code).
