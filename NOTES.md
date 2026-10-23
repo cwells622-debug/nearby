@@ -201,3 +201,6 @@
 - Admin > Reports: each ad's card shows a "hidden from the site" pill when hidden, with "Put back live" (if the reports were wrong) or "Hide ad now" buttons, next to "Mark handled" / "Dismiss" / "Find in Ads". Putting an ad back live does NOT dismiss its reports (use Dismiss too, otherwise 3 open reports stay, but only a NEW report triggers another hide).
 - Tested on a real Postgres engine (PGlite): hides at 3, not at 2, sold/wrong reports don't count, dealer ads untouched, sellers still refused, flag cleared afterwards, admin can restore. The admin buttons are NOT tested in a browser against the real database.
 - Not done: an email saying "auto-hidden" (the usual report email still goes out for every report), telling the seller their ad was hidden.
+
+## "Call for price" display
+- A "Call for price" ad shows NO price line anywhere: cards (only the title and town), the Instagram post and caption, the share text, the For Sale sign, the messages header. In the ad pop-up the words "Call for price" are plain text right after the description. (`pt()` in `public/index.html` returns an empty string for these ads; `public/sign.html` hides the price.) Search-engine text (`netlify/edge-lib/seo.js`) still says "Call for price" on purpose.

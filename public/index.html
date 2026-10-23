@@ -537,7 +537,8 @@ const where2=i=>esc(i.loc)+(dd(i)?" · "+dd(i):"");   // "Albany, NY · 12 mi aw
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt=p=>p===0?"Free":"$"+p.toLocaleString();
-const pt=i=>i.pr?"Call for price":fmt(i.p);   // an ad's price as text: "Call for price", "Free" or "$5,000"
+const pt=i=>i.pr?"":fmt(i.p);   // an ad's price as text: "Free" or "$5,000"; empty for a "Call for price" ad (the pop-up says it in the text instead)
+const ttlPrice=i=>i.t+(pt(i)?" – "+pt(i):"")+" on ChadAds";
 const saved=new Set();
 const card=i=>`<div class="cw${i.ft?" feat":""}"><button class="card" data-id="${i.id}"><div class="ph" style="--h:${i.h}">${i.img?`<img src="${esc(i.thumb||i.img)}" data-full="${esc(i.img)}" ${FALLBACK} alt="${esc(i.t)}" loading="lazy" decoding="async" style="object-position:50% ${+i.coverY||50}%">`:`<span>${i.e}</span>`}${i.hasVideo?`<span class="vbadge">▶ Video</span>`:""}</div><div class="cb"><b>${pt(i)}${i.ft?` <span class="pill feat">★ Featured</span>`:""}${i.sd?` <span class="pill dealer">Dealer</span>`:""}</b><span class="t">${esc(i.t)}</span><span class="m">${where2(i)}</span></div></button><button class="heart" data-save="${i.id}" aria-pressed="${saved.has(i.id)}" aria-label="Save listing">${saved.has(i.id)?"♥":"♡"}</button></div>`;
 // Saved ads live in the database (favorites table), private to the signed-in user.
@@ -608,7 +609,7 @@ const ICON={
   check:SVGO+'fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>'
 };
 function shareHtml(i){
-  const url=adUrl(i),txt=i.t+" – "+pt(i)+" on ChadAds",u=encodeURIComponent(url),t=encodeURIComponent(txt);
+  const url=adUrl(i),txt=ttlPrice(i),u=encodeURIComponent(url),t=encodeURIComponent(txt);
   const link=(href,name,icon,tab)=>`<a class="sico" href="${esc(href)}"${tab?` target="_blank" rel="noopener noreferrer"`:""} aria-label="${name}" title="${name}">${icon}</a>`;
   return `<div class="share"><span class="sh">Share this ad</span><div class="sharerow">
     ${navigator.share?`<button class="sico" type="button" data-nshare="${i.id}" aria-label="Share" title="Share">${ICON.share}</button>`:""}
@@ -679,7 +680,7 @@ function igCaption(i){
   (i.reg||[]).forEach(r=>(regs[r]||[]).forEach(x=>tags.add(x)));
   let d=String(i.d||"").replace(/\s+/g," ").trim();
   if(d.length>300)d=d.slice(0,300).replace(/\s+\S*$/,"")+"…";
-  return i.t+"\n"+pt(i)+" · "+i.loc+"\n\n"+d+"\n\nMessage the seller on ChadAds: chadads.com/ad/"+i.id+"\n\n"+[...tags].join(" ");
+  return i.t+"\n"+(pt(i)?pt(i)+" · ":"")+i.loc+"\n\n"+d+"\n\nMessage the seller on ChadAds: chadads.com/ad/"+i.id+"\n\n"+[...tags].join(" ");
 }
 async function openIg(id){
   const i=items.find(x=>x.id===id);if(!i)return;
@@ -833,7 +834,7 @@ document.addEventListener("click",e=>{
   if(t.closest("#igShare")){igShareNow();return}
   const ns=t.closest("[data-nshare]");if(ns){
     const i=items.find(x=>x.id===+ns.dataset.nshare);
-    if(i&&navigator.share)navigator.share({title:i.t,text:i.t+" – "+pt(i)+" on ChadAds",url:adUrl(i)}).catch(()=>{});return}
+    if(i&&navigator.share)navigator.share({title:i.t,text:ttlPrice(i),url:adUrl(i)}).catch(()=>{});return}
   const cp=t.closest("[data-copy]");if(cp){
     const url=adUrl(items.find(x=>x.id===+cp.dataset.copy));
     (navigator.clipboard?navigator.clipboard.writeText(url):Promise.reject()).catch(()=>{
@@ -1054,7 +1055,7 @@ async function startConversation(adId){
   const have=convos.find(c=>c.listing_id===i.id&&c.buyer_id===user.id);
   if(have){await openThread(have.id);return}
   curConv=null;pendingAd=i;
-  threadShell(`<div class="mt1">${esc(sel(i).n)}</div><div class="mt2">${esc(i.t)} · ${esc(pt(i))}</div>`,
+  threadShell(`<div class="mt1">${esc(sel(i).n)}</div><div class="mt2">${esc(i.t)}${pt(i)?" · "+esc(pt(i)):""}</div>`,
     `<div class="mempty">Say hello to ${esc(sel(i).n)}. They'll see your message in their ChadAds inbox.</div>`,"Hi, is this still available?");
   const t=$("#mtxt");t.focus();t.select();
 }

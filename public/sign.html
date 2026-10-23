@@ -69,7 +69,7 @@ body{margin:0;background:#cfc8b8;font-family:-apple-system,BlinkMacSystemFont,"S
     if(!ad)return fail("Ad not found","This ad is not available (it may have been removed or sold).");
     const photos=(ad.listing_photos||[]).slice().sort((a,b)=>(a.position-b.position)||(a.id-b.id));
     const photo=photos[0]?sb.storage.from("listing-photos").getPublicUrl(photos[0].storage_path).data.publicUrl:null;
-    const money=ad.price_on_request?"Call for price":ad.price===0?"Free":"$"+Number(ad.price).toLocaleString("en-US");
+    const money=ad.price_on_request?"":ad.price===0?"Free":"$"+Number(ad.price).toLocaleString("en-US");
     const city=ad.cities?ad.cities.name+", "+ad.cities.state:"";
     // The QR code and the printed address always point at the real site, even when this page is opened somewhere else.
     const path="/ad/"+ad.id+"-"+slugify(ad.title),link="https://chadads.com"+path,short="chadads.com/ad/"+ad.id;
@@ -78,7 +78,7 @@ body{margin:0;background:#cfc8b8;font-family:-apple-system,BlinkMacSystemFont,"S
     $("#out").innerHTML=`<div class="sheet">
       <div class="top"><h1>FOR SALE</h1></div>
       <div class="photo">${photo?`<img id="ph" src="${esc(photo)}" alt="" style="object-position:50% ${+ad.cover_y||50}%" crossorigin="anonymous">`:`<span class="emoji" aria-hidden="true">🏷️</span>`}</div>
-      <div class="info"><div class="price">${esc(money)}</div><p class="ttl">${esc(ad.title)}</p>${city?`<p class="where">${esc(city)}</p>`:""}<p class="more">Go to <b>chadads.com</b> for more photos and details.</p></div>
+      <div class="info">${money?`<div class="price">${esc(money)}</div>`:""}<p class="ttl">${esc(ad.title)}</p>${city?`<p class="where">${esc(city)}</p>`:""}<p class="more">Go to <b>chadads.com</b> for more photos and details.</p></div>
       <div class="foot"><div class="qr">${svg}</div>
         <div class="cta"><p class="scan">Scan to see this ad online</p><p class="sub">Point your phone camera at the code.</p><div class="url">${esc(short)}</div><img src="logo-sm.webp" alt="ChadAds"></div></div>
       <div class="stripe"></div></div>`;
