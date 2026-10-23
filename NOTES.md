@@ -195,3 +195,9 @@
 - Fixed: `step33_status_guard.sql` - a member could set an ad an admin had hidden back to "active". Now only an administrator can hide an ad or un-hide one (members can still switch active/sold). Tested on a real Postgres engine (PGlite). The importer and the SQL Editor are not affected.
 - Removed: the temporary `public/feedtest-7c4e91b2.csv` sample file (still in Git history; it held only sample dealer inventory).
 - Not done: a Content-Security-Policy header (would need report-only testing with Supabase, Cloudflare and the QR code).
+
+## Moderation: automatic hiding of reported ads
+- `step34_auto_hide.sql`: when an active ad has 3 open reports from 3 different members (reasons "Already sold" and "Wrong category or location" do not count), a trigger on `reports` sets its status to `hidden`. Dealer ads are never auto-hidden. The step33 guard was updated (`app.auto_hide` flag set only inside the trigger) so this one automatic hide is allowed while members still cannot hide/un-hide ads themselves. To change the 3, edit `report_auto_hide()` and re-run the file.
+- Admin > Reports: each ad's card shows a "hidden from the site" pill when hidden, with "Put back live" (if the reports were wrong) or "Hide ad now" buttons, next to "Mark handled" / "Dismiss" / "Find in Ads". Putting an ad back live does NOT dismiss its reports (use Dismiss too, otherwise 3 open reports stay, but only a NEW report triggers another hide).
+- Tested on a real Postgres engine (PGlite): hides at 3, not at 2, sold/wrong reports don't count, dealer ads untouched, sellers still refused, flag cleared afterwards, admin can restore. The admin buttons are NOT tested in a browser against the real database.
+- Not done: an email saying "auto-hidden" (the usual report email still goes out for every report), telling the seller their ad was hidden.

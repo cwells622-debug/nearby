@@ -305,10 +305,15 @@ function drawReports(){
   $("#repView").innerHTML=sel+(groups.size?[...groups.values()].map(g=>{
     const a=g[0],l=a.listings,title=a.listing_title||"(ad removed)",gone=!a.listing_id||!l;
     const isOpen=g.some(r=>r.status==="open");
-    return `<div class="rep"><h3>${gone?esc(title):`<a href="/ad/${a.listing_id}" target="_blank" rel="noopener">${esc(title)}</a>`} <span class="pill">${g.length} report${g.length===1?"":"s"}</span>${l&&l.status==="sold"?` <span class="pill sold">sold / hidden</span>`:""}${gone?` <span class="pill demo">ad deleted</span>`:""}</h3>
+    return `<div class="rep"><h3>${gone?esc(title):`<a href="/ad/${a.listing_id}" target="_blank" rel="noopener">${esc(title)}</a>`} <span class="pill">${g.length} report${g.length===1?"":"s"}</span>${l&&l.status!=="active"?` <span class="pill sold">${l.status==="hidden"?"hidden from the site":"sold"}</span>`:""}${gone?` <span class="pill demo">ad deleted</span>`:""}</h3>
       <div class="sub">${l&&l.profiles?"Seller: "+esc(l.profiles.display_name||"?"):""}</div>
       <ul>${g.map(r=>`<li><strong>${esc(REASONS[r.reason]||r.reason)}</strong>${r.details?`: ${esc(r.details)}`:""} <span class="sub">by ${esc(r.reporter&&r.reporter.display_name||"a member")} on ${esc(new Date(r.created_at).toLocaleDateString())}${r.status!=="open"?" ("+esc(r.status)+")":""}</span></li>`).join("")}</ul>
-      <div class="acts" style="justify-content:flex-start">${gone?"":`<button class="btn ghost sm" data-rfind="${esc(title)}" type="button">Find in Ads (edit / delete)</button>`}${isOpen?`<button class="btn sm" data-rset="resolved" data-rl="${a.listing_id||""}" data-rid="${a.id}" type="button">Mark handled</button><button class="btn ghost sm" data-rset="dismissed" data-rl="${a.listing_id||""}" data-rid="${a.id}" type="button">Dismiss</button>`:""}</div></div>`}).join(""):`<div class="msg"><h2>No reports</h2><p>Nothing here right now.</p></div>`);
+      <div class="acts" style="justify-content:flex-start">${gone?"":`<button class="btn ghost sm" data-rfind="${esc(title)}" type="button">Find in Ads (edit / delete)</button>${l.status==="hidden"?`<button class="btn sm" data-rlive="${a.listing_id}" data-rto="active" type="button">Put back live</button>`:l.status==="active"?`<button class="btn ghost sm" data-rlive="${a.listing_id}" data-rto="hidden" type="button">Hide ad now</button>`:""}`}${isOpen?`<button class="btn sm" data-rset="resolved" data-rl="${a.listing_id||""}" data-rid="${a.id}" type="button">Mark handled</button><button class="btn ghost sm" data-rset="dismissed" data-rl="${a.listing_id||""}" data-rid="${a.id}" type="button">Dismiss</button>`:""}</div></div>`}).join(""):`<div class="msg"><h2>No reports</h2><p>Nothing here right now.</p></div>`);
+}
+async function setListingStatus(id,to){   // "Put back live" / "Hide ad now" on a report card (admins may edit any ad)
+  const {error}=await sb.from("listings").update({status:to}).eq("id",+id);
+  if(error){alert("Not saved: "+error.message);return}
+  loadReports();
 }
 async function setReport(listingId,reportId,status){
   let q=sb.from("reports").update({status,resolved_at:new Date().toISOString()}).eq("status","open");
@@ -492,6 +497,7 @@ document.addEventListener("click",e=>{
   if(t.id==="dealRun"){if(confirm("Run the import now? This adds, updates and hides the dealer's ads."))runFeed(false);return}
   const rf=t.closest("[data-rfind]");if(rf){showTab("ads");$("#fq").value=rf.dataset.rfind;load(true);return}
   const rs=t.closest("[data-rset]");if(rs){setReport(rs.dataset.rl,rs.dataset.rid,rs.dataset.rset);return}
+  const rv=t.closest("[data-rlive]");if(rv){setListingStatus(rv.dataset.rlive,rv.dataset.rto);return}
   if(t.id==="eDel"&&editing){const id=editing.id;$("#dEdit").close();deleteAd(id);return}
   if(t.closest("[data-close]")){t.closest("dialog").close();return}
   if(t.tagName==="DIALOG")t.close();
