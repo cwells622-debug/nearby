@@ -149,40 +149,53 @@ def make_thumb(data):
     image.thumbnail((600, 600), getattr(Image, "Resampling", Image).LANCZOS)
     out = io.BytesIO()
     image.save(out, "JPEG", quality=82, optimize=True)
-    return out.getvalue()
+    small = out.getvalue()
+    # A photo that is already small and already a JPEG: keep it as it is (re-encoding would only make it bigger).
+    if data[:2] == b"\xff\xd8" and len(data) <= len(small):
+        return data
+    return small
 
 
-def make_thumbnails(url, secret, max_rounds=15, batch=100):
-    """Asks the importer which dealer photos still lack a small copy, makes each one and sends it back."""
+def thumbnail_one(url, secret, item):
+    """Downloads one photo, makes its small copy and sends it to the importer. Returns (ok, message)."""
+    try:
+        with urllib.request.urlopen(urllib.request.Request(item["url"]), timeout=60) as response:
+            original = response.read()
+        answer = call_importer(url, secret, {"thumb": str(item["id"])}, make_thumb(original), "image/jpeg", soft=True)
+        return (bool(answer.get("ok")), answer.get("error") or "")
+    except Exception as e:
+        return (False, str(e))
+
+
+def make_thumbnails(url, secret, max_rounds=40, batch=100, workers=8, minutes=20):
+    """Asks the importer which dealer photos still lack a small copy (cover photos first), makes them eight at a time and sends them back.
+    Stops after about 20 minutes so the job never runs into its time limit; the next run carries on."""
+    from concurrent.futures import ThreadPoolExecutor
+
     made = failed = 0
+    deadline = time.time() + minutes * 60
     for round_number in range(1, max_rounds + 1):
+        if time.time() > deadline:
+            print("Small copies: out of time for this run, the next run will carry on.")
+            break
         listing = call_importer(url, secret, {"thumbs": "list", "limit": str(batch)}, soft=True)
         if listing.get("error"):
             print(f"::warning::Small copies skipped: {listing['error']}")
             return
         items = listing.get("items") or []
         if not items:
+            print("Small copies: every dealer photo has one.")
             break
-        done_this_round = 0
-        for item in items:
-            try:
-                with urllib.request.urlopen(urllib.request.Request(item["url"]), timeout=60) as response:
-                    original = response.read()
-                small = make_thumb(original)
-                answer = call_importer(url, secret, {"thumb": str(item["id"])}, small, "image/jpeg", soft=True)
-                if answer.get("ok"):
-                    made += 1
-                    done_this_round += 1
-                else:
-                    failed += 1
-                    print(f"Photo {item.get('id')}: {answer.get('error')}")
-            except SystemExit:
-                raise
-            except Exception as e:
-                failed += 1
-                print(f"Could not make a small copy for photo {item.get('id')}: {e}")
-        print(f"Small copies, round {round_number}: made {done_this_round} of {len(items)}.")
-        if done_this_round == 0:
+        with ThreadPoolExecutor(max_workers=workers) as pool:
+            results = list(pool.map(lambda item: thumbnail_one(url, secret, item), items))
+        ok = sum(1 for good, _ in results if good)
+        made += ok
+        failed += len(results) - ok
+        for item, (good, message) in zip(items, results):
+            if not good:
+                print(f"Photo {item.get('id')}: {message}")
+        print(f"Small copies, round {round_number}: made {ok} of {len(items)}.")
+        if ok == 0:
             break  # nothing worked this round (the same photos would come back): stop instead of looping
     print(f"Small copies: {made} made, {failed} failed.")
 

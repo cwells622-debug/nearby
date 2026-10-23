@@ -21,7 +21,7 @@ as $$
   join public.listings l on l.id = p.listing_id
   join public.profiles pr on pr.id = l.seller_id
   where not p.has_thumb and l.status = 'active' and pr.is_dealer
-  order by p.id
+  order by p.position, p.id   -- each car's cover photo first (the grid shows it), then the others
   limit greatest(least(p_limit, 500), 0)
 $$;
 
