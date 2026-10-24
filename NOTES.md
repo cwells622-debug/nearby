@@ -207,3 +207,7 @@
 
 ## Instagram post pictures
 - Slide 1 (cover) keeps the ChadAds look (price, title, town, logo, colour stripe). Slides 2 and up are only the whole photo on a dark blue background (`#0f2a44`), with no logo, price or stripe (`igPhoto()` in `public/index.html`).
+
+## Photo size on the Instagram post and the For Sale sign
+- Instagram first picture: the photo area is as tall as the photo needs (`PH` in `igCover()`, between 810 px = a 4:3 photo shown whole and 980 px for tall phone photos); the text block below is centred in the space left over. Before: always 900 px (cropped most photos).
+- For Sale sign (`public/sign.html`): the photo box is 4.4 in tall (was 3.6 in), paid for by a smaller heading (1.05 in), price (0.7 in) and QR code (1.75 in). Checked that a long two-line title with a price still fits.
