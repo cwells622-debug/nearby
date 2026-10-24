@@ -647,17 +647,20 @@ function fitText(ctx,text,weight,start,min,maxW){let s=start;do{ctx.font=weight+
 function igCover(i,photo,logo){
   const c=document.createElement("canvas");c.width=IG_W;c.height=IG_H;const ctx=c.getContext("2d");
   ctx.fillStyle="#fbf7ef";ctx.fillRect(0,0,IG_W,IG_H);
-  // The photo area is as tall as the photo needs (4:3 shows whole, tall phone photos get up to 980 px), so little is cropped; the text block is centred in what is left.
-  const PH=photo?Math.round(Math.min(980,Math.max(810,IG_W*photo.height/photo.width))):900,room=IG_H-16-(PH+330+20),dy=Math.max(0,Math.min(60,Math.round(room/2)));
+  // The photo area is as tall as the photo needs (4:3 shows whole, tall phone photos get up to 1040 px), so little is cropped.
+  const PH=photo?Math.round(Math.min(1040,Math.max(810,IG_W*photo.height/photo.width))):900;
   if(photo)drawCover(ctx,photo,0,0,IG_W,PH,+i.coverY||50);
   else{ctx.fillStyle="hsl("+i.h+",55%,84%)";ctx.fillRect(0,0,IG_W,PH);ctx.font="300px "+IG_FONT;ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillStyle="#000";ctx.fillText(i.e||"",IG_W/2,PH/2);ctx.textAlign="left"}
   ctx.textBaseline="alphabetic";
-  const lh=72,lw=logo?logo.width*lh/logo.height:0;   // the logo sits at the right end of the town line
-  ctx.fillStyle="#e95e0d";fitText(ctx,pt(i),"800",104,56,IG_W-100);ctx.fillText(pt(i),50,PH+112+dy);
-  if(logo)ctx.drawImage(logo,IG_W-50-lw,PH+330+dy+10-lh,lw,lh);
-  ctx.fillStyle="#1e1c19";ctx.font="700 52px "+IG_FONT;
-  wrapLines(ctx,i.t,IG_W-100,2).forEach((l,n)=>ctx.fillText(l,50,PH+190+dy+n*62));
-  ctx.fillStyle="#5b5446";ctx.font="500 38px "+IG_FONT;ctx.fillText(i.loc,50,PH+330+dy);
+  // Text block: the title on the left and the price on the right of the SAME line (same size), the town (and the logo) on the line below.
+  const price=pt(i);ctx.font="800 52px "+IG_FONT;const pw=price?Math.ceil(ctx.measureText(price).width):0;
+  ctx.font="700 52px "+IG_FONT;const lines=wrapLines(ctx,i.t,IG_W-100-(pw?pw+40:0),2);
+  const blockH=62+(lines.length-1)*62+80,top=PH+Math.max(30,Math.min(80,Math.round((IG_H-16-PH-blockH)/2)));
+  ctx.fillStyle="#1e1c19";lines.forEach((l,n)=>ctx.fillText(l,50,top+56+n*62));
+  if(price){ctx.font="800 52px "+IG_FONT;ctx.fillStyle="#e95e0d";ctx.textAlign="right";ctx.fillText(price,IG_W-50,top+56);ctx.textAlign="left"}
+  const locY=top+56+(lines.length-1)*62+66,lh=72,lw=logo?logo.width*lh/logo.height:0;   // the logo sits at the right end of the town line
+  ctx.fillStyle="#5b5446";ctx.font="500 38px "+IG_FONT;ctx.fillText(i.loc,50,locY);
+  if(logo)ctx.drawImage(logo,IG_W-50-lw,locY+10-lh,lw,lh);
   drawStripe(ctx,IG_H-16,16);
   return c;
 }
