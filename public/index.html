@@ -652,9 +652,9 @@ function igCover(i,photo,logo){
   if(photo)drawCover(ctx,photo,0,0,IG_W,PH,+i.coverY||50);
   else{ctx.fillStyle="hsl("+i.h+",55%,84%)";ctx.fillRect(0,0,IG_W,PH);ctx.font="300px "+IG_FONT;ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillStyle="#000";ctx.fillText(i.e||"",IG_W/2,PH/2);ctx.textAlign="left"}
   ctx.textBaseline="alphabetic";
-  const lh=120,lw=logo?logo.width*lh/logo.height:0;   // the logo sits to the right of the price
-  ctx.fillStyle="#e95e0d";fitText(ctx,pt(i),"800",104,56,IG_W-100-(lw?lw+30:0));ctx.fillText(pt(i),50,PH+112+dy);
-  if(logo)ctx.drawImage(logo,IG_W-50-lw,PH+112+dy-lh*0.78,lw,lh);
+  const lh=72,lw=logo?logo.width*lh/logo.height:0;   // the logo sits at the right end of the town line
+  ctx.fillStyle="#e95e0d";fitText(ctx,pt(i),"800",104,56,IG_W-100);ctx.fillText(pt(i),50,PH+112+dy);
+  if(logo)ctx.drawImage(logo,IG_W-50-lw,PH+330+dy+10-lh,lw,lh);
   ctx.fillStyle="#1e1c19";ctx.font="700 52px "+IG_FONT;
   wrapLines(ctx,i.t,IG_W-100,2).forEach((l,n)=>ctx.fillText(l,50,PH+190+dy+n*62));
   ctx.fillStyle="#5b5446";ctx.font="500 38px "+IG_FONT;ctx.fillText(i.loc,50,PH+330+dy);
