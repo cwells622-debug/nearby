@@ -213,3 +213,4 @@
 - For Sale sign (`public/sign.html`): the photo box is 4.4 in tall (was 3.6 in), paid for by a smaller heading (1.05 in), price (0.7 in) and QR code (1.75 in). Checked that a long two-line title with a price still fits.
 - Instagram first picture: the ChadAds logo now sits at the right end of the town line (72 px high), not beside the price, so the price line can use the full width.
 - Instagram first picture layout: title on the left and price on the right of the SAME line (both 52 px bold, price orange; the title wraps to 2 lines in the space left of the price), the town and the logo on the line below. With the big price row gone the photo can be taller (up to 1040 px for tall photos; 810 px = a 4:3 photo shown whole).
+- Instagram pictures after the first: just the photo at its own shape (1080 px wide, between 1.91:1 wide and 4:5 tall, the limits Instagram accepts), no blue background, no branding (`igPhoto()`). Replaces the dark blue background version.

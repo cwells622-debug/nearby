@@ -664,11 +664,11 @@ function igCover(i,photo,logo){
   drawStripe(ctx,IG_H-16,16);
   return c;
 }
-// Other slides: just the whole photo on a dark blue background (no ChadAds branding; the first slide carries it).
+// Other slides: just the photo at its own shape, 1080 px wide, no background and no branding (the first slide carries it).
+// Instagram only accepts shapes from 1.91:1 (wide) to 4:5 (tall); a photo outside that is trimmed a little to fit.
 function igPhoto(i,photo){
-  const c=document.createElement("canvas");c.width=IG_W;c.height=IG_H;const ctx=c.getContext("2d");
-  ctx.fillStyle="#0f2a44";ctx.fillRect(0,0,IG_W,IG_H);
-  drawContain(ctx,photo,0,0,IG_W,IG_H);
+  const c=document.createElement("canvas");c.width=IG_W;c.height=Math.round(Math.min(IG_H,Math.max(IG_W/1.91,IG_W*photo.height/photo.width)));
+  const ctx=c.getContext("2d");drawCover(ctx,photo,0,0,c.width,c.height,50);
   return c;
 }
 function igCaption(i){
