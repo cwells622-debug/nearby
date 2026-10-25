@@ -155,6 +155,8 @@ export const CATEGORY_INFO = {
   "Heavy Machinery": { label: "Heavy Machinery", blurb: "Excavators, loaders, dozers and other construction equipment." },
   "Lawn and Garden": { label: "Lawn & Garden Equipment", blurb: "Mowers, tractors, tillers, chainsaws and outdoor power equipment." },
   "Motorcycles": { label: "Motorcycles", blurb: "Street, cruiser, dirt and touring motorcycles from local riders." },
+  "Fun Finds": { label: "Fun Finds", blurb: "Collectibles, curiosities, hobby items and one-of-a-kind finds from local sellers." },
+  "Furniture": { label: "Furniture", blurb: "Sofas, tables, beds, dressers and other furniture for sale locally." },
   "Snowmobiles": { label: "Snowmobiles", blurb: "Sleds and snowmobile gear from local riders across the Adirondacks and Upstate New York." },
   "Sports": { label: "Sports & Outdoor Gear", blurb: "Bikes, fitness and outdoor gear from local sellers." },
   "Tools": { label: "Tools", blurb: "Hand tools, power tools and shop equipment for sale locally." },

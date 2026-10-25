@@ -83,6 +83,7 @@ label input:focus,label select:focus,label textarea:focus{outline:none;border-co
   <div class="row">
     <label>City<input name="loc" id="el" list="cl" required autocomplete="off"></label>
     <label>Status<select name="s"><option value="active">Active (visible)</option><option value="sold">Sold (hidden from public)</option><option value="hidden">Hidden (no pictures yet)</option></select></label>
+    <label>Make (Auto Cars / Trucks / SUVs; leave empty to fill it from the title)<input name="make" maxlength="30" autocomplete="off"></label>
     <label style="flex-direction:row;align-items:center;gap:8px"><input type="checkbox" name="ft" id="eft" style="width:auto;padding:0;margin:0"> Featured ad (premium placement: shown first, with a Featured badge)</label>
   </div>
   <datalist id="cl"></datalist>
@@ -328,7 +329,7 @@ document.addEventListener("click",e=>{if(e.target.id==="repRefresh")loadReports(
 async function load(reset){
   if(busy)return;busy=true;
   if(reset){from=0;rows=[]}
-  let q=sb.from("listings").select("id,seller_id,title,description,price,price_on_request,featured,link,status,is_demo,created_at,category_id,city_id,video_link,categories(name),cities(name,state),profiles!seller_id(display_name),listing_photos(id,storage_path,position),listing_videos(id,storage_path)")
+  let q=sb.from("listings").select("id,seller_id,title,description,price,price_on_request,featured,make,link,status,is_demo,created_at,category_id,city_id,video_link,categories(name),cities(name,state),profiles!seller_id(display_name),listing_photos(id,storage_path,position),listing_videos(id,storage_path)")
     .order("created_at",{ascending:false}).order("position",{referencedTable:"listing_photos"}).range(from,from+PAGE-1);
   const text=($("#fq").value||"").replace(/[%_*,()]/g," ").trim(),st=$("#fs").value,src=$("#fd").value;
   if(text)q=q.ilike("title","%"+text+"%");
@@ -396,7 +397,7 @@ async function openEdit(id){
   $("#eTitle").textContent="Edit ad #"+r.id+(r.is_demo?" (demo)":"");
   e.t.value=r.title;e.c.value=r.category_id;e.p.value=r.price;e.por.checked=!!r.price_on_request;e.p.disabled=e.por.checked;e.loc.value=r.cities?r.cities.name+", "+r.cities.state:"";
   if(r.cities)cityIds[r.cities.name+", "+r.cities.state]=r.city_id;
-  e.s.value=r.status;e.ft.checked=!!r.featured;e.d.value=r.description;e.link.value=r.link||"";e.vlink.value=r.video_link||"";
+  e.s.value=r.status;e.ft.checked=!!r.featured;e.make.value=r.make||"";e.d.value=r.description;e.link.value=r.link||"";e.vlink.value=r.video_link||"";
   $("#eVidRow").hidden=!(r.listing_videos||[]).length;e.rmv.checked=false;
   $("#eErr").textContent="";
   $("#ePhotos").innerHTML=(r.listing_photos||[]).map(p=>`<label><img src="${esc(photoUrl(p.storage_path))}" alt=""><span><input type="checkbox" name="rm" value="${esc(p.storage_path)}"> Remove</span></label>`).join("");
@@ -417,7 +418,7 @@ $("#fe").addEventListener("submit",async ev=>{
   const removed=[...ev.target.querySelectorAll('[name=rm]:checked')].map(x=>x.value);
   const go=$("#eGo");go.disabled=true;
   const {data,error}=await sb.from("listings").update({title:e.t.value.trim(),category_id:+e.c.value,city_id:cityId,
-    price:e.por.checked?0:Math.max(0,Math.round(+e.p.value||0)),price_on_request:e.por.checked,featured:e.ft.checked,status:e.s.value,description:e.d.value.trim(),link,video_link:vl||null}).eq("id",editing.id).select("id");
+    price:e.por.checked?0:Math.max(0,Math.round(+e.p.value||0)),price_on_request:e.por.checked,featured:e.ft.checked,make:e.make.value.trim()||null,status:e.s.value,description:e.d.value.trim(),link,video_link:vl||null}).eq("id",editing.id).select("id");
   if(error||!data.length){go.disabled=false;err.textContent=error?error.message:"Not saved. Are you still an admin?";return}
   if(removed.length){
     const d=await sb.from("listing_photos").delete().eq("listing_id",editing.id).in("storage_path",removed);

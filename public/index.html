@@ -99,6 +99,11 @@ select{border:0;background:var(--soft);border-radius:12px;padding:9px 12px}
 .authtabs{display:flex;gap:6px;background:var(--soft);padding:4px;border-radius:999px}
 .authtabs button{flex:1;border:0;background:none;font:inherit;font-weight:700;padding:9px 12px;border-radius:999px;color:var(--mute);cursor:pointer}
 .authtabs button[aria-selected="true"]{background:var(--bg);color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.15)}
+.makes{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 14px}
+.makes button{border:1px solid var(--line);background:var(--panel);color:var(--ink);font:inherit;font-size:14px;font-weight:600;padding:6px 12px;border-radius:999px;cursor:pointer}
+.makes button .n{color:var(--mute);font-weight:500;margin-left:2px}
+.makes button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.makes button[aria-pressed="true"] .n{color:inherit;opacity:.75}
 .link{border:0;background:none;color:var(--link);font-weight:500;padding:4px}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(220px,100%),1fr));gap:28px 20px}
 .card{border:0;background:none;border-radius:0;padding:0;text-align:left;overflow:visible;display:block;width:100%}
@@ -321,6 +326,7 @@ dialog .dlg.msgs{padding:0;gap:0}
   <label style="flex-direction:row;align-items:center;gap:8px;margin-top:-6px"><input type="checkbox" name="por" id="por" style="width:auto;padding:0;margin:0"> Call for price (don't show a price)</label>
   <label>City<input name="loc" id="fl" list="cl" required autocomplete="off" placeholder="Start typing a city"></label><datalist id="cl"></datalist>
   <label>Description<textarea name="d" rows="3" required placeholder="Condition, size, pickup details"></textarea></label>
+  <label id="makeRow" hidden>Make<input name="make" maxlength="30" list="makes" autocomplete="off" placeholder="Ford, Chevrolet, Toyota ... (pick or type)"></label><datalist id="makes"><option value="Acura"><option value="Audi"><option value="BMW"><option value="Buick"><option value="Cadillac"><option value="Chevrolet"><option value="Chrysler"><option value="Dodge"><option value="Ford"><option value="GMC"><option value="Honda"><option value="Hyundai"><option value="Infiniti"><option value="Jeep"><option value="Kia"><option value="Lexus"><option value="Lincoln"><option value="Mazda"><option value="Mercedes-Benz"><option value="Mercury"><option value="Mini"><option value="Mitsubishi"><option value="Nissan"><option value="Oldsmobile"><option value="Plymouth"><option value="Pontiac"><option value="Porsche"><option value="Ram"><option value="Saturn"><option value="Subaru"><option value="Tesla"><option value="Toyota"><option value="Volkswagen"><option value="Volvo"></datalist>
   <label id="linkRow" hidden>Link (optional)<input name="link" type="url" maxlength="500" placeholder="https://" autocomplete="off"></label>
   <div id="curPhotos" class="thumbs" hidden></div>
   <label><span id="photoLbl">Photos (optional, up to 5; JPG, PNG or WebP). Big photos are resized for you.</span><input id="fimg" type="file" multiple accept="image/jpeg,image/png,image/webp"></label>
@@ -390,14 +396,14 @@ dialog .dlg.msgs{padding:0;gap:0}
 <script>
 // Filled in from Supabase by loadData() at the bottom of the page.
 // cats: [name, icon, hue]   items: the listings   T: "City, ST" -> [lat, lng]
-const HUES={"Auto Cars":210,"Auto Trucks":220,"Auto SUVs":215,Vehicles:210,Property:150,Electronics:190,Furniture:30,Clothing:330,Sports:100,Jobs:260,Boats:200,Snowmobiles:195,"Auto Parts":225,ATV:20,Appliances:170,Campers:120,"Real Estate":140,Medical:350,Motorcycles:0,Antiques:40,"Lawn and Garden":90,"Heavy Machinery":50};
+const HUES={"Auto Cars":210,"Auto Trucks":220,"Auto SUVs":215,Vehicles:210,Property:150,Electronics:190,Furniture:30,Clothing:330,Sports:100,Jobs:260,Boats:200,"Fun Finds":300,Snowmobiles:195,"Auto Parts":225,ATV:20,Appliances:170,Campers:120,"Real Estate":140,Medical:350,Motorcycles:0,Antiques:40,"Lawn and Garden":90,"Heavy Machinery":50};
 // ---- Ads are loaded a page at a time (step30_browse_ads.sql): the database picks and orders the ads, the page only holds what it shows. ----
 const HOME=[42.65,-73.75];   // the Albany area: where "nearby first" is measured from until the visitor chooses a city
 const PAGE=48;               // ads per page
 const cache={};              // id -> ad: every ad this visitor has loaded so far (the pop-ups, messages and editing look ads up here)
 let who=["private","dealer"].includes(new URLSearchParams(location.search).get("who"))?new URLSearchParams(location.search).get("who"):"all";   // whose ads to show: everyone, private sellers or dealers (?who=dealer opens that view)
 let catByIdG={},viewIds=[],totalAds=0,catCounts={},allCount=0,loadingAds=false,reqSeq=0,qTimer=0;
-const AD_SELECT="id,seller_id,category_id,city_id,title,description,price,price_on_request,featured,link,video_link,cover_y,created_at,cities(id,name,state,lat,lng,regions),profiles!seller_id(display_name,created_at,is_dealer,dealer_website),listing_photos(id,storage_path,position),listing_videos(id,storage_path)";
+const AD_SELECT="id,seller_id,category_id,city_id,title,description,price,price_on_request,featured,make,link,video_link,cover_y,created_at,cities(id,name,state,lat,lng,regions),profiles!seller_id(display_name,created_at,is_dealer,dealer_website),listing_photos(id,storage_path,position),listing_videos(id,storage_path)";
 // One database row -> the object the page works with.
 function mapAd(r){
   const c=catByIdG[r.category_id];if(!c||!c[4]||!r.cities)return null;
@@ -410,7 +416,7 @@ function mapAd(r){
   const vpath=(r.listing_videos&&r.listing_videos[0])?r.listing_videos[0].storage_path:null;
   const vurl=vpath?sb.storage.from(VBUCKET).getPublicUrl(vpath).data.publicUrl:null,emb=videoEmbed(r.video_link);
   const media=[...imgs.map((u,k)=>({t:"img",u,th:thumbs[k],alt:r.title})),...(vurl?[{t:"vid",u:vurl}]:[]),...(emb?[{t:"emb",u:emb}]:[])];
-  return{id:r.id,paths,imgs,img,thumb,coverY:r.cover_y,media,vpath,vlink:r.video_link,hasVideo:!!(vurl||emb),link:r.link,t:r.title,p:r.price,pr:!!r.price_on_request,ft:!!r.featured,c:c[0],loc,reg:r.cities.regions||[],d:r.description,ago:agoText(hrs),hrs,e:c[1],h:c[2],
+  return{id:r.id,paths,imgs,img,thumb,coverY:r.cover_y,media,vpath,vlink:r.video_link,hasVideo:!!(vurl||emb),link:r.link,t:r.title,p:r.price,pr:!!r.price_on_request,ft:!!r.featured,mk:r.make||"",c:c[0],loc,reg:r.cities.regions||[],d:r.description,ago:agoText(hrs),hrs,e:c[1],h:c[2],
     sid:r.seller_id,sn:r.profiles&&r.profiles.display_name,sd:!!(r.profiles&&r.profiles.is_dealer),sw:r.profiles&&r.profiles.dealer_website,sy:r.profiles&&new Date(r.profiles.created_at).getFullYear()};
 }
 // Loads these ads (with photos, seller and town) into the cache. Returns the ads that were found.
@@ -431,15 +437,17 @@ async function openAd(id){if(!cache[id])await fetchAds([+id]).catch(()=>{});if(c
 // reset=true starts again from the first page; reset=false adds the next page ("Show more").
 async function reload(reset=true){
   if(!sb||!cats.length)return;
-  const my=++reqSeq,saving=cur==="Saved",byCat=cur==="All"&&!q&&view==="cat";
+  const my=++reqSeq,saving=cur==="Saved",byCat=cur==="All"&&!q&&view==="cat",isCar=LINK_CATS.includes(cur);
+  if(!isCar){make="";makeList=[]}
   if(saving&&!saved.size){viewIds=[];totalAds=0;loadingAds=false;render();return}
   if(reset){loadingAds=true;viewIds=[];render()}
   const c=cats.find(x=>x[0]===cur),here=T[me],useDist=!regionSlug&&here&&rad>0;
   const where={p_q:q||null,p_region:regionSlug||null,p_lat:here?here[0]:HOME[0],p_lng:here?here[1]:HOME[1],p_radius:useDist?rad:0,p_dealer:who};
   try{
-    const [res,cnt]=await Promise.all([
-      sb.rpc("browse_ads",{...where,p_cat:c?c[3]:null,p_sort:sort,p_ids:saving?[...saved]:null,p_per_cat:byCat?4:null,p_limit:byCat?200:PAGE,p_offset:reset||byCat?0:viewIds.length}),
-      reset?sb.rpc("browse_counts",where):Promise.resolve(null)
+    const [res,cnt,mks]=await Promise.all([
+      sb.rpc("browse_ads",{...where,p_cat:c?c[3]:null,p_sort:sort,p_ids:saving?[...saved]:null,p_per_cat:byCat?4:null,p_limit:byCat?200:PAGE,p_offset:reset||byCat?0:viewIds.length,p_make:isCar&&make?make:null}),
+      reset?sb.rpc("browse_counts",where):Promise.resolve(null),
+      reset&&isCar?sb.rpc("browse_makes",{...where,p_cat:c[3]}):Promise.resolve(null)
     ]);
     if(my!==reqSeq)return;   // the visitor changed something meanwhile: this answer is out of date
     if(res.error)throw res.error;
@@ -448,6 +456,7 @@ async function reload(reset=true){
     await fetchAds(ids.filter(id=>!cache[id]));
     if(my!==reqSeq)return;
     viewIds=reset?ids:viewIds.concat(ids.filter(id=>!viewIds.includes(id)));
+    if(mks){makeList=!mks.error&&mks.data?mks.data.map(r=>[r.make,+r.n]):[]; if(make&&!makeList.some(x=>x[0]===make))make=""}
     if(cnt&&!cnt.error&&cnt.data){catCounts={};allCount=0;cnt.data.forEach(r=>{const cc=Object.values(catByIdG).find(x=>x[3]===+r.category_id);if(cc){catCounts[cc[0]]=+r.n;allCount+=+r.n}})}
     loadingAds=false;render();
   }catch(e){
@@ -486,6 +495,7 @@ async function lookupCity(text){
   data.forEach(addCity);
   return data.map(c=>c.name+", "+c.state).find(n=>n.toLowerCase()===want)||null;
 }
+let make="",makeList=[];   // the chosen make inside Auto Cars / Trucks / SUVs, and the make buttons with their counts (browse_makes in step35_make_and_categories.sql)
 let cur="All",q="",sort="best",me="",rad=0,view="all"   /* me: the visitor's city (empty = no city chosen yet; set it to e.g. "Saratoga Springs, NY" for a default). rad: miles from "me"; 0 = any distance. Use 50 or 25 once there are plenty of ads. */,showLoc=false,geoMsg="",ow=false;
 // Category / region pages (/for-sale/auto-trucks, /in/capital-district) arrive with a note from the server (window.__LANDING__)
 // saying which filter they represent. regionSlug filters by the database's region lists instead of by distance.
@@ -588,7 +598,8 @@ function render(){
   const tog=cur==="All"&&!q?`<div class="tog"><button data-view="cat" aria-pressed="${view==="cat"}">By category</button><button data-view="all" aria-pressed="${view==="all"}">View all</button></div>`:"";
   // One slim row (location + view switch); the full location controls open underneath on demand.
   const whoTog=`<div class="tog" role="group" aria-label="Whose ads">${[["all","Everyone"],["private","Private sellers"],["dealer","Dealers"]].map(([k,n])=>`<button data-who="${k}" aria-pressed="${who===k}">${n}</button>`).join("")}</div>`;
-  const nb=cur==="Saved"?"":`<div class="toolbar">${pill}<div style="display:flex;gap:8px;flex-wrap:wrap">${whoTog}${tog}</div></div>`+(showLoc&&!regionSlug?bar:"");
+  const makesHtml=LINK_CATS.includes(cur)&&makeList.length?`<div class="makes" role="group" aria-label="Make"><button data-make="" aria-pressed="${!make}">All makes</button>${makeList.map(([m,n])=>`<button data-make="${esc(m)}" aria-pressed="${make===m}">${esc(m)} <span class="n">${n}</span></button>`).join("")}</div>`:"";
+  const nb=cur==="Saved"?"":`<div class="toolbar">${pill}<div style="display:flex;gap:8px;flex-wrap:wrap">${whoTog}${tog}</div></div>`+(showLoc&&!regionSlug?bar:"")+makesHtml;
   if(!list.length){main.innerHTML=nb+`<div class="empty">${loadingAds?`<h2>Loading…</h2>`:cur==="Saved"?user?`<h2>Nothing saved yet</h2><p>Tap the heart on any ad to save it here.</p>`:`<h2>Log in to see your saved ads</h2><p>Saved ads are kept in your account, so you can see them on any device.</p>`:`<h2>No listings found</h2><p>Try a wider distance, a different search, or post an ad.</p>`}</div>`;return}
   if(cur==="All"&&!q&&view==="cat"){
     main.innerHTML=nb+cats.map(c=>{const l=list.filter(i=>i.c===c[0]);if(!l.length)return"";
@@ -871,7 +882,8 @@ document.addEventListener("click",e=>{
   const vw=t.closest("[data-view]");if(vw){view=vw.dataset.view;reload();return}
   if(t.id==="moreAds"){reload(false);return}
   const wh=t.closest("[data-who]");if(wh){who=wh.dataset.who;reload();return}
-  const cat=t.closest("[data-cat]");if(cat){cur=cat.dataset.cat;q="";$("#q").value="";reload();window.scrollTo({top:0});return}
+  const mk=t.closest("[data-make]");if(mk){make=mk.dataset.make;reload();window.scrollTo({top:0});return}
+  const cat=t.closest("[data-cat]");if(cat){cur=cat.dataset.cat;make="";q="";$("#q").value="";reload();window.scrollTo({top:0});return}
   const c=t.closest(".card");if(c){open(c.dataset.id);return}
   if(t.closest("[data-close]")){t.closest("dialog").close();return}
   if(t.id==="post"){startPost();return}
@@ -1141,7 +1153,7 @@ function startPost(id){
   cp.hidden=!(i&&i.paths.length);
   cp.innerHTML=i?i.paths.map((p,n)=>`<label class="rm"><img src="${esc(i.imgs[n])}" alt=""><span><input type="radio" name="cover" value="${esc(p)}"${n===0?" checked":""}> Cover</span><span><input type="checkbox" name="rm" value="${esc(p)}"> Remove</span></label>`).join(""):"";
   coverNew=false;$("#cy").value=i?(+i.coverY||50):50;
-  if(i){const e=form.elements;e.t.value=i.t;e.c.value=i.c;e.p.value=i.p;e.por.checked=!!i.pr;e.loc.value=i.loc;e.d.value=i.d;e.link.value=i.link||"";e.vlink.value=i.vlink||""}
+  if(i){const e=form.elements;e.t.value=i.t;e.c.value=i.c;e.p.value=i.p;e.por.checked=!!i.pr;e.loc.value=i.loc;e.d.value=i.d;e.link.value=i.link||"";e.vlink.value=i.vlink||"";e.make.value=i.mk||""}
   else $("#fl").value=me;
   syncPor();
   showLinkField();showPicked();
@@ -1149,7 +1161,7 @@ function startPost(id){
 }
 // The "Link" box only appears for these categories (the database enforces the same list; see step13_autos_categories.sql and step19_auto_categories.sql).
 const LINK_CATS=["Auto Cars","Auto Trucks","Auto SUVs"];
-function showLinkField(){$("#linkRow").hidden=!LINK_CATS.includes($("#fc").value)}
+function showLinkField(){const on=LINK_CATS.includes($("#fc").value);$("#linkRow").hidden=!on;$("#makeRow").hidden=!on}
 $("#fc").addEventListener("change",showLinkField);
 // Only web addresses starting with http:// or https:// are allowed (never javascript: and similar).
 function safeUrl(u){try{const x=new URL(u);return x.protocol==="https:"||x.protocol==="http:"?x.href:null}catch(e){return null}}
@@ -1378,7 +1390,7 @@ function friendlyError(e){
   const vlink=String(f.get("vlink")||"").trim();
   if(vlink&&!videoEmbed(vlink)){msg.textContent="The video link must be a YouTube or Vimeo address (starting with https://).";return}
   const row={category_id:cats.find(c=>c[0]===catName)[3],city_id:cityIds[loc],title:String(f.get("t")).trim(),
-    description:String(f.get("d")).trim(),price:f.get("por")?0:Math.max(0,Math.round(+f.get("p")||0)),price_on_request:!!f.get("por"),link,video_link:vlink||null,cover_y:coverY};
+    description:String(f.get("d")).trim(),price:f.get("por")?0:Math.max(0,Math.round(+f.get("p")||0)),price_on_request:!!f.get("por"),make:LINK_CATS.includes(catName)?(String(f.get("make")||"").trim()||null):null,link,video_link:vlink||null,cover_y:coverY};
   // Uploaded video: a new file replaces the old one; ticking "Remove" deletes it.
   const oldVid=editId?items.find(x=>x.id===editId).vpath:null,dropVid=!!oldVid&&(!!pickedVideo||f.get("rmv")!==null);
   const go=$("#postGo");go.disabled=true;
