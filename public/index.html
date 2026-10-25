@@ -372,7 +372,16 @@ dialog .dlg.msgs{padding:0;gap:0}
   <label>Email<input name="email" type="email" required autocomplete="email"></label>
   <label>Password<input name="password" type="password" required minlength="8" autocomplete="current-password" placeholder="At least 8 characters"></label>
   <p class="autherr" id="authMsg" role="alert"></p>
+  <p class="note" id="authTerms" hidden style="margin:0;font-size:13px">By creating an account you agree to our <a href="/terms" target="_blank" rel="noopener">Terms</a> and <a href="/privacy" target="_blank" rel="noopener">Privacy Policy</a>.</p>
   <button class="btn" type="submit" id="authGo">Log in</button>
+  <button class="link" type="button" id="authForgot">Forgot password?</button>
+</form></dialog>
+
+<dialog id="dReset"><form class="dlg" id="fr">
+  <div class="top"><h2>Choose a new password</h2><button type="button" class="x" data-close aria-label="Close">✕</button></div>
+  <label>New password<input name="password" type="password" required minlength="8" autocomplete="new-password" placeholder="At least 8 characters"></label>
+  <p class="autherr" id="resetMsg" role="alert"></p>
+  <button class="btn" type="submit" id="resetGo">Save new password</button>
 </form></dialog>
 
 <!-- Supabase's JavaScript library (pinned to version 2) and our public settings -->
@@ -890,7 +899,7 @@ if(cfgOk&&window.supabase)sb=window.supabase.createClient(NEARBY_CONFIG.supabase
 function authMode(on){
   signup=on;
   $("#authTitle").textContent=$("#authGo").textContent=on?"Create account":"Log in";
-  $("#nameRow").hidden=!on;
+  $("#nameRow").hidden=!on;$("#authTerms").hidden=!on;$("#authForgot").hidden=on;
   $("#fa").elements.password.autocomplete=on?"new-password":"current-password";
   document.querySelectorAll(".authtabs button").forEach(b=>b.setAttribute("aria-selected",(b.dataset.am==="1")===on));
   $("#authMsg").className="autherr";$("#authMsg").textContent="";
@@ -934,6 +943,22 @@ $("#auth").addEventListener("click",async()=>{
   if(!sb)$("#authMsg").textContent="Accounts aren't set up yet. Add your Supabase URL and anon key to config.js.";
   $("#dAuth").showModal();
 });
+// "Forgot password?": Supabase emails a link (template: supabase/email-templates/reset-password.html) that brings the person back here, signed in for a moment, to choose a new password.
+$("#authForgot").addEventListener("click",async()=>{
+  const msg=$("#authMsg"),email=String($("#fa").elements.email.value||"").trim();msg.className="autherr";msg.textContent="";
+  if(!sb){msg.textContent="Accounts aren't set up yet.";return}
+  if(!email){msg.textContent="Type your email address above first, then tap Forgot password again.";return}
+  const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.origin+"/"});
+  if(error){msg.textContent=error.message;return}
+  msg.className="ok";msg.textContent="If "+email+" has an account, we just emailed a link to choose a new password. It can take a minute; check your spam folder too.";
+});
+$("#fr").addEventListener("submit",async e=>{
+  e.preventDefault();const msg=$("#resetMsg"),go=$("#resetGo");msg.className="autherr";msg.textContent="";go.disabled=true;
+  const {error}=await sb.auth.updateUser({password:String(new FormData(e.target).get("password"))});
+  go.disabled=false;
+  if(error){msg.textContent=error.message;return}
+  e.target.reset();$("#dReset").close();alert("Your password is changed. You are logged in.");
+});
 document.querySelector(".authtabs").addEventListener("click",e=>{const b=e.target.closest("[data-am]");if(b)authMode(b.dataset.am==="1")});
 $("#fa").addEventListener("submit",async e=>{
   e.preventDefault();
@@ -954,7 +979,7 @@ $("#fa").addEventListener("submit",async e=>{
   go.disabled=false;
 });
 // Runs on page load and every time someone logs in or out.
-if(sb)sb.auth.onAuthStateChange((event,session)=>showUser(session?session.user:null));
+if(sb)sb.auth.onAuthStateChange((event,session)=>{showUser(session?session.user:null);if(event==="PASSWORD_RECOVERY"){$("#dAuth").close();$("#dReset").showModal()}});
 
 /* ---------- Messages (private, between a buyer and a seller) ---------- */
 // The database (step14_messaging.sql) makes sure only the two people in a conversation can read it.
