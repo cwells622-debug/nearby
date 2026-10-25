@@ -96,6 +96,9 @@ h2{font-size:21px;font-weight:600}
 select{border:0;background:var(--soft);border-radius:12px;padding:9px 12px}
 .sec{margin-bottom:36px}
 .sec .hd{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px}
+.authtabs{display:flex;gap:6px;background:var(--soft);padding:4px;border-radius:999px}
+.authtabs button{flex:1;border:0;background:none;font:inherit;font-weight:700;padding:9px 12px;border-radius:999px;color:var(--mute);cursor:pointer}
+.authtabs button[aria-selected="true"]{background:var(--bg);color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.15)}
 .link{border:0;background:none;color:var(--link);font-weight:500;padding:4px}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(220px,100%),1fr));gap:28px 20px}
 .card{border:0;background:none;border-radius:0;padding:0;text-align:left;overflow:visible;display:block;width:100%}
@@ -364,12 +367,12 @@ dialog .dlg.msgs{padding:0;gap:0}
 
 <dialog id="dAuth"><form class="dlg" id="fa">
   <div class="top"><h2 id="authTitle">Log in</h2><button type="button" class="x" data-close aria-label="Close">✕</button></div>
+  <div class="authtabs" role="tablist"><button type="button" role="tab" data-am="0" aria-selected="true">Log in</button><button type="button" role="tab" data-am="1" aria-selected="false">Create account</button></div>
   <label id="nameRow" hidden>Display name<input name="name" maxlength="40" autocomplete="nickname" placeholder="How sellers will see you"></label>
   <label>Email<input name="email" type="email" required autocomplete="email"></label>
   <label>Password<input name="password" type="password" required minlength="8" autocomplete="current-password" placeholder="At least 8 characters"></label>
   <p class="autherr" id="authMsg" role="alert"></p>
   <button class="btn" type="submit" id="authGo">Log in</button>
-  <button class="link" type="button" id="authSwitch">New here? Create an account</button>
 </form></dialog>
 
 <!-- Supabase's JavaScript library (pinned to version 2) and our public settings -->
@@ -889,7 +892,7 @@ function authMode(on){
   $("#authTitle").textContent=$("#authGo").textContent=on?"Create account":"Log in";
   $("#nameRow").hidden=!on;
   $("#fa").elements.password.autocomplete=on?"new-password":"current-password";
-  $("#authSwitch").textContent=on?"Already have an account? Log in":"New here? Create an account";
+  document.querySelectorAll(".authtabs button").forEach(b=>b.setAttribute("aria-selected",(b.dataset.am==="1")===on));
   $("#authMsg").className="autherr";$("#authMsg").textContent="";
 }
 // Opens the login pop-up with a short explanation.
@@ -931,7 +934,7 @@ $("#auth").addEventListener("click",async()=>{
   if(!sb)$("#authMsg").textContent="Accounts aren't set up yet. Add your Supabase URL and anon key to config.js.";
   $("#dAuth").showModal();
 });
-$("#authSwitch").addEventListener("click",()=>authMode(!signup));
+document.querySelector(".authtabs").addEventListener("click",e=>{const b=e.target.closest("[data-am]");if(b)authMode(b.dataset.am==="1")});
 $("#fa").addEventListener("submit",async e=>{
   e.preventDefault();
   const msg=$("#authMsg");msg.className="autherr";msg.textContent="";

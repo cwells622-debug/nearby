@@ -214,3 +214,7 @@
 - Instagram first picture: the ChadAds logo now sits at the right end of the town line (72 px high), not beside the price, so the price line can use the full width.
 - Instagram first picture layout: title on the left and price on the right of the SAME line (both 52 px bold, price orange; the title wraps to 2 lines in the space left of the price), the town and the logo on the line below. With the big price row gone the photo can be taller (up to 1040 px for tall photos; 810 px = a 4:3 photo shown whole).
 - Instagram pictures after the first: just the photo at its own shape (1080 px wide, between 1.91:1 wide and 4:5 tall, the limits Instagram accepts), no blue background, no branding (`igPhoto()`). Replaces the dark blue background version.
+
+## Log in / Create account pop-up
+- Two tabs at the top of the pop-up, "Log in" and "Create account" (`.authtabs`, `authMode()` in `public/index.html`), replace the small "New here? Create an account" link at the bottom. The pop-up still opens on "Log in" from the header button.
+- Known gap: there is NO "Forgot password?" link yet (the reset-password email template exists in `supabase/email-templates/`, but the site never asks Supabase to send it).
