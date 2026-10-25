@@ -228,3 +228,7 @@
 - RUN the SQL BEFORE pushing: the page now sends `p_make` to `browse_ads` and reads `listings.make`, so the home page shows "Couldn't load listings" until the SQL is run.
 - Tested: the SQL on PGlite (make guessing for 15 titles, trigger, filter, counts, categories, safe to run twice); the page with a stand-in for the new database calls (buttons, counts, filtering, clearing on category change, form box shown only for car categories). NOT tested with the real database.
 - Not done: make buttons on the server-rendered category pages (/for-sale/auto-cars), models (Ford F-150) as a second level.
+
+## Favicon
+- The ChadAds icon set (from `chadads-favicons.zip`) is in `public/`: `favicon.ico`, `favicon-16x16.png`, `favicon-32x32.png`, `favicon-48x48.png`, `apple-touch-icon.png` (iPhone home screen), `android-chrome-192x192.png` and `-512x512.png`, `site.webmanifest` (colours set to the site's cream `#fbf7ef`). Every page's `<head>` has the same five lines (icon .ico, 32 px, 16 px, apple-touch-icon, manifest); the old inline SVG / logo-sm.webp icons were replaced. The 1024 px `master.png` source was NOT added to the site (1.2 MB); it is in the user's Downloads zip.
+- Browsers and Google cache favicons for days; a new icon can take a while to appear. Google's search results pick up the icon on their own schedule.
