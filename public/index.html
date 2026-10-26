@@ -672,24 +672,56 @@ function drawContain(ctx,img,x,y,w,h){   // shows the whole photo, never cropped
 }
 function drawStripe(ctx,y,h){ctx.fillStyle="#164663";ctx.fillRect(0,y,IG_W/3,h);ctx.fillStyle="#e95e0d";ctx.fillRect(IG_W/3,y,IG_W/3,h);ctx.fillStyle="#e9a70d";ctx.fillRect(2*IG_W/3,y,IG_W/3,h)}
 function fitText(ctx,text,weight,start,min,maxW){let s=start;do{ctx.font=weight+" "+s+"px "+IG_FONT;s-=2}while(ctx.measureText(text).width>maxW&&s>min);}
-// Slide 1: the cover photo with the price, title and town underneath.
-function igCover(i,photo,logo){
+// Slide 1, "magazine" look: a black ChadAds tag and the logo on top, the title as a big serif headline, price and town in bold capitals,
+// the whole photo (rounded corners, soft shadow) on white, a short gold bar, and a swipe cue with a black arrow circle when there are more pictures.
+const IG_SERIF='Georgia,"Times New Roman",Times,serif';
+function rrPath(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath()}
+function igCover(i,photo,logo,more){
   const c=document.createElement("canvas");c.width=IG_W;c.height=IG_H;const ctx=c.getContext("2d");
-  ctx.fillStyle="#fbf7ef";ctx.fillRect(0,0,IG_W,IG_H);
-  // The photo area is as tall as the photo needs (4:3 shows whole, tall phone photos get up to 1040 px), so little is cropped.
-  const PH=photo?Math.round(Math.min(1040,Math.max(810,IG_W*photo.height/photo.width))):900;
-  if(photo)drawCover(ctx,photo,0,0,IG_W,PH,+i.coverY||50);
-  else{ctx.fillStyle="hsl("+i.h+",55%,84%)";ctx.fillRect(0,0,IG_W,PH);ctx.font="300px "+IG_FONT;ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillStyle="#000";ctx.fillText(i.e||"",IG_W/2,PH/2);ctx.textAlign="left"}
-  ctx.textBaseline="alphabetic";
-  // Text block: the title on the left and the price on the right of the SAME line (same size), the town (and the logo) on the line below.
-  const price=pt(i);ctx.font="800 52px "+IG_FONT;const pw=price?Math.ceil(ctx.measureText(price).width):0;
-  ctx.font="700 52px "+IG_FONT;const lines=wrapLines(ctx,i.t,IG_W-100-(pw?pw+40:0),2);
-  const blockH=62+(lines.length-1)*62+80,top=PH+Math.max(30,Math.min(80,Math.round((IG_H-16-PH-blockH)/2)));
-  ctx.fillStyle="#1e1c19";lines.forEach((l,n)=>ctx.fillText(l,50,top+56+n*62));
-  if(price){ctx.font="800 52px "+IG_FONT;ctx.fillStyle="#e95e0d";ctx.textAlign="right";ctx.fillText(price,IG_W-50,top+56);ctx.textAlign="left"}
-  const locY=top+56+(lines.length-1)*62+66,lh=72,lw=logo?logo.width*lh/logo.height:0;   // the logo sits at the right end of the town line
-  ctx.fillStyle="#5b5446";ctx.font="500 38px "+IG_FONT;ctx.fillText(i.loc,50,locY);
-  if(logo)ctx.drawImage(logo,IG_W-50-lw,locY+10-lh,lw,lh);
+  const M=56,W=IG_W-2*M,INK="#1e1c19",GOLD="#e9a70d",ORANGE="#e95e0d";
+  ctx.fillStyle="#ffffff";ctx.fillRect(0,0,IG_W,IG_H);ctx.textBaseline="alphabetic";ctx.textAlign="left";
+  // top row: black tag on the left, logo on the right
+  ctx.font="italic 800 34px "+IG_FONT;const w1=ctx.measureText("CHADADS").width,w2=ctx.measureText("FOR SALE").width;
+  ctx.fillStyle="#000";ctx.fillRect(M,50,28+w1+16+w2+28,58);
+  ctx.fillStyle=GOLD;ctx.fillText("CHADADS",M+28,91);ctx.fillStyle="#fff";ctx.fillText("FOR SALE",M+28+w1+16,91);
+  if(logo){const lh=96,lw=logo.width*lh/logo.height;ctx.drawImage(logo,IG_W-M-lw,30,lw,lh)}
+  // headline: the biggest serif size that fits in 3 lines
+  // (two lines are preferred: a three-line headline is only used when two lines would need a size under 84)
+  let size=124,lines;
+  const fits=(max)=>{for(size=124;size>=(max===2?84:60);size-=4){ctx.font="900 "+size+"px "+IG_SERIF;lines=wrapLines(ctx,i.t,W,99);if(lines.length<=max&&lines.every(l=>ctx.measureText(l).width<=W))return true}return false};
+  if(!fits(2)&&!fits(3)){size=60;ctx.font="900 60px "+IG_SERIF;lines=wrapLines(ctx,i.t,W,3)}
+  const lead=Math.round(size*0.98);let y=150+Math.round(size*0.85);
+  ctx.fillStyle=INK;lines.forEach((l,n)=>ctx.fillText(l,M,y+n*lead));
+  y+=(lines.length-1)*lead;
+  // price and town, bold capitals on one line (the price in orange)
+  const price=pt(i).toUpperCase(),loc=String(i.loc||"").toUpperCase(),sep=price&&loc?"   ·   ":"";
+  let fs=52;for(;fs>30;fs-=2){ctx.font="800 "+fs+"px "+IG_FONT;if(ctx.measureText(price+sep+loc).width<=W)break}
+  ctx.font="800 "+fs+"px "+IG_FONT;y+=Math.round(fs*1.5);
+  let x=M;if(price){ctx.fillStyle=ORANGE;ctx.fillText(price,x,y);x+=ctx.measureText(price).width}
+  ctx.fillStyle=INK;ctx.fillText(sep+loc,x,y);
+  // the bottom block starts here; the photo takes whatever room is left above it
+  const barY=1130,top=y+28,bottom=barY-62,boxH=Math.max(380,bottom-top);
+  let dy=top,dh=boxH,capY=top+boxH+34;
+  if(photo){
+    const s=Math.min(W/photo.width,boxH/photo.height),dw=Math.round(photo.width*s);dh=Math.round(photo.height*s);const dx=M+Math.round((W-dw)/2);dy=top+Math.round((boxH-dh)/2);
+    ctx.save();ctx.shadowColor="rgba(0,0,0,.22)";ctx.shadowBlur=26;ctx.shadowOffsetY=8;ctx.fillStyle="#fff";rrPath(ctx,dx,dy,dw,dh,26);ctx.fill();ctx.restore();
+    ctx.save();rrPath(ctx,dx,dy,dw,dh,26);ctx.clip();ctx.drawImage(photo,dx,dy,dw,dh);ctx.restore();
+    capY=dy+dh+38;
+  }else{
+    ctx.fillStyle="hsl("+i.h+",55%,84%)";rrPath(ctx,M,top,W,boxH,26);ctx.fill();ctx.font="260px "+IG_FONT;ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillStyle="#000";ctx.fillText(i.e||"",IG_W/2,top+boxH/2);ctx.textAlign="left";ctx.textBaseline="alphabetic";
+  }
+  // small caption under the photo, right aligned
+  ctx.font="500 30px "+IG_FONT;ctx.fillStyle=INK;ctx.textAlign="right";ctx.fillText(String(i.c||"")+(i.sd?" · Dealer":""),IG_W-M,Math.min(capY,barY-24));ctx.textAlign="left";
+  // gold bar, then the bottom text (and the arrow circle when there are more pictures)
+  ctx.fillStyle=GOLD;ctx.fillRect(M,barY,360,14);
+  ctx.fillStyle=INK;ctx.font="800 58px "+IG_FONT;
+  const t1=more?"SWIPE FOR":"FIND IT ON",t2=more?"MORE PHOTOS":"CHADADS.COM";
+  ctx.fillText(t1,M,barY+84);ctx.fillText(t2,M,barY+148);
+  ctx.font="600 30px "+IG_FONT;ctx.fillStyle="#5b5446";ctx.fillText("chadads.com/ad/"+i.id,M,barY+196);
+  if(more){
+    const cx=IG_W-M-90,cy=barY+112;ctx.fillStyle="#000";ctx.beginPath();ctx.arc(cx,cy,90,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle="#fff";ctx.lineWidth=18;ctx.lineCap="round";ctx.lineJoin="round";ctx.beginPath();ctx.moveTo(cx-16,cy-38);ctx.lineTo(cx+22,cy);ctx.lineTo(cx-16,cy+38);ctx.stroke();
+  }
   drawStripe(ctx,IG_H-16,16);
   return c;
 }
@@ -719,7 +751,7 @@ async function openIg(id){
     const logo=await loadImg("/logo-sm.webp").catch(()=>null);
     const photos=[];
     for(const src of (i.imgs||[]).slice(0,10)){try{photos.push(await loadImg(src))}catch(e){}}
-    const canvases=[igCover(i,photos[0]||null,logo),...photos.slice(1).map(p=>igPhoto(i,p))];
+    const canvases=[igCover(i,photos[0]||null,logo,photos.length>1),...photos.slice(1).map(p=>igPhoto(i,p))];
     const blobs=await Promise.all(canvases.map(c=>new Promise((ok,no)=>c.toBlob(b=>b?ok(b):no(new Error("blob")),"image/jpeg",.92))));
     if(igId!==id)return;
     igFiles=blobs.map((b,n)=>new File([b],"chadads-ad-"+i.id+"-"+(n+1)+".jpg",{type:"image/jpeg"}));
