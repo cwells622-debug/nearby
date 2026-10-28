@@ -238,3 +238,6 @@
 
 ## Categories: Home Appliances and E-Bikes
 - `add_categories_5.sql` adds them (🧺 and ⚡). The old switched-off "Appliances" row stays hidden. Page colours in `HUES`, descriptions in `netlify/edge-lib/seo.js`, links on `public/sell.html`. Pages: /for-sale/home-appliances and /for-sale/e-bikes.
+
+## Importer: cutaway chassis and box trucks go to Auto Trucks
+- `categoryFor()` in `supabase/functions/import-feed/index.ts`: after the Trailers check, a car whose Model + Trim + BodyStyle mentions "cutaway", "cab & chassis" / "chassis cab" / "chassis", "box truck" or "straight truck" is put in Auto Trucks (before: a Ford E-350 cutaway chassis from Celtic Cycles landed in Auto Cars). Trailers are still decided first, so a "flatbed chassis trailer" stays a trailer. Tested with 10 sample rows in the browser. The importer must be pasted into the Supabase dashboard again (Edge Functions > import-feed > edit > Deploy, Verify JWT stays OFF). Cars already imported move to the new category the next time the feed file is imported (the category is part of the car's change fingerprint); ad 753 was moved by hand with SQL.

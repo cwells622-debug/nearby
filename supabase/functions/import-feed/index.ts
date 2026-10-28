@@ -61,6 +61,8 @@ export function categoryFor(row) {
   if (/BOAT|PONTOON|WATERCRAFT|PERSONAL WATER/i.test(body)) return "Boats";
   if (/MOTOR ?HOME|TRAVEL TRAILER|CAMPER|FIFTH WHEEL|\bRV\b/i.test(body)) return "Campers";
   if (/TRAILER/i.test(body)) return "Trailers";
+  // Cutaway vans, cab-and-chassis and box trucks are work trucks (checked on the model and trim as well as the body style).
+  if (/CUTAWAY|CAB ?(&|AND)? ?CHASSIS|CHASSIS ?CAB|\bCHASSIS\b|BOX ?TRUCK|STRAIGHT ?TRUCK/i.test([row.Model, row.Trim, row.BodyStyle].join(" "))) return "Auto Trucks";
   if (TRUCK_RE.test(model) || /PICKUP|CREW ?CAB|EXT(ENDED)? ?CAB|REG(ULAR)? ?CAB|SUPER ?CAB|SUPER ?CREW|TRUCK/i.test(body)) return "Auto Trucks";
   if (SUV_RE.test(model) || /\bSUV\b|SPORT UTILITY/i.test(body)) return "Auto SUVs";
   return "Auto Cars";
