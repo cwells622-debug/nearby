@@ -147,7 +147,7 @@ async function start(){
   if(rc.error)return say("Couldn't load",esc(rc.error.message));
   cats=rc.data.slice().sort((a,b)=>a.name.localeCompare(b.name));
   $("#ec").innerHTML=cats.map(c=>`<option value="${c.id}">${esc(c.name)}${c.active===false?" (hidden)":""}</option>`).join("");
-  $("#main").innerHTML=`<div class="tabs"><button class="btn sm" id="tAds" type="button">Ads</button><button class="btn ghost sm" id="tRep" type="button">Reports <span class="pill" id="repN" hidden></span></button><button class="btn ghost sm" id="tDeal" type="button">Dealer feeds</button></div>
+  $("#main").innerHTML=`<div class="tabs"><button class="btn sm" id="tAds" type="button">Ads</button><button class="btn ghost sm" id="tRep" type="button">Reports <span class="pill" id="repN" hidden></span></button><button class="btn ghost sm" id="tDeal" type="button">Dealer feeds</button><button class="btn ghost sm" id="tAcc" type="button">Accounts</button></div>
     <div id="adsView"><div class="filters">
       <input type="search" id="fq" placeholder="Search titles" aria-label="Search titles">
       <select id="fs" aria-label="Status"><option value="">All statuses</option><option value="active">Active</option><option value="sold">Sold</option><option value="hidden">Hidden (no pictures)</option></select>
@@ -158,7 +158,8 @@ async function start(){
     <p class="sub" id="fbMsg" role="status"></p>
     <div id="list"></div></div>
     <div id="repView" hidden></div>
-    <div id="dealView" hidden></div>`;
+    <div id="dealView" hidden></div>
+    <div id="accView" hidden></div>`;
   let t;$("#fq").addEventListener("input",()=>{clearTimeout(t);t=setTimeout(()=>load(true),300)});
   $("#fs").addEventListener("change",()=>load(true));$("#fd").addEventListener("change",()=>load(true));
   $("#fr").addEventListener("click",()=>load(true));
@@ -291,11 +292,37 @@ async function runFeed(dry){
 const REASONS={scam:"Scam or fraud",prohibited:"Prohibited or illegal item",spam:"Spam or duplicate",wrong:"Wrong category or location",misleading:"Misleading price or details",offensive:"Offensive content",sold:"Already sold",other:"Something else"};
 let reps=[],repShow="open";
 function showTab(w){
-  $("#adsView").hidden=w!=="ads";$("#repView").hidden=w!=="rep";$("#dealView").hidden=w!=="deal";
+  $("#adsView").hidden=w!=="ads";$("#repView").hidden=w!=="rep";$("#dealView").hidden=w!=="deal";$("#accView").hidden=w!=="acc";$("#tAcc").className="btn sm"+(w==="acc"?"":" ghost");
   $("#tAds").className="btn sm"+(w==="ads"?"":" ghost");$("#tRep").className="btn sm"+(w==="rep"?"":" ghost");$("#tDeal").className="btn sm"+(w==="deal"?"":" ghost");
   if(w==="rep")loadReports();
   if(w==="deal")drawDealer();
+  if(w==="acc")loadAccounts();
 }
+// ---- Accounts (people who signed up; see step36_admin_accounts.sql) ----
+let accShow="unconfirmed";
+async function loadAccounts(){
+  $("#accView").innerHTML=`<p class="sub">Loading…</p>`;
+  const {data,error}=await sb.rpc("admin_accounts",{p_filter:accShow});
+  if(error){$("#accView").innerHTML=`<div class="msg"><h2>Accounts not set up</h2><p>Run step36_admin_accounts.sql in the Supabase SQL Editor. (${esc(error.message)})</p></div>`;return}
+  drawAccounts(data||[]);
+}
+function drawAccounts(rows){
+  const ago=d=>{const h=Math.floor((Date.now()-new Date(d))/36e5);return h<1?"just now":h<48?h+" hours ago":Math.floor(h/24)+" days ago"};
+  const sel=`<div class="filters"><select id="accS" aria-label="Show"><option value="unconfirmed"${accShow==="unconfirmed"?" selected":""}>Not confirmed yet</option><option value="all"${accShow==="all"?" selected":""}>Everyone</option></select><button class="btn ghost" id="accRefresh" type="button">Refresh</button></div>
+    <p class="sub" style="max-width:720px">${accShow==="unconfirmed"?"People who created an account but have not clicked the link in the confirmation email. “Resend email” sends a new link (Supabase limits how often it can be sent to one address).":"All member accounts, newest first (dealer accounts are not listed)."} Showing ${rows.length}.</p>`;
+  $("#accView").innerHTML=sel+(rows.length?`<div class="wrapx"><table style="min-width:640px"><thead><tr><th>Email</th><th>Name</th><th>Signed up</th><th>Status</th><th>Ads</th><th></th></tr></thead><tbody>${rows.map(r=>`<tr>
+    <td>${esc(r.email||"")}</td><td>${esc(r.display_name||"")}</td><td>${esc(new Date(r.created_at).toLocaleDateString())}<div class="sub">${esc(ago(r.created_at))}</div></td>
+    <td>${r.confirmed_at?`<span class="pill">confirmed</span>`:`<span class="pill sold">not confirmed</span>${r.confirmation_sent_at?`<div class="sub">email sent ${esc(ago(r.confirmation_sent_at))}</div>`:""}`}</td><td>${r.ads}</td>
+    <td>${r.confirmed_at?"":`<button class="btn ghost sm" data-resend="${esc(r.email||"")}" type="button">Resend email</button>`}</td></tr>`).join("")}</tbody></table></div>`:`<div class="msg"><h2>Nobody waiting</h2><p>Every account has been confirmed.</p></div>`);
+}
+async function resendConfirm(btn){
+  const email=btn.dataset.resend;btn.disabled=true;
+  const {error}=await sb.auth.resend({type:"signup",email});
+  btn.disabled=false;btn.textContent=error?"Not sent":"Sent";
+  if(error)alert("Not sent: "+error.message);
+}
+document.addEventListener("change",e=>{if(e.target.id==="accS"){accShow=e.target.value;loadAccounts()}});
+document.addEventListener("click",e=>{if(e.target.id==="accRefresh")loadAccounts();const rb=e.target.closest&&e.target.closest("[data-resend]");if(rb)resendConfirm(rb)});
 async function loadReports(){
   const {data,error}=await sb.from("reports").select("id,listing_id,listing_title,reason,details,status,created_at,reporter:profiles!reporter_id(display_name),listings(id,status,seller_id,profiles!seller_id(display_name))")
     .order("created_at",{ascending:false}).limit(300);
@@ -497,6 +524,7 @@ document.addEventListener("click",e=>{
   if(t.id==="more"){load(false);return}
   if(t.id==="tAds"){showTab("ads");return}
   if(t.id==="tRep"||t.closest("#tRep")){showTab("rep");return}
+  if(t.id==="tAcc"){showTab("acc");return}
   if(t.id==="tDeal"){showTab("deal");return}
   if(t.id==="dealPreview"){runFeed(true);return}
   if(t.id==="addDealerBtn"){addDealer();return}
