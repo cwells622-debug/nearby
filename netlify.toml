@@ -56,3 +56,24 @@
   from = "/sign"
   to = "/sign.html"
   status = 200
+
+# Dealer and roadside-seller flyers, plus their tagged QR addresses (both show the Sell page).
+[[redirects]]
+  from = "/flyer-dealer"
+  to = "/flyer-dealer.html"
+  status = 200
+
+[[redirects]]
+  from = "/flyer-roadside"
+  to = "/flyer-roadside.html"
+  status = 200
+
+[[redirects]]
+  from = "/s/dealer"
+  to = "/sell.html"
+  status = 200
+
+[[redirects]]
+  from = "/s/roadside"
+  to = "/sell.html"
+  status = 200
