@@ -253,3 +253,6 @@ The ad pop-up (`#dView`) and the Post-an-ad dialog (`#dPost`) have no rounded co
 ## Dealer ad description ending
 The importer no longer adds "Message us on ChadAds to ask about this vehicle." The last line of a dealer ad is now just "Sold by <dealer>, <town>." (`supabase/functions/import-feed/index.ts`, `buildDescription`). Needs a redeploy in Supabase. Ads already imported keep the old wording until their feed row changes.
 To tidy ads already imported, run `supabase/strip_message_us_sentence.sql` once in the Supabase SQL editor.
+
+## Ad pop-up editorial look
+The ad pop-up now matches the Instagram pictures: spaced small-capital labels (category, price, town), a serif headline, a short gold rule under it, flat black buttons, hairlines around the seller row. Order is now category, headline, gold rule, price + Save, town and age, description. All CSS lives in one block (`Editorial look for the ad pop-up`, scoped to `.dlg.ad`) in `public/index.html`; delete it to go back to the old look. Only the markup order in `open()` changed.

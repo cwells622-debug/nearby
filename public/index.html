@@ -196,6 +196,23 @@ dialog.wide{width:min(1020px,96vw)}
 .btn.lg{width:100%;padding:14px 20px;font-size:17px}
 .savebtn{border:0;background:var(--soft);border-radius:999px;padding:8px 16px;font-weight:600;white-space:nowrap}
 .savebtn[aria-pressed="true"]{color:var(--acc-text)}
+/* Editorial look for the ad pop-up (matches the Instagram pictures): spaced small capitals, a serif headline, a gold rule, flat buttons, hairlines. Delete this block to go back to the old look. */
+.dlg.ad{--serif:Georgia,"Times New Roman",Times,serif}
+.dlg.ad .eyebrow{display:flex;align-items:center;gap:10px}
+.dlg.ad .tag{background:none;padding:0;font-size:11px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--mute)}
+.dlg.ad .pill.feat{font-size:11px;letter-spacing:.14em;text-transform:uppercase}
+.dlg.ad .adt{font-family:var(--serif);font-weight:400;font-size:32px;line-height:1.12;letter-spacing:-.01em;margin:2px 0 0}
+.dlg.ad .rule{flex:none;width:48px;height:3px;background:var(--mustard);margin:6px 0 2px}
+.dlg.ad .price{font-size:15px;font-weight:600;letter-spacing:.16em;text-transform:uppercase}
+.dlg.ad .wh{font-size:11px;letter-spacing:.14em;text-transform:uppercase}
+.dlg.ad .savebtn{background:none;border:1px solid var(--line);font-size:12px;letter-spacing:.12em;text-transform:uppercase;padding:8px 14px}
+.dlg.ad .adi .d{font-size:15px;line-height:1.65}
+.dlg.ad .btn.lg{background:var(--ink);color:var(--bg);font-size:12px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;padding:16px 20px}
+.dlg.ad .btn.ghost.lg{background:none;color:var(--ink);border:1px solid var(--ink)}
+.dlg.ad .sbtn{background:none;border:0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:14px 0}
+.dlg.ad .sbtn:hover{background:none}
+.dlg.ad .adi{gap:14px}
+@media (max-width:859px){.dlg.ad .adt{font-size:26px}}
 @media (min-width:860px){
  .adg{grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);max-height:92vh}
  .adi{overflow-y:auto;max-height:92vh;padding:30px 28px}
@@ -828,10 +845,11 @@ function open(id){
     ${n>1?`<div class="gthumbs">${i.media.map((m,k)=>`<button type="button" data-gi="${k}" aria-pressed="${k===0}" aria-label="Show ${m.t==="img"?"photo":"video"} ${k+1}">${m.t==="img"?`<img src="${esc(m.th||m.u)}" data-full="${esc(m.u)}" ${FALLBACK} alt="">`:`<span class="vt">▶</span>`}</button>`).join("")}</div>`:""}
   </div>
   <div class="adi">
-    <span class="tag">${esc(i.c)}</span>${i.ft?` <span class="pill feat">★ Featured</span>`:""}
-    <div class="prow">${i.pr?`<span></span>`:`<div class="price">${pt(i)}</div>`}<button class="savebtn" data-save="${i.id}" aria-pressed="${saved.has(i.id)}">${saved.has(i.id)?"♥ Saved":"♡ Save"}</button></div>
+    <div class="eyebrow"><span class="tag">${esc(i.c)}</span>${i.ft?` <span class="pill feat">★ Featured</span>`:""}</div>
     <h2 class="adt">${esc(i.t)}</h2>
-    <div class="m" style="color:var(--mute)">${where2(i)} · Posted ${i.ago==="Just now"?"just now":i.ago+" ago"}</div>
+    <div class="rule"></div>
+    <div class="prow">${i.pr?`<span></span>`:`<div class="price">${pt(i)}</div>`}<button class="savebtn" data-save="${i.id}" aria-pressed="${saved.has(i.id)}">${saved.has(i.id)?"♥ Saved":"♡ Save"}</button></div>
+    <div class="m wh">${where2(i)} · Posted ${i.ago==="Just now"?"just now":i.ago+" ago"}</div>
     <p class="d">${esc(i.d)}</p>
     ${i.pr?`<p class="d">Call for price</p>`:""}
     ${safeUrl(i.link)?`<p style="margin:0"><a href="${esc(safeUrl(i.link))}" data-ext target="_blank" rel="noopener noreferrer nofollow ugc" style="color:var(--link);font-weight:600">🔗 ${esc(new URL(i.link).hostname)}</a></p>`:""}
