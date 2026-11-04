@@ -693,7 +693,6 @@ function drawStripe(ctx,y,h){ctx.fillStyle="#164663";ctx.fillRect(0,y,IG_W/3,h);
 function fitText(ctx,text,weight,start,min,maxW){let s=start;do{ctx.font=weight+" "+s+"px "+IG_FONT;s-=2}while(ctx.measureText(text).width>maxW&&s>min);}
 // Slide 1, quiet editorial look (think Dwell): lots of white, a light serif headline, small letter-spaced capitals, the whole photo on a soft
 // mat, a hairline and a thin outlined arrow when there are more pictures. No category, no web address (the caption has the link).
-const IG_SERIF='Georgia,"Times New Roman",Times,serif';
 function trackText(ctx,text,x,y,sp){   // letter-spaced text, drawn letter by letter (works in every browser); returns the width
   let cx=x;for(const ch of String(text)){ctx.fillText(ch,cx,y);cx+=ctx.measureText(ch).width+sp}return cx-x-sp;
 }
@@ -707,8 +706,8 @@ function igCover(i,photo,logo,more){
   if(logo){const lh=84,lw=logo.width*lh/logo.height;ctx.drawImage(logo,IG_W-M-lw,56,lw,lh)}
   // headline: a regular-weight serif, the biggest size that fits (two lines preferred, three at most)
   let size=118,lines;
-  const fits=(max)=>{for(size=118;size>=(max===2?78:56);size-=4){ctx.font="400 "+size+"px "+IG_SERIF;lines=wrapLines(ctx,i.t,W,99);if(lines.length<=max&&lines.every(l=>ctx.measureText(l).width<=W))return true}return false};
-  if(!fits(2)&&!fits(3)){size=56;ctx.font="400 56px "+IG_SERIF;lines=wrapLines(ctx,i.t,W,3)}
+  const fits=(max)=>{for(size=118;size>=(max===2?78:56);size-=4){ctx.font="600 "+size+"px "+IG_FONT;lines=wrapLines(ctx,i.t,W,99);if(lines.length<=max&&lines.every(l=>ctx.measureText(l).width<=W))return true}return false};
+  if(!fits(2)&&!fits(3)){size=56;ctx.font="600 56px "+IG_FONT;lines=wrapLines(ctx,i.t,W,3)}
   const lead=Math.round(size*1.06);let y=196+Math.round(size*0.8);
   ctx.fillStyle=INK;lines.forEach((l,n)=>ctx.fillText(l,M,y+n*lead));
   y+=(lines.length-1)*lead;
