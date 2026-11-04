@@ -256,3 +256,4 @@ To tidy ads already imported, run `supabase/strip_message_us_sentence.sql` once 
 
 ## Ad pop-up editorial look
 The ad pop-up now matches the Instagram pictures: spaced small-capital labels (category, price, town), a serif headline, a short gold rule under it, flat black buttons, hairlines around the seller row. Order is now category, headline, gold rule, price + Save, town and age, description. All CSS lives in one block (`Editorial look for the ad pop-up`, scoped to `.dlg.ad`) in `public/index.html`; delete it to go back to the old look. Only the markup order in `open()` changed.
+Ad pop-up headline then switched from Georgia to the site font (semi-bold): Georgia draws numbers like 2026 and 4X4 at uneven heights. The Instagram pictures still use Georgia.
