@@ -257,3 +257,6 @@ To tidy ads already imported, run `supabase/strip_message_us_sentence.sql` once 
 ## Ad pop-up editorial look
 The ad pop-up now matches the Instagram pictures: spaced small-capital labels (category, price, town), a serif headline, a short gold rule under it, flat black buttons, hairlines around the seller row. Order is now category, headline, gold rule, price + Save, town and age, description. All CSS lives in one block (`Editorial look for the ad pop-up`, scoped to `.dlg.ad`) in `public/index.html`; delete it to go back to the old look. Only the markup order in `open()` changed.
 Ad pop-up headline and the Instagram cover headline use the site font (semi-bold) instead of Georgia: Georgia draws numbers like 2026 and 4X4 at uneven heights.
+
+## Google Analytics
+`public/analytics.js` now also loads Google Analytics 4 (measurement ID `G-JFWZE93NQJ`, public). It sits behind the same guards as the Cloudflare counter: chadads.com only, not the owner browser (`/?noanalytics=1`), not Do Not Track. Every page that loads analytics.js gets it, and ad/category pages inherit it from index.html. Unlike Cloudflare, Google sets cookies, so `public/privacy.html` (Cookies and Counting visits) says so. No cookie banner for now; add one if the site ever aims at the EU/UK. To switch it off, empty `GA_ID` in analytics.js.

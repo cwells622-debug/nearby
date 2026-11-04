@@ -7,7 +7,7 @@
 // While TOKEN is empty this file does nothing at all.
 (function () {
   var TOKEN = "da70eb79135e4118a3d6e9e84f3ac6d1";
-  if (!TOKEN) return;
+  var GA_ID = "G-JFWZE93NQJ";   // Google Analytics 4 measurement ID (public, not a secret). Sets Google's analytics cookies.
 
   // Only the real site is counted (not the old netlify.app address, previews or local testing).
   var h = location.hostname;
@@ -24,9 +24,23 @@
   // Respect the browser's "Do Not Track" setting.
   if (navigator.doNotTrack === "1" || window.doNotTrack === "1") return;
 
-  var s = document.createElement("script");
-  s.type = "module"; // same as Cloudflare's current snippet
-  s.src = "https://static.cloudflareinsights.com/beacon.min.js";
-  s.setAttribute("data-cf-beacon", JSON.stringify({ token: TOKEN }));
-  document.head.appendChild(s);
+  if (TOKEN) {
+    var s = document.createElement("script");
+    s.type = "module"; // same as Cloudflare's current snippet
+    s.src = "https://static.cloudflareinsights.com/beacon.min.js";
+    s.setAttribute("data-cf-beacon", JSON.stringify({ token: TOKEN }));
+    document.head.appendChild(s);
+  }
+
+  // Google Analytics 4 (same rules as above: real site only, not the owner, not Do Not Track)
+  if (GA_ID) {
+    window.dataLayer = window.dataLayer || [];
+    window.gtag = function () { window.dataLayer.push(arguments); };
+    window.gtag("js", new Date());
+    window.gtag("config", GA_ID);
+    var g = document.createElement("script");
+    g.async = true;
+    g.src = "https://www.googletagmanager.com/gtag/js?id=" + GA_ID;
+    document.head.appendChild(g);
+  }
 })();
