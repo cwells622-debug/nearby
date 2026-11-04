@@ -249,3 +249,6 @@
 
 ## Square pop-up corners
 The ad pop-up (`#dView`) and the Post-an-ad dialog (`#dPost`) have no rounded corners: one CSS rule in `public/index.html`, `#dView,#dView *,#dPost,#dPost *{border-radius:0}`. Delete that rule to bring the rounded look back. The Log-in and other dialogs are unchanged.
+
+## Dealer ad description ending
+The importer no longer adds "Message us on ChadAds to ask about this vehicle." The last line of a dealer ad is now just "Sold by <dealer>, <town>." (`supabase/functions/import-feed/index.ts`, `buildDescription`). Needs a redeploy in Supabase. Ads already imported keep the old wording until their feed row changes.

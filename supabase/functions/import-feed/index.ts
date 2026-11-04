@@ -117,7 +117,7 @@ export function descriptionFor(row, dealer) {
   if (ids.length) lines.push(ids.join(". ") + ".");
   const feats = String(row.Options || "").split(",").map((x) => x.trim()).filter(Boolean).slice(0, 14);
   if (feats.length) lines.push("Features: " + feats.join(", ") + ".");
-  if (dealer && dealer.name) lines.push(`Sold by ${dealer.name}${dealer.place ? ", " + dealer.place : ""}. Message us on ChadAds to ask about this vehicle.`);
+  if (dealer && dealer.name) lines.push(`Sold by ${dealer.name}${dealer.place ? ", " + dealer.place : ""}.`);
   let d = lines.join("\n");
   if (d.length > 1990) d = d.slice(0, 1989).replace(/\s+\S*$/, "") + "…";
   return d;
