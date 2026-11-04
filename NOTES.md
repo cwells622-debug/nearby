@@ -248,4 +248,4 @@
 - Tested: the SQL on PGlite (unconfirmed only, "all", dealers excluded, non-admin refused, safe to run twice) and the table drawing with sample rows (names escaped). NOT tested against the real database or with a real resend.
 
 ## Square pop-up corners
-The ad pop-up (`#dView`) has no rounded corners: one CSS rule in `public/index.html`, `#dView,#dView *{border-radius:0}`. Delete that rule to bring the rounded look back. The Post-an-ad and Log-in dialogs are unchanged.
+The ad pop-up (`#dView`) and the Post-an-ad dialog (`#dPost`) have no rounded corners: one CSS rule in `public/index.html`, `#dView,#dView *,#dPost,#dPost *{border-radius:0}`. Delete that rule to bring the rounded look back. The Log-in and other dialogs are unchanged.
