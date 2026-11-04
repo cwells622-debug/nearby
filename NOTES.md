@@ -246,3 +246,6 @@
 - `step36_admin_accounts.sql`: `admin_accounts(p_filter)` (admins only; the function checks `is_admin()`; signed-in non-admins and visitors are refused) lists member accounts from `auth.users` with display name, sign-up time, when the confirmation email was sent, last sign-in and number of ads; `'unconfirmed'` (default) or `'all'`; dealer accounts are left out; at most 500 rows.
 - Admin page > Accounts tab (`loadAccounts()`, `drawAccounts()` in `public/admin.html`): table with a "Resend email" button per unconfirmed account (`sb.auth.resend({type:"signup",email})`; Supabase limits how often it can be sent to one address). No delete or manual-confirm buttons (those would need the Supabase service key, which never goes in the page): do those in the Supabase dashboard (Authentication > Users).
 - Tested: the SQL on PGlite (unconfirmed only, "all", dealers excluded, non-admin refused, safe to run twice) and the table drawing with sample rows (names escaped). NOT tested against the real database or with a real resend.
+
+## Square pop-up corners
+The ad pop-up (`#dView`) has no rounded corners: one CSS rule in `public/index.html`, `#dView,#dView *{border-radius:0}`. Delete that rule to bring the rounded look back. The Post-an-ad and Log-in dialogs are unchanged.
