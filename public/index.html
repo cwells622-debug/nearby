@@ -136,6 +136,8 @@ select{border:0;background:var(--soft);border-radius:12px;padding:9px 12px}
 .fgrp{display:flex;gap:8px;flex-wrap:wrap}
 .fbtn{display:none;border:1px solid var(--line);background:var(--panel);padding:9px 16px;font-weight:500}
 @media (max-width:760px){   /* phones: fewer rows above the first ad */
+ .toolbar:not(.hasreg),.locpanel{display:none}   /* no city / who / view controls on phones (only the "clear region" button on region pages). Delete this line to bring them back as the Filters button. */
+ .toolbar.hasreg .fbtn{display:none}
  .toolbar{margin:12px 0 6px}
  .toolbar .locpill{flex:1 1 0;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
  .fbtn{display:block;flex:none}
@@ -644,7 +646,7 @@ function render(){
   const makesHtml=LINK_CATS.includes(cur)&&makeList.length?`<div class="makes" role="group" aria-label="Make"><button data-make="" aria-pressed="${!make}">All makes</button>${makeList.map(([m,n])=>`<button data-make="${esc(m)}" aria-pressed="${make===m}">${esc(m)} <span class="n">${n}</span></button>`).join("")}</div>`:"";
   // On phones the "who" and "view" switches sit behind one Filters button (CSS shows them directly on wider screens).
   const nFilt=(who!=="all"?1:0)+(tog&&view==="cat"?1:0);
-  const nb=cur==="Saved"?"":`<div class="toolbar">${pill}<button class="fbtn" id="filtToggle" type="button" aria-expanded="${showFilt}">Filters${nFilt?` · ${nFilt}`:""}</button><div class="fgrp${showFilt?" open":""}">${whoTog}${tog}</div></div>`+(showLoc&&!regionSlug?bar:"")+makesHtml;
+  const nb=cur==="Saved"?"":`<div class="toolbar${regionSlug?" hasreg":""}">${pill}<button class="fbtn" id="filtToggle" type="button" aria-expanded="${showFilt}">Filters${nFilt?` · ${nFilt}`:""}</button><div class="fgrp${showFilt?" open":""}">${whoTog}${tog}</div></div>`+(showLoc&&!regionSlug?bar:"")+makesHtml;
   if(!list.length){main.innerHTML=nb+`<div class="empty">${loadingAds?`<h2>Loading…</h2>`:cur==="Saved"?user?`<h2>Nothing saved yet</h2><p>Tap the heart on any ad to save it here.</p>`:`<h2>Log in to see your saved ads</h2><p>Saved ads are kept in your account, so you can see them on any device.</p>`:`<h2>No listings found</h2><p>Try a wider distance, a different search, or post an ad.</p>`}</div>`;return}
   if(cur==="All"&&!q&&view==="cat"){
     main.innerHTML=nb+cats.map(c=>{const l=list.filter(i=>i.c===c[0]);if(!l.length)return"";
