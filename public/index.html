@@ -133,6 +133,17 @@ select{border:0;background:var(--soft);border-radius:12px;padding:9px 12px}
 .cb .t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cb .m{color:var(--mute);font-size:14px}
 .toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin:16px 0 8px}
+.fgrp{display:flex;gap:8px;flex-wrap:wrap}
+.fbtn{display:none;border:1px solid var(--line);background:var(--panel);padding:9px 16px;font-weight:500}
+@media (max-width:760px){   /* phones: fewer rows above the first ad */
+ .toolbar{margin:12px 0 6px}
+ .toolbar .locpill{flex:1 1 0;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ .fbtn{display:block;flex:none}
+ .fgrp{display:none}
+ .fgrp.open{display:flex;flex:0 0 100%}
+ .bar{flex-wrap:nowrap;margin:6px 0 14px}.bar h1{font-size:20px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ .bar select{flex:none;max-width:46%;font-size:14px}
+}
 .locpill{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:9px 16px;font-weight:500;transition:border-color .15s}
 .locpill:hover{border-color:var(--mute)}
 .locpanel{background:var(--soft);border-radius:20px;padding:18px;margin:8px 0 20px}
@@ -151,8 +162,8 @@ dialog[open]{animation:pop .22s ease}
 dialog::backdrop{background:rgba(0,0,0,.4);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
 .dlg{padding:24px;display:flex;flex-direction:column;gap:14px}
 .dlg .top{display:flex;justify-content:space-between;align-items:center;gap:10px}
-/* The ad pop-up (#dView) has square corners everywhere: the frame, buttons, tags, thumbnails and arrows. Delete this rule to bring the rounded look back. */
-#dView,#dView *,#dPost,#dPost *{border-radius:0}
+/* Square corners everywhere on the site (buttons, chips, cards, photos, pop-ups), to match the editorial look. Delete the next rule to bring the rounded look back. */
+*,*::before,*::after{border-radius:0!important}
 .x{border:0;background:var(--soft);width:34px;height:34px;border-radius:50%;color:var(--mute)}
 label{display:flex;flex-direction:column;gap:6px;font-weight:500;font-size:14px;color:var(--mute)}
 /* Post form city box: our own drop-down list under the input */
@@ -528,7 +539,7 @@ async function lookupCity(text){
   return data.map(c=>c.name+", "+c.state).find(n=>n.toLowerCase()===want)||null;
 }
 let make="",makeList=[];   // the chosen make inside Auto Cars / Trucks / SUVs, and the make buttons with their counts (browse_makes in step35_make_and_categories.sql)
-let cur="All",q="",sort="best",me="",rad=0,view="all"   /* me: the visitor's city (empty = no city chosen yet; set it to e.g. "Saratoga Springs, NY" for a default). rad: miles from "me"; 0 = any distance. Use 50 or 25 once there are plenty of ads. */,showLoc=false,geoMsg="",ow=false;
+let cur="All",q="",sort="best",me="",rad=0,view="all"   /* me: the visitor's city (empty = no city chosen yet; set it to e.g. "Saratoga Springs, NY" for a default). rad: miles from "me"; 0 = any distance. Use 50 or 25 once there are plenty of ads. */,showLoc=false,showFilt=false,geoMsg="",ow=false;
 // Category / region pages (/for-sale/auto-trucks, /in/capital-district) arrive with a note from the server (window.__LANDING__)
 // saying which filter they represent. regionSlug filters by the database's region lists instead of by distance.
 const LAND=window.__LANDING__||null;
@@ -626,19 +637,21 @@ function render(){
                   :Object.keys(counts).sort((a,b)=>counts[b]-counts[a]).slice(0,4);
   if(gm)showLoc=true;
   const bar=`<div class="locpanel"><div class="near"><label>City<input id="me" list="cl" value="${esc(me)}" placeholder="Start typing a city" autocomplete="off"></label><label>Within<select id="rad"${T[me]?"":" disabled"}>${[[0,"Any distance"],[5,"5 miles"],[10,"10 miles"],[25,"25 miles"],[50,"50 miles"],[100,"100 miles"]].map(r=>`<option value="${r[0]}"${r[0]===rad?" selected":""}>${r[1]}</option>`).join("")}</select></label><button class="btn ghost" id="geo" type="button">Use my location</button></div><div class="chips">${T[me]?"Nearby":"Cities with ads"}: ${near.map(n=>`<button data-city="${esc(n)}">${esc(n)}</button>`).join("")}</div>${gm?`<p class="note" style="margin:12px 0 0">${esc(gm)}</p>`:""}</div>`;
-  const pill=regionSlug?`<button class="locpill" id="clearRegion" type="button" title="Show everywhere again">📍 ${esc(regionName)} ✕</button>`:`<button class="locpill" id="locToggle" type="button" aria-expanded="${showLoc}">${me?`📍 ${esc(me)} · ${rad?rad+" mi":"Any distance"}`:"📍 Anywhere · choose your city"}</button>`;
+  const pill=regionSlug?`<button class="locpill" id="clearRegion" type="button" title="Show everywhere again">📍 ${esc(regionName)} ✕</button>`:`<button class="locpill" id="locToggle" type="button" aria-expanded="${showLoc}">${me?`📍 ${esc(me)} · ${rad?rad+" mi":"Any distance"}`:"📍 Choose your city"}</button>`;
   const tog=cur==="All"&&!q?`<div class="tog"><button data-view="cat" aria-pressed="${view==="cat"}">By category</button><button data-view="all" aria-pressed="${view==="all"}">View all</button></div>`:"";
   // One slim row (location + view switch); the full location controls open underneath on demand.
   const whoTog=`<div class="tog" role="group" aria-label="Whose ads">${[["all","Everyone"],["private","Private sellers"],["dealer","Dealers"]].map(([k,n])=>`<button data-who="${k}" aria-pressed="${who===k}">${n}</button>`).join("")}</div>`;
   const makesHtml=LINK_CATS.includes(cur)&&makeList.length?`<div class="makes" role="group" aria-label="Make"><button data-make="" aria-pressed="${!make}">All makes</button>${makeList.map(([m,n])=>`<button data-make="${esc(m)}" aria-pressed="${make===m}">${esc(m)} <span class="n">${n}</span></button>`).join("")}</div>`:"";
-  const nb=cur==="Saved"?"":`<div class="toolbar">${pill}<div style="display:flex;gap:8px;flex-wrap:wrap">${whoTog}${tog}</div></div>`+(showLoc&&!regionSlug?bar:"")+makesHtml;
+  // On phones the "who" and "view" switches sit behind one Filters button (CSS shows them directly on wider screens).
+  const nFilt=(who!=="all"?1:0)+(tog&&view==="cat"?1:0);
+  const nb=cur==="Saved"?"":`<div class="toolbar">${pill}<button class="fbtn" id="filtToggle" type="button" aria-expanded="${showFilt}">Filters${nFilt?` · ${nFilt}`:""}</button><div class="fgrp${showFilt?" open":""}">${whoTog}${tog}</div></div>`+(showLoc&&!regionSlug?bar:"")+makesHtml;
   if(!list.length){main.innerHTML=nb+`<div class="empty">${loadingAds?`<h2>Loading…</h2>`:cur==="Saved"?user?`<h2>Nothing saved yet</h2><p>Tap the heart on any ad to save it here.</p>`:`<h2>Log in to see your saved ads</h2><p>Saved ads are kept in your account, so you can see them on any device.</p>`:`<h2>No listings found</h2><p>Try a wider distance, a different search, or post an ad.</p>`}</div>`;return}
   if(cur==="All"&&!q&&view==="cat"){
     main.innerHTML=nb+cats.map(c=>{const l=list.filter(i=>i.c===c[0]);if(!l.length)return"";
       return `<section class="sec"><div class="hd"><h2>${c[0]}</h2><button class="link" data-cat="${c[0]}">See all ${catCounts[c[0]]||l.length}</button></div><div class="grid">${l.slice(0,4).map(card).join("")}</div></section>`}).join("");
     return;
   }
-  main.innerHTML=nb+`<div class="bar"><h1>${landActive()?esc(LAND.h1):q?`Results for “${esc(q)}”`:(cur==="All"?"All listings":cur==="Saved"?"Saved listings":esc(cur))+(who==="dealer"&&cur!=="Saved"?" from dealers":who==="private"&&cur!=="Saved"?" from private sellers":"")}</h1><select id="sort" aria-label="Sort"><option value="best">Best match (nearby first)</option><option value="new">Newest first</option><option value="old">Oldest first</option>${T[me]?`<option value="near">Nearest</option>`:""}<option value="low">Price: low to high</option><option value="high">Price: high to low</option></select></div>${landActive()?`<p class="note">${esc(LAND.intro)}</p>`:""}<div class="grid">${list.map(card).join("")}</div>${list.length<totalAds?`<div style="text-align:center;margin:24px 0"><button class="btn ghost" id="moreAds" type="button">Show more (${totalAds-list.length} more)</button></div>`:""}`;
+  main.innerHTML=nb+`<div class="bar"><h1>${landActive()?esc(LAND.h1):q?`Results for “${esc(q)}”`:(cur==="All"?"All listings":cur==="Saved"?"Saved listings":esc(cur))+(who==="dealer"&&cur!=="Saved"?" from dealers":who==="private"&&cur!=="Saved"?" from private sellers":"")}</h1><select id="sort" aria-label="Sort"><option value="best">Best match</option><option value="new">Newest first</option><option value="old">Oldest first</option>${T[me]?`<option value="near">Nearest</option>`:""}<option value="low">Price: low to high</option><option value="high">Price: high to low</option></select></div>${landActive()?`<p class="note">${esc(LAND.intro)}</p>`:""}<div class="grid">${list.map(card).join("")}</div>${list.length<totalAds?`<div style="text-align:center;margin:24px 0"><button class="btn ghost" id="moreAds" type="button">Show more (${totalAds-list.length} more)</button></div>`:""}`;
   $("#sort").value=sort;
 }
 // ---- Sharing: every ad has its own page address, like  https://chadads.com/ad/38-2017-jeep-rubicon ----
@@ -929,6 +942,7 @@ document.addEventListener("click",e=>{
   const bk=t.closest("[data-back]");if(bk){open(bk.dataset.back);return}
   const ct=t.closest("[data-city]");if(ct){me=ct.dataset.city;reload();return}
   if(t.closest("#locToggle")){showLoc=!showLoc;render();return}
+  if(t.closest("#filtToggle")){showFilt=!showFilt;render();return}
   if(t.closest("#clearRegion")){regionSlug=null;rad=0;try{history.replaceState(null,"","/")}catch(e){};reload();return}
   if(t.id==="geo"){locate();return}
   const vw=t.closest("[data-view]");if(vw){view=vw.dataset.view;reload();return}

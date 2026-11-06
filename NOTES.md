@@ -271,3 +271,8 @@ The City box in the Post form now has its own drop-down list (`#cdd`, `cityTyped
 
 ## Call for price is dealers only
 The "Call for price" checkbox in the Post form (`#porRow`) is hidden unless the logged-in member is a dealer (`myDealer`, looked up from `profiles.is_dealer` in `showUser`). A member whose ad already has Call for price keeps the box when editing so they can untick it. This is only the form: the database still accepts `price_on_request` from any member (not a security issue). Dealer feed ads are unaffected.
+
+## Phone home page and square corners
+- On phones (under 760 px) the "Everyone / Private / Dealers" and "By category / View all" switches sit behind one **Filters** button next to the city button (`#filtToggle`, `.fgrp`, `showFilt`); the button shows how many filters are on ("Filters · 1"). The heading and the sort box share one row, and the city button says "Choose your city". Desktop is unchanged. The first ads now show on the first screen.
+- Every corner on the site is square: one rule, `*,*::before,*::after{border-radius:0!important}`, in `public/index.html` (replaces the pop-up-only rule). Delete it to bring the rounded look back. Admin page and the small info pages are not affected.
+- Sort option "Best match (nearby first)" is now just "Best match".
