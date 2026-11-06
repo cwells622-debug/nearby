@@ -281,3 +281,6 @@ Update: on phones the city button and the Filters button are now hidden complete
 
 ## Photos first in the Post form
 The photo picker, thumbnails and cover-framing slider are now the first thing in the Post form (above Title); only the position in the HTML changed, the code finds them by id. Label reads "Start with your photos".
+
+## Link box is dealers only
+The "Link (optional)" web-address box in the Post form (car categories) is hidden unless the member is a dealer (`myDealer`, see `showLinkField()` in `public/index.html`). A member whose ad already has a link keeps the box when editing. The Make box is unchanged. Form only; the database still accepts a link from any member on the car categories.

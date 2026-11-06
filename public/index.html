@@ -1051,7 +1051,7 @@ function showUser(u){
   $("#msgsBtn").hidden=!u;
   if(changed){
     myDealer=false;   // looked up again below for the new login
-    if(u&&sb)sb.from("profiles").select("is_dealer").eq("id",u.id).maybeSingle().then(({data})=>{if(user&&user.id===u.id){myDealer=!!(data&&data.is_dealer);syncPor()}});
+    if(u&&sb)sb.from("profiles").select("is_dealer").eq("id",u.id).maybeSingle().then(({data})=>{if(user&&user.id===u.id){myDealer=!!(data&&data.is_dealer);syncPor();showLinkField()}});
     blocked=new Set();blocksLoaded=false;
     convos=[];curConv=null;updateBadge();stopPolling();
     if(u)setTimeout(()=>{loadConvos();startPolling()},0);
@@ -1293,7 +1293,7 @@ function startPost(id){
 }
 // The "Link" box only appears for these categories (the database enforces the same list; see step13_autos_categories.sql and step19_auto_categories.sql).
 const LINK_CATS=["Auto Cars","Auto Trucks","Auto SUVs"];
-function showLinkField(){const on=LINK_CATS.includes($("#fc").value);$("#linkRow").hidden=!on;$("#makeRow").hidden=!on}
+function showLinkField(){const on=LINK_CATS.includes($("#fc").value);$("#linkRow").hidden=!(on&&(myDealer||!!$("#f").elements.link.value));$("#makeRow").hidden=!on}   // the web-address box is for dealers; a member whose ad already has one keeps it
 $("#fc").addEventListener("change",showLinkField);
 // Only web addresses starting with http:// or https:// are allowed (never javascript: and similar).
 function safeUrl(u){try{const x=new URL(u);return x.protocol==="https:"||x.protocol==="http:"?x.href:null}catch(e){return null}}
