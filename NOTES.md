@@ -268,3 +268,6 @@ Nobody has to log in to start an ad any more. "Post an ad" (and /?post=1 from th
 
 ## Post form city drop-down
 The City box in the Post form now has its own drop-down list (`#cdd`, `cityTyped()` in `public/index.html`) instead of the browser built-in datalist, which lagged and flickered. Answers are remembered (`cityCache`); a longer search is filtered from a shorter one that returned everything, so most keystrokes need no database call; new searches wait 120 ms. Arrow keys, Enter, Escape and clicks work. The "my city" box in the location panel still uses the datalist `#cl`. The database search (`search_cities`) was not changed; it answers in about 170-250 ms, mostly network time.
+
+## Call for price is dealers only
+The "Call for price" checkbox in the Post form (`#porRow`) is hidden unless the logged-in member is a dealer (`myDealer`, looked up from `profiles.is_dealer` in `showUser`). A member whose ad already has Call for price keeps the box when editing so they can untick it. This is only the form: the database still accepts `price_on_request` from any member (not a security issue). Dealer feed ads are unaffected.

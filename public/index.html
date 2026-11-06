@@ -355,7 +355,7 @@ dialog .dlg.msgs{padding:0;gap:0}
     <label>Category<select name="c" id="fc"></select></label>
     <label>Price ($, 0 for free)<input name="p" type="number" min="0" value="0" required></label>
   </div>
-  <label style="flex-direction:row;align-items:center;gap:8px;margin-top:-6px"><input type="checkbox" name="por" id="por" style="width:auto;padding:0;margin:0"> Call for price (don't show a price)</label>
+  <label id="porRow" hidden style="flex-direction:row;align-items:center;gap:8px;margin-top:-6px"><input type="checkbox" name="por" id="por" style="width:auto;padding:0;margin:0"> Call for price (don't show a price)</label>
   <label class="cityl">City<input name="loc" id="fl" required autocomplete="off" role="combobox" aria-expanded="false" aria-controls="cdd" placeholder="Start typing a city"><div class="cdd" id="cdd" role="listbox" hidden></div></label><datalist id="cl"></datalist><!-- #cl: suggestions for the "my city" box in the location panel -->
   <label>Description<textarea name="d" rows="3" required placeholder="Condition, size, pickup details"></textarea></label>
   <label id="makeRow" hidden>Make<input name="make" maxlength="30" list="makes" autocomplete="off" placeholder="Ford, Chevrolet, Toyota ... (pick or type)"></label><datalist id="makes"><option value="Acura"><option value="Audi"><option value="BMW"><option value="Buick"><option value="Cadillac"><option value="Chevrolet"><option value="Chrysler"><option value="Dodge"><option value="Ford"><option value="GMC"><option value="Honda"><option value="Hyundai"><option value="Infiniti"><option value="Jeep"><option value="Kia"><option value="Lexus"><option value="Lincoln"><option value="Mazda"><option value="Mercedes-Benz"><option value="Mercury"><option value="Mini"><option value="Mitsubishi"><option value="Nissan"><option value="Oldsmobile"><option value="Plymouth"><option value="Pontiac"><option value="Porsche"><option value="Ram"><option value="Saturn"><option value="Subaru"><option value="Tesla"><option value="Toyota"><option value="Volkswagen"><option value="Volvo"></datalist>
@@ -996,7 +996,7 @@ cddEl.addEventListener("mousedown",e=>{const b=e.target.closest("[data-k]");if(!
 /* ---------- Accounts (Supabase Auth) ---------- */
 // "sb" is our connection to Supabase, like an ADO connection object in classic ASP.
 // Its settings come from config.js.
-let sb=null,user=null,signup=false,editId=null,deepDone=false,postDone=false,postAfterLogin=false,msgAfter=null,draftPending=false,awaitingEmail=false;   // draftPending: a new ad was filled in while signed out and is waiting for the login
+let sb=null,user=null,signup=false,editId=null,deepDone=false,postDone=false,postAfterLogin=false,msgAfter=null,draftPending=false,awaitingEmail=false,myDealer=false;   // draftPending: a new ad was filled in while signed out and is waiting for the login
 const BUCKET="listing-photos",cityIds={};   // cityIds: "Albany, NY" -> the city's id in the database
 const PHOTO_TYPES={"image/jpeg":"jpg","image/png":"png","image/webp":"webp"},MAX_PHOTO=5*1024*1024,MAX_PHOTO_IN=60*1024*1024,PHOTO_TARGET=1.5*1024*1024,MAX_PHOTOS=5;   // MAX_PHOTOS must match the limit in step4_photos_and_limits.sql
 const cfgOk=typeof NEARBY_CONFIG!=="undefined"&&/^https?:\/\//.test(NEARBY_CONFIG.supabaseUrl)&&!NEARBY_CONFIG.supabaseAnonKey.startsWith("PASTE");
@@ -1034,6 +1034,8 @@ function showUser(u){
   if(u&&msgAfter!==null){const cid=msgAfter;msgAfter=null;setTimeout(()=>openMessages().then(()=>{if(cid)openThread(cid)}),600)}   // they came from an email alert and have just logged in
   $("#msgsBtn").hidden=!u;
   if(changed){
+    myDealer=false;   // looked up again below for the new login
+    if(u&&sb)sb.from("profiles").select("is_dealer").eq("id",u.id).maybeSingle().then(({data})=>{if(user&&user.id===u.id){myDealer=!!(data&&data.is_dealer);syncPor()}});
     blocked=new Set();blocksLoaded=false;
     convos=[];curConv=null;updateBadge();stopPolling();
     if(u)setTimeout(()=>{loadConvos();startPolling()},0);
@@ -1243,7 +1245,8 @@ async function sendOfferNow(ad,amount){
 
 /* ---------- Post, edit and delete ads ---------- */// Opens the form: empty for a new ad, or filled in when editing ad number "id".
 // "Call for price" ticked: the price box is greyed out and not needed.
-function syncPor(){const f=$("#f").elements;f.p.disabled=f.por.checked;f.p.required=!f.por.checked}
+// "Call for price" is for dealers only. A member's ad that already has it keeps the box, so they can untick it.
+function syncPor(){const f=$("#f").elements;$("#porRow").hidden=!(myDealer||f.por.checked);f.p.disabled=f.por.checked;f.p.required=!f.por.checked}
 document.addEventListener("change",e=>{if(e.target.id==="por")syncPor()});
 function startPost(id){
   if(id&&!user){needLogin("Please log in to edit your ad.");return}   // a NEW ad can be filled in without logging in; the login comes when they tap Publish
