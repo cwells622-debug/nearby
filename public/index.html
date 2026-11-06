@@ -155,6 +155,12 @@ dialog::backdrop{background:rgba(0,0,0,.4);-webkit-backdrop-filter:blur(6px);bac
 #dView,#dView *,#dPost,#dPost *{border-radius:0}
 .x{border:0;background:var(--soft);width:34px;height:34px;border-radius:50%;color:var(--mute)}
 label{display:flex;flex-direction:column;gap:6px;font-weight:500;font-size:14px;color:var(--mute)}
+/* Post form city box: our own drop-down list under the input */
+.cityl{position:relative}
+.cdd{position:absolute;left:0;right:0;top:100%;z-index:30;max-height:240px;overflow-y:auto;background:var(--panel);border:1px solid var(--line);box-shadow:var(--shadow)}
+.cdd button{display:block;width:100%;text-align:left;border:0;background:none;padding:11px 14px;font-weight:500;color:var(--ink);cursor:pointer}
+.cdd button[aria-selected="true"],.cdd button:hover{background:var(--soft)}
+.cdd .cn{padding:9px 14px;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
 label input,label select,label textarea{border:1px solid transparent;background:var(--soft);border-radius:12px;padding:12px;font-weight:400;color:var(--ink)}
 label input:focus,label select:focus,label textarea:focus{outline:none;border-color:var(--acc);background:var(--panel)}
 .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
@@ -350,7 +356,7 @@ dialog .dlg.msgs{padding:0;gap:0}
     <label>Price ($, 0 for free)<input name="p" type="number" min="0" value="0" required></label>
   </div>
   <label style="flex-direction:row;align-items:center;gap:8px;margin-top:-6px"><input type="checkbox" name="por" id="por" style="width:auto;padding:0;margin:0"> Call for price (don't show a price)</label>
-  <label>City<input name="loc" id="fl" list="cl" required autocomplete="off" placeholder="Start typing a city"></label><datalist id="cl"></datalist>
+  <label class="cityl">City<input name="loc" id="fl" required autocomplete="off" role="combobox" aria-expanded="false" aria-controls="cdd" placeholder="Start typing a city"><div class="cdd" id="cdd" role="listbox" hidden></div></label><datalist id="cl"></datalist><!-- #cl: suggestions for the "my city" box in the location panel -->
   <label>Description<textarea name="d" rows="3" required placeholder="Condition, size, pickup details"></textarea></label>
   <label id="makeRow" hidden>Make<input name="make" maxlength="30" list="makes" autocomplete="off" placeholder="Ford, Chevrolet, Toyota ... (pick or type)"></label><datalist id="makes"><option value="Acura"><option value="Audi"><option value="BMW"><option value="Buick"><option value="Cadillac"><option value="Chevrolet"><option value="Chrysler"><option value="Dodge"><option value="Ford"><option value="GMC"><option value="Honda"><option value="Hyundai"><option value="Infiniti"><option value="Jeep"><option value="Kia"><option value="Lexus"><option value="Lincoln"><option value="Mazda"><option value="Mercedes-Benz"><option value="Mercury"><option value="Mini"><option value="Mitsubishi"><option value="Nissan"><option value="Oldsmobile"><option value="Plymouth"><option value="Pontiac"><option value="Porsche"><option value="Ram"><option value="Saturn"><option value="Subaru"><option value="Tesla"><option value="Toyota"><option value="Volkswagen"><option value="Volvo"></datalist>
   <label id="linkRow" hidden>Link (optional)<input name="link" type="url" maxlength="500" placeholder="https://" autocomplete="off"></label>
@@ -940,7 +946,50 @@ document.addEventListener("click",e=>{
 document.addEventListener("change",e=>{const t=e.target;if(t.id==="sort")sort=t.value;else if(t.id==="rad")rad=+t.value;else return;reload()});
 document.addEventListener("input",e=>{const t=e.target;if(t.id==="oa")ow=false;if(t.id==="me"){const k=Object.keys(T).find(n=>n.toLowerCase()===t.value.trim().toLowerCase());if(k&&k!==me){me=k;reload()}else if(!t.value.trim()&&me){me="";reload()}else if(!k){searchCities(t.value,()=>{const k2=Object.keys(T).find(n=>n.toLowerCase()===t.value.trim().toLowerCase());if(k2&&k2!==me){me=k2;reload()}})}}});
 $("#q").addEventListener("input",e=>{q=e.target.value.trim().toLowerCase();clearTimeout(qTimer);qTimer=setTimeout(()=>reload(),250)});
-$("#fl").addEventListener("input",e=>{e.target.setCustomValidity("");searchCities(e.target.value)});
+// The city box in the Post form has its own drop-down list (the browser's built-in one lagged and flickered). Answers are remembered, and a longer search
+// is first filtered from a shorter search that already returned everything, so the list reacts at once; only new searches ask the database (after 120 ms).
+const cddEl=$("#cdd"),cityCache={};let cddItems=[],cddIdx=-1,cddTimer=0,cddSeq=0;
+function cddRender(list,note){
+  cddItems=list;cddIdx=list.length?0:-1;
+  cddEl.innerHTML=(note?`<div class="cn">${esc(note)}</div>`:"")+list.map((n,k)=>`<button type="button" role="option" data-k="${k}" aria-selected="${k===cddIdx}">${esc(n)}</button>`).join("");
+  cddEl.hidden=!list.length&&!note;$("#fl").setAttribute("aria-expanded",String(!cddEl.hidden));
+}
+function cddMark(k){cddIdx=k;cddEl.querySelectorAll("[data-k]").forEach(b=>{const on=+b.dataset.k===k;b.setAttribute("aria-selected",on);if(on)b.scrollIntoView({block:"nearest"})})}
+function cddHide(){cddEl.hidden=true;$("#fl").setAttribute("aria-expanded","false")}
+function cddPick(k){const f=$("#fl");f.value=k;f.setCustomValidity("");cddHide()}
+function cityTyped(){
+  const raw=$("#fl").value.trim(),s=raw.toLowerCase(),none="No city found. Check the spelling.";
+  clearTimeout(cddTimer);++cddSeq;
+  if(s.length<2){const k=Object.keys(adCities).sort().slice(0,10);cddRender(k,k.length?"Cities with ads":"");return}
+  if(cityCache[s]){const l=cityCache[s].list;cddRender(l,l.length?"":none);return}
+  if(!s.includes(","))for(let n=s.length-1;n>=2;n--){   // an earlier, shorter search that returned everything it had: just filter it
+    const c=cityCache[s.slice(0,n)];
+    if(c&&c.done){const l=c.list.filter(k=>k.toLowerCase().startsWith(s));cityCache[s]={list:l,done:true};cddRender(l,l.length?"":none);return}
+  }
+  const shown=cddItems.filter(k=>k.toLowerCase().startsWith(s));   // while the database answers, keep what still fits
+  cddRender(shown,shown.length?"":"Searching…");
+  if(!sb)return;
+  const my=cddSeq;
+  cddTimer=setTimeout(async()=>{
+    const {data}=await sb.rpc("search_cities",{q:raw,lim:15});
+    if(my!==cddSeq)return;
+    if(!data){cddRender([],"Couldn't load cities. Try again.");return}
+    data.forEach(addCity);
+    const l=data.map(c=>c.name+", "+c.state);cityCache[s]={list:l,done:l.length<15};
+    if(document.activeElement===$("#fl"))cddRender(l,l.length?"":none);
+  },120);
+}
+$("#fl").addEventListener("input",e=>{e.target.setCustomValidity("");cityTyped()});
+$("#fl").addEventListener("focus",cityTyped);
+$("#fl").addEventListener("blur",()=>setTimeout(cddHide,150));
+$("#fl").addEventListener("keydown",e=>{
+  if(cddEl.hidden||!cddItems.length)return;
+  if(e.key==="ArrowDown"){e.preventDefault();cddMark((cddIdx+1)%cddItems.length)}
+  else if(e.key==="ArrowUp"){e.preventDefault();cddMark((cddIdx-1+cddItems.length)%cddItems.length)}
+  else if(e.key==="Enter"&&cddIdx>=0){e.preventDefault();cddPick(cddItems[cddIdx])}
+  else if(e.key==="Escape"){e.preventDefault();cddHide()}
+});
+cddEl.addEventListener("mousedown",e=>{const b=e.target.closest("[data-k]");if(!b)return;e.preventDefault();cddPick(cddItems[+b.dataset.k])});
 </script>
 
 <script>
