@@ -363,6 +363,13 @@ dialog .dlg.msgs{padding:0;gap:0}
 <dialog id="dPost"><form class="dlg" id="f">
   <div class="top"><h2 id="postTitle">Post an ad</h2><button type="button" class="x" data-close aria-label="Close">✕</button></div>
   <p class="note" id="postHint" hidden style="margin:-6px 0 0"></p>
+  <div id="curPhotos" class="thumbs" hidden></div>
+  <label><span id="photoLbl">Start with your photos (optional, up to 5; JPG, PNG or WebP). Big photos are resized for you.</span><input id="fimg" type="file" multiple accept="image/jpeg,image/png,image/webp"></label>
+  <div id="newPhotos" class="thumbs" hidden></div>
+  <div id="coverBox" class="coverbox" hidden>
+    <div class="cprev" id="coverPrev"></div>
+    <label>Cover photo (the picture on the home page). Slide to choose which part shows.<input type="range" id="cy" name="cy" min="0" max="100" value="50" aria-label="Cover photo framing"></label>
+  </div>
   <label>Title<input name="t" required maxlength="60" placeholder="What are you selling?"></label>
   <div class="row">
     <label>Category<select name="c" id="fc"></select></label>
@@ -373,13 +380,6 @@ dialog .dlg.msgs{padding:0;gap:0}
   <label>Description<textarea name="d" rows="3" required placeholder="Condition, size, pickup details"></textarea></label>
   <label id="makeRow" hidden>Make<input name="make" maxlength="30" list="makes" autocomplete="off" placeholder="Ford, Chevrolet, Toyota ... (pick or type)"></label><datalist id="makes"><option value="Acura"><option value="Audi"><option value="BMW"><option value="Buick"><option value="Cadillac"><option value="Chevrolet"><option value="Chrysler"><option value="Dodge"><option value="Ford"><option value="GMC"><option value="Honda"><option value="Hyundai"><option value="Infiniti"><option value="Jeep"><option value="Kia"><option value="Lexus"><option value="Lincoln"><option value="Mazda"><option value="Mercedes-Benz"><option value="Mercury"><option value="Mini"><option value="Mitsubishi"><option value="Nissan"><option value="Oldsmobile"><option value="Plymouth"><option value="Pontiac"><option value="Porsche"><option value="Ram"><option value="Saturn"><option value="Subaru"><option value="Tesla"><option value="Toyota"><option value="Volkswagen"><option value="Volvo"></datalist>
   <label id="linkRow" hidden>Link (optional)<input name="link" type="url" maxlength="500" placeholder="https://" autocomplete="off"></label>
-  <div id="curPhotos" class="thumbs" hidden></div>
-  <label><span id="photoLbl">Photos (optional, up to 5; JPG, PNG or WebP). Big photos are resized for you.</span><input id="fimg" type="file" multiple accept="image/jpeg,image/png,image/webp"></label>
-  <div id="newPhotos" class="thumbs" hidden></div>
-  <div id="coverBox" class="coverbox" hidden>
-    <div class="cprev" id="coverPrev"></div>
-    <label>Cover photo (the picture on the home page). Slide to choose which part shows.<input type="range" id="cy" name="cy" min="0" max="100" value="50" aria-label="Cover photo framing"></label>
-  </div>
   <div id="curVideo" class="vrow" hidden></div>
   <!-- Video upload is switched off for now (remove the word "hidden" below to bring it back; the rest of the code is still in place). The YouTube/Vimeo link below stays. -->
   <label id="vidUploadRow" hidden><span id="videoLbl">Video clip (optional, MP4, MOV or WebM, up to 50 MB)</span><input id="fvid" type="file" accept="video/mp4,video/quicktime,video/webm"></label>
@@ -1279,7 +1279,7 @@ function startPost(id){
   $("#videoLbl").textContent=i&&i.vpath?"Replace the video (leave empty to keep it)":"Video clip (optional, MP4, MOV or WebM, up to 50 MB)";
   $("#postTitle").textContent=i?"Edit your ad":"Post an ad";
   $("#postGo").textContent=i?"Save changes":"Publish ad";
-  $("#photoLbl").textContent=i?"Add more photos (up to 5 in total). Big photos are resized for you.":"Photos (optional, up to 5; JPG, PNG or WebP). Big photos are resized for you.";
+  $("#photoLbl").textContent=i?"Add more photos (up to 5 in total). Big photos are resized for you.":"Start with your photos (optional, up to 5; JPG, PNG or WebP). Big photos are resized for you.";
   // When editing, show the current photos; tick one to remove it when you save.
   const cp=$("#curPhotos");
   cp.hidden=!(i&&i.paths.length);

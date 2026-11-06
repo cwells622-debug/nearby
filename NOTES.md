@@ -278,3 +278,6 @@ The "Call for price" checkbox in the Post form (`#porRow`) is hidden unless the 
 - Sort option "Best match (nearby first)" is now just "Best match".
 
 Update: on phones the city button and the Filters button are now hidden completely (one CSS line, `.toolbar:not(.hasreg),.locpanel{display:none}` in the phone media query in `public/index.html`). Only the small "clear region" button stays on region pages like /in/capital-district. Desktop keeps all controls. Delete that line to bring the Filters button back on phones.
+
+## Photos first in the Post form
+The photo picker, thumbnails and cover-framing slider are now the first thing in the Post form (above Title); only the position in the HTML changed, the code finds them by id. Label reads "Start with your photos".
