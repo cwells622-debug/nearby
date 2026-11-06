@@ -343,6 +343,7 @@ dialog .dlg.msgs{padding:0;gap:0}
 
 <dialog id="dPost"><form class="dlg" id="f">
   <div class="top"><h2 id="postTitle">Post an ad</h2><button type="button" class="x" data-close aria-label="Close">✕</button></div>
+  <p class="note" id="postHint" hidden style="margin:-6px 0 0"></p>
   <label>Title<input name="t" required maxlength="60" placeholder="What are you selling?"></label>
   <div class="row">
     <label>Category<select name="c" id="fc"></select></label>
@@ -946,7 +947,7 @@ $("#fl").addEventListener("input",e=>{e.target.setCustomValidity("");searchCitie
 /* ---------- Accounts (Supabase Auth) ---------- */
 // "sb" is our connection to Supabase, like an ADO connection object in classic ASP.
 // Its settings come from config.js.
-let sb=null,user=null,signup=false,editId=null,deepDone=false,postDone=false,postAfterLogin=false,msgAfter=null;
+let sb=null,user=null,signup=false,editId=null,deepDone=false,postDone=false,postAfterLogin=false,msgAfter=null,draftPending=false,awaitingEmail=false;   // draftPending: a new ad was filled in while signed out and is waiting for the login
 const BUCKET="listing-photos",cityIds={};   // cityIds: "Albany, NY" -> the city's id in the database
 const PHOTO_TYPES={"image/jpeg":"jpg","image/png":"png","image/webp":"webp"},MAX_PHOTO=5*1024*1024,MAX_PHOTO_IN=60*1024*1024,PHOTO_TARGET=1.5*1024*1024,MAX_PHOTOS=5;   // MAX_PHOTOS must match the limit in step4_photos_and_limits.sql
 const cfgOk=typeof NEARBY_CONFIG!=="undefined"&&/^https?:\/\//.test(NEARBY_CONFIG.supabaseUrl)&&!NEARBY_CONFIG.supabaseAnonKey.startsWith("PASTE");
@@ -962,8 +963,8 @@ function authMode(on){
   $("#authMsg").className="autherr";$("#authMsg").textContent="";
 }
 // Opens the login pop-up with a short explanation.
-function needLogin(text){
-  authMode(false);
+function needLogin(text,createFirst){
+  authMode(!!createFirst);
   $("#authMsg").textContent=sb?text:"Accounts aren't set up yet. Add your Supabase URL and anon key to config.js.";
   $("#dView").close();$("#dAuth").showModal();
 }
@@ -978,7 +979,9 @@ async function loadFavorites(){
 function showUser(u){
   const changed=(u?u.id:null)!==(user?user.id:null);
   user=u;
-  if(u&&postAfterLogin){postAfterLogin=false;setTimeout(()=>startPost(),400)}   // they came from "Post your ad" and have just logged in
+  // They filled in an ad before logging in: bring the form back and publish it. Or the page was reloaded meanwhile: bring back the text (photos can't be kept).
+  if(u&&postAfterLogin){postAfterLogin=false;awaitingEmail=false;setTimeout(()=>{startPost();if(draftPending)$("#f").requestSubmit()},400)}
+  else if(u&&!draftPending){const d=takeDraft();if(d)setTimeout(()=>restoreDraft(d),500)}
   if(u&&msgAfter!==null){const cid=msgAfter;msgAfter=null;setTimeout(()=>openMessages().then(()=>{if(cid)openThread(cid)}),600)}   // they came from an email alert and have just logged in
   $("#msgsBtn").hidden=!u;
   if(changed){
@@ -1027,7 +1030,8 @@ $("#fa").addEventListener("submit",async e=>{
     const name=String(f.get("name")).trim()||email.split("@")[0];
     const {data,error}=await sb.auth.signUp({email,password,options:{data:{display_name:name}}});
     if(error)msg.textContent=error.message;
-    else if(!data.session){msg.className="ok";msg.textContent="Almost done! We sent a confirmation link to "+email+". Click it, then come back and log in."}
+    else if(!data.session){msg.className="ok";awaitingEmail=draftPending;
+      msg.textContent=draftPending?"Almost done! We sent a confirmation link to "+email+". Click it, and your ad is posted. Keep this page open, or open the link in the same browser. (Check spam if it is slow.)":"Almost done! We sent a confirmation link to "+email+". Click it, then come back and log in."}
     else{$("#dAuth").close()}
   }else{
     const {error}=await sb.auth.signInWithPassword({email,password});
@@ -1035,6 +1039,19 @@ $("#fa").addEventListener("submit",async e=>{
   }
   go.disabled=false;
 });
+// If they close the login box without logging in, don't publish the ad later by surprise (their typed ad stays in the form for next time). Waiting for the confirmation email is the exception. Delayed so a successful login is seen first.
+$("#dAuth").addEventListener("close",()=>setTimeout(()=>{if(!user&&!awaitingEmail)postAfterLogin=false},1500));
+// The typed text of a waiting ad is also kept in this browser (not the photos), in case the page is reloaded while they confirm their email.
+const DRAFT_KEY="chadads-ad-draft";
+function saveDraft(f){try{localStorage.setItem(DRAFT_KEY,JSON.stringify({at:Date.now(),t:f.get("t"),c:f.get("c"),p:f.get("p"),por:!!f.get("por"),loc:f.get("loc"),d:f.get("d"),link:f.get("link"),vlink:f.get("vlink"),make:f.get("make")}))}catch(e){}}
+function clearDraft(){try{localStorage.removeItem(DRAFT_KEY)}catch(e){}}
+function takeDraft(){try{const d=JSON.parse(localStorage.getItem(DRAFT_KEY)||"null");clearDraft();return d&&Date.now()-d.at<7*864e5?d:null}catch(e){return null}}
+function restoreDraft(d){
+  startPost();const e=$("#f").elements;
+  e.t.value=d.t||"";if(d.c)e.c.value=d.c;e.p.value=d.p||0;e.por.checked=!!d.por;e.loc.value=d.loc||"";e.d.value=d.d||"";e.link.value=d.link||"";e.vlink.value=d.vlink||"";e.make.value=d.make||"";
+  syncPor();showLinkField();draftPending=true;
+  $("#postMsg").textContent="Welcome! We kept your ad. Add your photos again, then tap Publish ad.";
+}
 // Runs on page load and every time someone logs in or out.
 if(sb)sb.auth.onAuthStateChange((event,session)=>{showUser(session?session.user:null);if(event==="PASSWORD_RECOVERY"){$("#dAuth").close();$("#dReset").showModal()}});
 
@@ -1180,12 +1197,14 @@ async function sendOfferNow(ad,amount){
 function syncPor(){const f=$("#f").elements;f.p.disabled=f.por.checked;f.p.required=!f.por.checked}
 document.addEventListener("change",e=>{if(e.target.id==="por")syncPor()});
 function startPost(id){
-  if(!user){needLogin("Please log in or create an account to post an ad.");return}
+  if(id&&!user){needLogin("Please log in to edit your ad.");return}   // a NEW ad can be filled in without logging in; the login comes when they tap Publish
   const form=$("#f"),i=id?items.find(x=>x.id===id):null;
   if(id&&!(i&&i.sid===user.id))return;
+  const keep=!id&&draftPending;   // a half-finished ad is waiting for the login: show it again instead of an empty form
   editId=i?i.id:null;
-  form.reset();$("#postMsg").textContent="";$("#fl").setCustomValidity("");
-  picked=[];showPicked();pickedVideo=null;showPickedVideo();
+  if(!keep){form.reset();$("#fl").setCustomValidity("");picked=[];pickedVideo=null}
+  $("#postMsg").textContent="";showPicked();showPickedVideo();
+  const ph=$("#postHint");ph.hidden=!!user||!!i;ph.textContent="No account needed to start. When you tap Publish, you will create a free account (about a minute) and your ad is posted.";
   // When editing: show the video already on the ad; choosing a new file replaces it.
   const cv=$("#curVideo");cv.hidden=!(i&&i.vpath);
   cv.innerHTML=i&&i.vpath?`<span>🎬 This ad has a video</span><label style="flex-direction:row;align-items:center;gap:6px;color:var(--ink)"><input type="checkbox" name="rmv"> Remove</label>`:"";
@@ -1197,9 +1216,9 @@ function startPost(id){
   const cp=$("#curPhotos");
   cp.hidden=!(i&&i.paths.length);
   cp.innerHTML=i?i.paths.map((p,n)=>`<label class="rm"><img src="${esc(i.imgs[n])}" alt=""><span><input type="radio" name="cover" value="${esc(p)}"${n===0?" checked":""}> Cover</span><span><input type="checkbox" name="rm" value="${esc(p)}"> Remove</span></label>`).join(""):"";
-  coverNew=false;$("#cy").value=i?(+i.coverY||50):50;
+  if(!keep){coverNew=false;$("#cy").value=i?(+i.coverY||50):50}
   if(i){const e=form.elements;e.t.value=i.t;e.c.value=i.c;e.p.value=i.p;e.por.checked=!!i.pr;e.loc.value=i.loc;e.d.value=i.d;e.link.value=i.link||"";e.vlink.value=i.vlink||"";e.make.value=i.mk||""}
-  else $("#fl").value=me;
+  else if(!keep)$("#fl").value=me;
   syncPor();
   showLinkField();showPicked();
   $("#dView").close();$("#dPost").showModal();
@@ -1410,7 +1429,6 @@ function friendlyError(e){
 }$("#f").addEventListener("submit",async e=>{
   e.preventDefault();
   const msg=$("#postMsg");msg.textContent="";
-  if(!user){msg.textContent="Please log in first.";return}
   const f=new FormData(e.target),files=picked.slice();
   const loc=await lookupCity(String(f.get("loc")));
   if(!loc){$("#fl").setCustomValidity("Choose a city from the list");$("#fl").reportValidity();return}
@@ -1438,6 +1456,13 @@ function friendlyError(e){
     description:String(f.get("d")).trim(),price:f.get("por")?0:Math.max(0,Math.round(+f.get("p")||0)),price_on_request:!!f.get("por"),make:LINK_CATS.includes(catName)?(String(f.get("make")||"").trim()||null):null,link,video_link:vlink||null,cover_y:coverY};
   // Uploaded video: a new file replaces the old one; ticking "Remove" deletes it.
   const oldVid=editId?items.find(x=>x.id===editId).vpath:null,dropVid=!!oldVid&&(!!pickedVideo||f.get("rmv")!==null);
+  // Not logged in yet: everything above has been checked, so keep the ad here and ask them to create an account or log in. It is posted right after.
+  if(!user){
+    draftPending=true;postAfterLogin=true;saveDraft(f);
+    $("#dPost").close();
+    needLogin("Almost done! Create a free account (or log in) and your ad is posted right away.",true);
+    return;
+  }
   const go=$("#postGo");go.disabled=true;
   let newId=null,newPaths=[],removedRows=false,newVid=null,vidRowGone=false;
   try{
@@ -1496,6 +1521,7 @@ function friendlyError(e){
     console.error("posting failed",err);
     msg.textContent=friendlyError(err);go.disabled=false;go.textContent=editId?"Save changes":"Publish ad";return;
   }
+  draftPending=false;clearDraft();
   go.disabled=false;e.target.reset();picked=[];showPicked();pickedVideo=null;showPickedVideo();$("#dPost").close();
   cur=catName;q="";$("#q").value="";sort="new";editId=null;
   await loadData();window.scrollTo({top:0});
@@ -1555,7 +1581,7 @@ async function loadData(){
     try{history.replaceState(null,"","/")}catch(e){}
     sb.auth.getSession().then(({data})=>{
       if(data.session&&!user)showUser(data.session.user);
-      if(user)startPost();else{postAfterLogin=true;needLogin("Please log in or create a free account to post your ad.")}
+      startPost();   // no login needed to start; it is asked for when they tap Publish
     });
   }}
   // "View message" in an email alert links to /?messages=12 (a conversation) or /?messages=1: open the inbox, asking them to log in first.
