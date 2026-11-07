@@ -1225,7 +1225,7 @@ async function startConversation(adId){
   if(have){await openThread(have.id);return}
   curConv=null;pendingAd=i;
   threadShell(`<div class="mt1">${esc(sel(i).n)}</div><div class="mt2">${esc(i.t)}${pt(i)?" · "+esc(pt(i)):""}</div>`,
-    `<div class="mempty">Say hello to ${esc(sel(i).n)}. They'll see your message in their ChadAds inbox.</div>`,"Hi, is this still available?");
+    `<div class="mempty">Say hello to ${esc(sel(i).n)}. They'll see your message in their ChadAds inbox.</div>`,"Hello, looking to know more about this");
   const t=$("#mtxt");t.focus();t.select();
 }
 async function getOrCreateConversation(ad){
