@@ -1,5 +1,5 @@
 /* Shared look for the plain pages (About, Terms, Privacy, 404). Same palette as the main site. */
-:root{--bg:#fbf7ef;--panel:#fffdf8;--ink:#1e1c19;--mute:#6d6558;--line:#e8dfcc;--acc:#e95e0d;--acc-ink:#1e1c19;--link:#164663;--navy:#164663;--mustard:#e9a70d;--soft:#f3eadb}
+:root{--bg:#ffffff;--panel:#ffffff;--ink:#14171c;--mute:#5d6572;--line:#e4e7ec;--acc:#e95e0d;--acc-ink:#1e1c19;--link:#164663;--navy:#164663;--mustard:#e9a70d;--soft:#f2f4f7}
 @media (prefers-color-scheme:dark){:root{--bg:#15120e;--panel:#201c16;--ink:#f6e9d2;--mute:#a99f8d;--line:#3b342a;--acc:#f26a1b;--acc-ink:#1a120a;--link:#7fb6dc;--navy:#2c6a93;--soft:#2b261e}}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:400 17px/1.6 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Inter,Roboto,system-ui,sans-serif;-webkit-font-smoothing:antialiased}

@@ -304,3 +304,6 @@ Run `add_city_east_chatham.sql` once in the Supabase SQL editor (Columbia County
 
 ## Empty categories are hidden
 The category list (left side on desktop, chip row on phones) only shows categories that have ads under the current filters (`side()` in `public/index.html`). "All" and "Saved" always show, and so does the category you are viewing even if it is empty. Until the counts have loaded all categories show. The Post form still lists every category. Because the counts follow the filters, searching or choosing Dealers/Private also shrinks the list.
+
+## Brighter colours
+The warm cream palette is now a bright white one: background and panels white, soft areas a very light cool grey (#f2f4f7), lines #e4e7ec, text near-black (#14171c). The orange, navy and gold accents are unchanged. Light-mode colour variables only: `:root` in `public/index.html` and `public/page.css` (About, Sell, Terms, Privacy, 404) plus the light `theme-color` in each page head. Dark mode is unchanged. To go back to cream: --bg #fbf7ef, --panel #fffdf8, --ink #1e1c19, --mute #6d6558, --line #e8dfcc, --soft #f3eadb, theme-color #fbf7ef.
