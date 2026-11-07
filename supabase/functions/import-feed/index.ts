@@ -61,6 +61,10 @@ export function categoryFor(row) {
   if (/BOAT|PONTOON|WATERCRAFT|PERSONAL WATER/i.test(body)) return "Boats";
   if (/MOTOR ?HOME|TRAVEL TRAILER|CAMPER|FIFTH WHEEL|\bRV\b/i.test(body)) return "Campers";
   if (/TRAILER/i.test(body)) return "Trailers";
+  // Construction and farm machinery (checked on make, model, trim and body style).
+  const gear = [row.Make, row.Model, row.Trim, row.BodyStyle].join(" ");
+  if (/\bEXCAVATOR\b|\bBACKHOE\b|\bBULLDOZER\b|\bDOZER\b|\bSKID ?STEER\b|\bTRACK LOADER\b|\bWHEEL LOADER\b|\bTELEHANDLER\b|\bFORKLIFT\b|\bMINI EX\b/i.test(gear)) return "Heavy Machinery";
+  if (/\bCOMPACT TRACTOR\b|\bFARM TRACTOR\b/i.test(gear)) return "Farm Equipment";
   // Cutaway vans, cab-and-chassis and box trucks are work trucks (checked on the model and trim as well as the body style).
   if (/CUTAWAY|CAB ?(&|AND)? ?CHASSIS|CHASSIS ?CAB|\bCHASSIS\b|BOX ?TRUCK|STRAIGHT ?TRUCK/i.test([row.Model, row.Trim, row.BodyStyle].join(" "))) return "Auto Trucks";
   if (TRUCK_RE.test(model) || /PICKUP|CREW ?CAB|EXT(ENDED)? ?CAB|REG(ULAR)? ?CAB|SUPER ?CAB|SUPER ?CREW|TRUCK/i.test(body)) return "Auto Trucks";
@@ -73,7 +77,8 @@ const TRIM_NOISE = /\b[2-5]\s?dr\b|\b(suv|sedan|coupe|hatchback|wagon|convertibl
 export function titleFor(row) {
   const cleaned = String(row.Trim || "").replace(TRIM_NOISE, " ").replace(/\s+/g, " ").trim();
   const trim = cleaned || String(row.Trim || "").trim();   // if only body words were there ("Coupe" for a Business model), keep them
-  const t = [row.ModelYear, niceCase(row.Make), niceCase(row.Model), niceCase(trim)].filter(Boolean).join(" ").replace(/\s+/g, " ").trim();
+  const said = (String(row.Make || "") + " " + String(row.Model || "")).toLowerCase();
+  const t = [row.ModelYear, niceCase(row.Make), niceCase(row.Model), said.includes(trim.toLowerCase()) ? "" : niceCase(trim)].filter(Boolean).join(" ").replace(/\s+/g, " ").trim();   // a trim that repeats words already in the make or model is left out
   return t.length > 60 ? t.slice(0, 59).replace(/\s+\S*$/, "") + "\u2026" : t;
 }
 
@@ -100,7 +105,7 @@ export function descriptionFor(row, dealer) {
   const lines = [];
   const sales = salesLine(row.Description);
   if (sales) lines.push(sales);
-  const miles = Number(row.Mileage);
+  const miles = /^(Heavy Machinery|Farm Equipment)$/.test(categoryFor(row)) ? 0 : Number(row.Mileage);   // machines count hours, not miles
   const cond = String(row.NEWUSED).toUpperCase() === "N" ? "New" : "Used";
   lines.push(`${titleFor(row)} (${cond}${miles > 0 ? ", " + miles.toLocaleString("en-US") + " miles" : ""}).`);
   const spec = [];
@@ -129,7 +134,10 @@ export function idFor(row) {
   const vin = String(row.VIN || "").replace(/\s/g, "").toUpperCase();
   if (/^[A-HJ-NPR-Z0-9]{17}$/.test(vin)) return vin;
   const stock = String(row.StockNumber || "").replace(/\s+/g, " ").trim().toUpperCase();
-  return stock ? "STK-" + stock.slice(0, 40) : "";
+  if (stock) return "STK-" + stock.slice(0, 40);
+  // Equipment and other odd items can have neither a VIN nor a stock number. Year, make and model keep the same item recognised in the next file.
+  const alt = [row.ModelYear, row.Make, row.Model].join(" ").toUpperCase().replace(/[^A-Z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  return alt.length >= 6 ? "NOID-" + alt.slice(0, 40) : "";
 }
 
 // One feed row -> the fields of a ChadAds ad (plus the photo links).
