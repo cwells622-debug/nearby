@@ -284,3 +284,6 @@ The photo picker, thumbnails and cover-framing slider are now the first thing in
 
 ## Link box is dealers only
 The "Link (optional)" web-address box in the Post form (car categories) is hidden unless the member is a dealer (`myDealer`, see `showLinkField()` in `public/index.html`). A member whose ad already has a link keeps the box when editing. The Make box is unchanged. Form only; the database still accepts a link from any member on the car categories.
+
+## Categories: Local Businesses and Want Ad
+Run `add_categories_6.sql` once in the Supabase SQL editor (adds both; safe to repeat). The site picks them up by itself. Also added: their colours (`HUES` in `public/index.html`) and their category-page blurbs (`netlify/edge-lib/seo.js`). Not added to the "Sell" page link list, since they are not things for sale. Note: the Post form still asks for a price (0 = free) and shows the Call for price box only for dealers; a Want Ad may want its price hidden or a "budget" label later.

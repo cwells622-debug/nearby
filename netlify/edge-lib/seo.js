@@ -158,6 +158,8 @@ export const CATEGORY_INFO = {
   "E-Bikes": { label: "E-Bikes", blurb: "Electric bikes, e-mountain bikes, commuter e-bikes and e-bike parts from local sellers." },
   "Home Appliances": { label: "Home Appliances", blurb: "Washers, dryers, refrigerators, stoves and other household appliances for sale locally." },
   "Fun Finds": { label: "Fun Finds", blurb: "Collectibles, curiosities, hobby items and one-of-a-kind finds from local sellers." },
+  "Local Businesses": { label: "Local Businesses", blurb: "Local shops, services and tradespeople in the Capital Region and Upstate New York." },
+  "Want Ad": { label: "Want Ads", blurb: "Things local people are looking to buy. Have one? Message them." },
   "Furniture": { label: "Furniture", blurb: "Sofas, tables, beds, dressers and other furniture for sale locally." },
   "Snowmobiles": { label: "Snowmobiles", blurb: "Sleds and snowmobile gear from local riders across the Adirondacks and Upstate New York." },
   "Sports": { label: "Sports & Outdoor Gear", blurb: "Bikes, fitness and outdoor gear from local sellers." },
