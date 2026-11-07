@@ -295,3 +295,6 @@ The desktop category list (left side) has less space between rows: row padding 5
 - **Local Businesses:** the Post form has no price box (and no Call for price box). Saved as "no price" (`price` 0, `price_on_request` true). The ad shows no price and no "Call for price" line, and there is no Make an offer button.
 - **Want Ad:** the price box becomes "Budget ($, optional)", empty to start. A budget shows as "Budget $500" (cards, pop-up, shares); blank is saved as no price. No Make an offer button.
 - Lists live in `NOPRICE_CATS` (`public/index.html`) and `priceText()` (`netlify/edge-lib/seo.js`, used for the shared-page title/description: "Local business", "Wanted" or "Budget $500"; no Google price block for Want Ads). Keep the two in step. Form and display only; no SQL.
+
+## Website link for Local Businesses
+Local Businesses ads always get a "Website (optional)" box in the Post form (any member); on the car categories the Link box is for dealers (unchanged). Run `step37_business_link.sql` once in the Supabase SQL editor: it adds Local Businesses to the database rule `check_listing_link()` (without it, saving a business with a website fails). Form code: `linkCat()` and `showLinkField()` in `public/index.html`.
