@@ -307,3 +307,6 @@ The category list (left side on desktop, chip row on phones) only shows categori
 
 ## Brighter colours
 The warm cream palette is now a bright white one: background and panels white, soft areas a very light cool grey (#f2f4f7), lines #e4e7ec, text near-black (#14171c). The orange, navy and gold accents are unchanged. Light-mode colour variables only: `:root` in `public/index.html` and `public/page.css` (About, Sell, Terms, Privacy, 404) plus the light `theme-color` in each page head. Dark mode is unchanged. To go back to cream: --bg #fbf7ef, --panel #fffdf8, --ink #1e1c19, --mute #6d6558, --line #e8dfcc, --soft #f3eadb, theme-color #fbf7ef.
+
+## Blue buttons
+Buttons are now navy (`--navy`, `.btn` and the pop-up `.btn.lg` in `public/index.html`); the header "Post an ad" button stays orange (`#post` rule). Orange also stays for the Featured tag, gold rule and header stripe. To go back, change `.btn` background to `var(--acc)` and delete the `#post` line. Also fixed: the pop-up main button no longer cuts off long text (it wraps, tracking .12em).
