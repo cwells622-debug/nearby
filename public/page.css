@@ -8,7 +8,7 @@ a{color:var(--link)}
 header{position:relative;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 20px;border-bottom:1px solid var(--line);margin-bottom:6px}
 header::after{content:"";position:absolute;left:0;right:0;bottom:-7px;height:6px;background:linear-gradient(var(--navy) 0 2px,var(--acc) 2px 4px,var(--mustard) 4px 6px)}
 header img{height:56px;width:auto;display:block}
-.btn{display:inline-block;background:var(--acc);color:var(--acc-ink);font-weight:600;border-radius:999px;padding:10px 20px;text-decoration:none}
+.btn{display:inline-block;background:var(--navy);color:#fff;font-weight:600;border-radius:999px;padding:10px 20px;text-decoration:none}
 main{max-width:720px;margin:0 auto;padding:36px 20px 60px}
 h1{font-size:34px;line-height:1.15;letter-spacing:-.02em;margin:0 0 8px}
 h2{font-size:22px;letter-spacing:-.01em;margin:34px 0 8px}
