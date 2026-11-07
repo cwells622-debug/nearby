@@ -300,7 +300,7 @@ dialog .dlg.msgs{padding:0;gap:0}
 .alertrow input{width:auto;padding:0;margin:0}
 .pill{display:inline-block;border-radius:999px;padding:1px 9px;font-size:12px;font-weight:600;background:var(--soft);color:var(--ink);vertical-align:middle}
 .pill.dealer{background:var(--ink);color:var(--bg)}
-.pill.feat{background:var(--navy);color:#fff}
+.pill.feat{background:#fff;color:var(--ink);border:1px solid var(--line);letter-spacing:2px;padding-left:8px;padding-right:8px}   /* three coloured squares instead of the word "Featured" (white behind them so the blue square shows) */
 .cw.feat .ph{box-shadow:0 0 0 3px var(--navy)}
 .rep{margin:2px 0 0;text-align:center}
 .linkbtn{border:0;background:none;color:var(--mute);text-decoration:underline;padding:4px;font-size:13px;cursor:pointer}
@@ -609,7 +609,7 @@ const noPrice=i=>NOPRICE_CATS.includes(i.c);
 const pt=i=>i.pr?"":(i.c==="Want Ad"?"Budget ":"")+fmt(i.p);   // an ad's price as text: "Free" or "$5,000"; empty for a "Call for price" ad (the pop-up says it in the text instead)
 const ttlPrice=i=>i.t+(pt(i)?" – "+pt(i):"")+" on ChadAds";
 const saved=new Set();
-const card=i=>`<div class="cw${i.ft?" feat":""}"><button class="card" data-id="${i.id}"><div class="ph" style="--h:${i.h}">${i.img?`<img src="${esc(i.thumb||i.img)}" data-full="${esc(i.img)}" ${FALLBACK} alt="${esc(i.t)}" loading="lazy" decoding="async" style="object-position:50% ${+i.coverY||50}%">`:`<span>${i.e}</span>`}${i.hasVideo?`<span class="vbadge">▶ Video</span>`:""}</div><div class="cb"><b>${pt(i)}${i.ft?` <span class="pill feat">★ Featured</span>`:""}${i.sd?` <span class="pill dealer">Dealer</span>`:""}</b><span class="t">${esc(i.t)}</span><span class="m">${where2(i)}</span></div></button><button class="heart" data-save="${i.id}" aria-pressed="${saved.has(i.id)}" aria-label="Save listing">${saved.has(i.id)?"♥":"♡"}</button></div>`;
+const card=i=>`<div class="cw${i.ft?" feat":""}"><button class="card" data-id="${i.id}"><div class="ph" style="--h:${i.h}">${i.img?`<img src="${esc(i.thumb||i.img)}" data-full="${esc(i.img)}" ${FALLBACK} alt="${esc(i.t)}" loading="lazy" decoding="async" style="object-position:50% ${+i.coverY||50}%">`:`<span>${i.e}</span>`}${i.hasVideo?`<span class="vbadge">▶ Video</span>`:""}</div><div class="cb"><b>${pt(i)}${i.ft?` <span class="pill feat" role="img" aria-label="Featured" title="Featured">🟦🟧🟨</span>`:""}${i.sd?` <span class="pill dealer">Dealer</span>`:""}</b><span class="t">${esc(i.t)}</span><span class="m">${where2(i)}</span></div></button><button class="heart" data-save="${i.id}" aria-pressed="${saved.has(i.id)}" aria-label="Save listing">${saved.has(i.id)?"♥":"♡"}</button></div>`;
 // Saved ads live in the database (favorites table), private to the signed-in user.
 // The page keeps a copy in "saved" so hearts can be drawn instantly.
 function paintHearts(id,on){
@@ -868,7 +868,7 @@ function open(id){
     ${n>1?`<div class="gthumbs">${i.media.map((m,k)=>`<button type="button" data-gi="${k}" aria-pressed="${k===0}" aria-label="Show ${m.t==="img"?"photo":"video"} ${k+1}">${m.t==="img"?`<img src="${esc(m.th||m.u)}" data-full="${esc(m.u)}" ${FALLBACK} alt="">`:`<span class="vt">▶</span>`}</button>`).join("")}</div>`:""}
   </div>
   <div class="adi">
-    <div class="eyebrow"><span class="tag">${esc(i.c)}</span>${i.ft?` <span class="pill feat">★ Featured</span>`:""}</div>
+    <div class="eyebrow"><span class="tag">${esc(i.c)}</span>${i.ft?` <span class="pill feat" role="img" aria-label="Featured" title="Featured">🟦🟧🟨</span>`:""}</div>
     <h2 class="adt">${esc(i.t)}</h2>
     <div class="rule"></div>
     <div class="prow">${i.pr?`<span></span>`:`<div class="price">${pt(i)}</div>`}<button class="savebtn" data-save="${i.id}" aria-pressed="${saved.has(i.id)}">${saved.has(i.id)?"♥ Saved":"♡ Save"}</button></div>
