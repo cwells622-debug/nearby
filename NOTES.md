@@ -310,3 +310,4 @@ The warm cream palette is now a bright white one: background and panels white, s
 
 ## Blue buttons
 Buttons are now navy (`--navy`, `.btn` and the pop-up `.btn.lg` in `public/index.html`); the header "Post an ad" button stays orange (`#post` rule). Orange also stays for the Featured tag, gold rule and header stripe. To go back, change `.btn` background to `var(--acc)` and delete the `#post` line. Also fixed: the pop-up main button no longer cuts off long text (it wraps, tracking .12em).
+Update: the header "Post an ad" button is blue too (the `#post` orange exception was removed), so every button on the main page is navy. The About/Sell/Terms/Privacy/404 pages still have orange buttons (`.btn` in `public/page.css`).
