@@ -373,7 +373,7 @@ dialog .dlg.msgs{padding:0;gap:0}
   <label>Title<input name="t" required maxlength="60" placeholder="What are you selling?"></label>
   <div class="row">
     <label>Category<select name="c" id="fc"></select></label>
-    <label>Price ($, 0 for free)<input name="p" type="number" min="0" value="0" required></label>
+    <label id="priceLbl"><span>Price ($, 0 for free)</span><input name="p" type="number" min="0" value="0" required></label>
   </div>
   <label id="porRow" hidden style="flex-direction:row;align-items:center;gap:8px;margin-top:-6px"><input type="checkbox" name="por" id="por" style="width:auto;padding:0;margin:0"> Call for price (don't show a price)</label>
   <label class="cityl">City<input name="loc" id="fl" required autocomplete="off" role="combobox" aria-expanded="false" aria-controls="cdd" placeholder="Start typing a city"><div class="cdd" id="cdd" role="listbox" hidden></div></label><datalist id="cl"></datalist><!-- #cl: suggestions for the "my city" box in the location panel -->
@@ -573,7 +573,7 @@ async function prof(id){
   <div style="display:flex;gap:8px;flex-wrap:wrap">${isMine(i)||i.sn?`<span class="tag">New seller</span>`:`<span class="tag">Email verified</span><span class="tag">Phone verified</span>`}</div>
   <h2>Listings (${l.length})</h2><div class="grid">${l.map(card).join("")}</div>`;
 }
-const offerHtml=(i,s)=>isMine(i)||i.pr||i.p<2?"":offers[i.id]?`<div class="ok">You offered ${fmt(offers[i.id])}. Check your Messages for ${esc(s.n)}'s reply.</div>`:`<button class="btn ghost" data-offer="${i.id}">Make an offer</button>`;
+const offerHtml=(i,s)=>isMine(i)||i.pr||i.p<2||NOPRICE_CATS.includes(i.c)?"":offers[i.id]?`<div class="ok">You offered ${fmt(offers[i.id])}. Check your Messages for ${esc(s.n)}'s reply.</div>`:`<button class="btn ghost" data-offer="${i.id}">Make an offer</button>`;
 function offerForm(id){
   const i=items.find(x=>x.id==id),amts=[...new Set([.9,.8,.7].map(f=>Math.max(1,Math.round(i.p*f))))].filter(a=>a<i.p);
   $("#offer").innerHTML=`<div class="offer"><b>Your offer</b><span style="color:var(--mute)">Asking price: ${fmt(i.p)}</span><div class="qa">${amts.map(a=>`<button type="button" data-amt="${a}">${fmt(a)}</button>`).join("")}</div><label>Offer amount ($)<input id="oa" type="number" min="1" value="${amts[0]||1}"></label><p id="oerr" class="note" role="alert" style="margin:0"></p><button class="btn" data-sendoffer="${i.id}">Send offer</button></div>`;
@@ -604,7 +604,9 @@ const where2=i=>esc(i.loc)+(dd(i)?" · "+dd(i):"");   // "Albany, NY · 12 mi aw
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt=p=>p===0?"Free":"$"+p.toLocaleString();
-const pt=i=>i.pr?"":fmt(i.p);   // an ad's price as text: "Free" or "$5,000"; empty for a "Call for price" ad (the pop-up says it in the text instead)
+const NOPRICE_CATS=["Local Businesses","Want Ad"];   // no price in the form; a Want Ad may give a budget. Keep in step with priceText() in netlify/edge-lib/seo.js
+const noPrice=i=>NOPRICE_CATS.includes(i.c);
+const pt=i=>i.pr?"":(i.c==="Want Ad"?"Budget ":"")+fmt(i.p);   // an ad's price as text: "Free" or "$5,000"; empty for a "Call for price" ad (the pop-up says it in the text instead)
 const ttlPrice=i=>i.t+(pt(i)?" – "+pt(i):"")+" on ChadAds";
 const saved=new Set();
 const card=i=>`<div class="cw${i.ft?" feat":""}"><button class="card" data-id="${i.id}"><div class="ph" style="--h:${i.h}">${i.img?`<img src="${esc(i.thumb||i.img)}" data-full="${esc(i.img)}" ${FALLBACK} alt="${esc(i.t)}" loading="lazy" decoding="async" style="object-position:50% ${+i.coverY||50}%">`:`<span>${i.e}</span>`}${i.hasVideo?`<span class="vbadge">▶ Video</span>`:""}</div><div class="cb"><b>${pt(i)}${i.ft?` <span class="pill feat">★ Featured</span>`:""}${i.sd?` <span class="pill dealer">Dealer</span>`:""}</b><span class="t">${esc(i.t)}</span><span class="m">${where2(i)}</span></div></button><button class="heart" data-save="${i.id}" aria-pressed="${saved.has(i.id)}" aria-label="Save listing">${saved.has(i.id)?"♥":"♡"}</button></div>`;
@@ -872,7 +874,7 @@ function open(id){
     <div class="prow">${i.pr?`<span></span>`:`<div class="price">${pt(i)}</div>`}<button class="savebtn" data-save="${i.id}" aria-pressed="${saved.has(i.id)}">${saved.has(i.id)?"♥ Saved":"♡ Save"}</button></div>
     <div class="m wh">${where2(i)} · Posted ${i.ago==="Just now"?"just now":i.ago+" ago"}</div>
     <p class="d">${esc(i.d)}</p>
-    ${i.pr?`<p class="d">Call for price</p>`:""}
+    ${i.pr&&!noPrice(i)?`<p class="d">Call for price</p>`:""}
     ${safeUrl(i.link)?`<p style="margin:0"><a href="${esc(safeUrl(i.link))}" data-ext target="_blank" rel="noopener noreferrer nofollow ugc" style="color:var(--link);font-weight:600">🔗 ${esc(new URL(i.link).hostname)}</a></p>`:""}
     <button class="seller sbtn" data-prof="${i.id}"><div class="av">${esc(s.n[0])}</div><span><b>${esc(s.n)}</b>${i.sd?` <span class="pill dealer">Dealer</span>`:""}<br>${rate(s)} · View profile</span></button>
     ${mine?(i.sid?`<div class="ctas"><button class="btn lg" data-edit="${i.id}">Edit this ad</button><button class="btn ghost lg" data-del="${i.id}">Delete this ad</button></div>`:""):
@@ -1262,7 +1264,14 @@ async function sendOfferNow(ad,amount){
 /* ---------- Post, edit and delete ads ---------- */// Opens the form: empty for a new ad, or filled in when editing ad number "id".
 // "Call for price" ticked: the price box is greyed out and not needed.
 // "Call for price" is for dealers only. A member's ad that already has it keeps the box, so they can untick it.
-function syncPor(){const f=$("#f").elements;$("#porRow").hidden=!(myDealer||f.por.checked);f.p.disabled=f.por.checked;f.p.required=!f.por.checked}
+function syncPor(){
+  const f=$("#f").elements,cat=f.c.value,np=NOPRICE_CATS.includes(cat);
+  $("#porRow").hidden=np||!(myDealer||f.por.checked);
+  $("#priceLbl").hidden=cat==="Local Businesses";   // businesses have no price box at all
+  $("#priceLbl").firstChild.textContent=cat==="Want Ad"?"Budget ($, optional)":"Price ($, 0 for free)";
+  f.p.disabled=!np&&f.por.checked;f.p.required=!np&&!f.por.checked;
+  if(cat==="Want Ad"&&f.p.value==="0")f.p.value="";else if(cat!=="Want Ad"&&f.p.value==="")f.p.value="0";   // a Want Ad's budget starts empty
+}
 document.addEventListener("change",e=>{if(e.target.id==="por")syncPor()});
 function startPost(id){
   if(id&&!user){needLogin("Please log in to edit your ad.");return}   // a NEW ad can be filled in without logging in; the login comes when they tap Publish
@@ -1285,7 +1294,7 @@ function startPost(id){
   cp.hidden=!(i&&i.paths.length);
   cp.innerHTML=i?i.paths.map((p,n)=>`<label class="rm"><img src="${esc(i.imgs[n])}" alt=""><span><input type="radio" name="cover" value="${esc(p)}"${n===0?" checked":""}> Cover</span><span><input type="checkbox" name="rm" value="${esc(p)}"> Remove</span></label>`).join(""):"";
   if(!keep){coverNew=false;$("#cy").value=i?(+i.coverY||50):50}
-  if(i){const e=form.elements;e.t.value=i.t;e.c.value=i.c;e.p.value=i.p;e.por.checked=!!i.pr;e.loc.value=i.loc;e.d.value=i.d;e.link.value=i.link||"";e.vlink.value=i.vlink||"";e.make.value=i.mk||""}
+  if(i){const e=form.elements;e.t.value=i.t;e.c.value=i.c;e.p.value=NOPRICE_CATS.includes(i.c)&&i.pr?"":i.p;e.por.checked=!NOPRICE_CATS.includes(i.c)&&!!i.pr;e.loc.value=i.loc;e.d.value=i.d;e.link.value=i.link||"";e.vlink.value=i.vlink||"";e.make.value=i.mk||""}
   else if(!keep)$("#fl").value=me;
   syncPor();
   showLinkField();showPicked();
@@ -1294,7 +1303,7 @@ function startPost(id){
 // The "Link" box only appears for these categories (the database enforces the same list; see step13_autos_categories.sql and step19_auto_categories.sql).
 const LINK_CATS=["Auto Cars","Auto Trucks","Auto SUVs"];
 function showLinkField(){const on=LINK_CATS.includes($("#fc").value);$("#linkRow").hidden=!(on&&(myDealer||!!$("#f").elements.link.value));$("#makeRow").hidden=!on}   // the web-address box is for dealers; a member whose ad already has one keeps it
-$("#fc").addEventListener("change",showLinkField);
+$("#fc").addEventListener("change",()=>{showLinkField();syncPor()});
 // Only web addresses starting with http:// or https:// are allowed (never javascript: and similar).
 function safeUrl(u){try{const x=new URL(u);return x.protocol==="https:"||x.protocol==="http:"?x.href:null}catch(e){return null}}
 // Photos the user has chosen so far. Each time they pick more files, the new ones are ADDED
@@ -1520,8 +1529,10 @@ function friendlyError(e){
   // Video link: YouTube or Vimeo only.
   const vlink=String(f.get("vlink")||"").trim();
   if(vlink&&!videoEmbed(vlink)){msg.textContent="The video link must be a YouTube or Vimeo address (starting with https://).";return}
+  // Local Businesses: never a price. Want Ad: an optional budget, shown as "Budget $500". Both are saved as "no price" when there is no budget.
+  const noPriceAd=NOPRICE_CATS.includes(catName),budget=catName==="Want Ad"?Math.max(0,Math.round(+f.get("p")||0)):0;
   const row={category_id:cats.find(c=>c[0]===catName)[3],city_id:cityIds[loc],title:String(f.get("t")).trim(),
-    description:String(f.get("d")).trim(),price:f.get("por")?0:Math.max(0,Math.round(+f.get("p")||0)),price_on_request:!!f.get("por"),make:LINK_CATS.includes(catName)?(String(f.get("make")||"").trim()||null):null,link,video_link:vlink||null,cover_y:coverY};
+    description:String(f.get("d")).trim(),price:noPriceAd||f.get("por")?(budget||0):Math.max(0,Math.round(+f.get("p")||0)),price_on_request:noPriceAd?!budget:!!f.get("por"),make:LINK_CATS.includes(catName)?(String(f.get("make")||"").trim()||null):null,link,video_link:vlink||null,cover_y:coverY};
   // Uploaded video: a new file replaces the old one; ticking "Remove" deletes it.
   const oldVid=editId?items.find(x=>x.id===editId).vpath:null,dropVid=!!oldVid&&(!!pickedVideo||f.get("rmv")!==null);
   // Not logged in yet: everything above has been checked, so keep the ad here and ask them to create an account or log in. It is posted right after.

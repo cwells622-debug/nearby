@@ -290,3 +290,8 @@ Run `add_categories_6.sql` once in the Supabase SQL editor (adds both; safe to r
 
 ## Tighter category list
 The desktop category list (left side) has less space between rows: row padding 5px (was 9px), text 14px, icons 16px, no gap (`.cat` rules in the wide-screen media query of `public/index.html`). All categories now fit on a normal screen without scrolling the page. Phones are unchanged (the chip row).
+
+## Want Ad and Local Businesses: no price
+- **Local Businesses:** the Post form has no price box (and no Call for price box). Saved as "no price" (`price` 0, `price_on_request` true). The ad shows no price and no "Call for price" line, and there is no Make an offer button.
+- **Want Ad:** the price box becomes "Budget ($, optional)", empty to start. A budget shows as "Budget $500" (cards, pop-up, shares); blank is saved as no price. No Make an offer button.
+- Lists live in `NOPRICE_CATS` (`public/index.html`) and `priceText()` (`netlify/edge-lib/seo.js`, used for the shared-page title/description: "Local business", "Wanted" or "Budget $500"; no Google price block for Want Ads). Keep the two in step. Form and display only; no SQL.

@@ -25,7 +25,13 @@ export const slugify = (t) =>
 
 export const adPath = (id, title) => `/ad/${id}-${slugify(title)}`;
 export const money = (p) => (Number(p) === 0 ? "Free" : "$" + Number(p).toLocaleString("en-US"));
-export const priceText = (a) => (a.price_on_request ? "Call for price" : money(a.price));
+// Local Businesses and Want Ads have no price box. A Want Ad may give a budget. Keep in step with NOPRICE_CATS in public/index.html.
+export const priceText = (a) => {
+  const cat = a.categories && a.categories.name;
+  if (cat === "Local Businesses") return "Local business";
+  if (cat === "Want Ad") return a.price_on_request ? "Wanted" : "Budget " + money(a.price);
+  return a.price_on_request ? "Call for price" : money(a.price);
+};
 const clip = (s, n) => {
   s = String(s ?? "").replace(/\s+/g, " ").trim();
   return s.length > n ? s.slice(0, n - 1).trimEnd() + "…" : s;
@@ -99,7 +105,7 @@ export function buildAdPage(shell, ad) {
     ...(photos.length ? { image: photos.slice(0, 5) } : {}),
     ...(cat ? { category: cat } : {}),
     // An ad marked "Call for price" has no price to give Google, so it gets no offer block.
-    ...(ad.price_on_request ? {} : { offers: {
+    ...(ad.price_on_request || (ad.categories && ad.categories.name === "Want Ad") ? {} : { offers: {
       "@type": "Offer",
       url,
       price: String(ad.price),
