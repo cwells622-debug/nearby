@@ -298,3 +298,6 @@ The desktop category list (left side) has less space between rows: row padding 5
 
 ## Website link for Local Businesses
 Local Businesses ads always get a "Website (optional)" box in the Post form (any member); on the car categories the Link box is for dealers (unchanged). Run `step37_business_link.sql` once in the Supabase SQL editor: it adds Local Businesses to the database rule `check_listing_link()` (without it, saving a business with a website fails). Form code: `linkCat()` and `showLinkField()` in `public/index.html`.
+
+## City: East Chatham, NY
+Run `add_city_east_chatham.sql` once in the Supabase SQL editor (Columbia County, regions hudson-valley + upstate-new-york, like Chatham). Coordinates from Wikipedia. The site finds it by itself in the city boxes after that; no code change.
