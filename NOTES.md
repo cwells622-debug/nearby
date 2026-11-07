@@ -301,3 +301,6 @@ Local Businesses ads always get a "Website (optional)" box in the Post form (any
 
 ## City: East Chatham, NY
 Run `add_city_east_chatham.sql` once in the Supabase SQL editor (Columbia County, regions hudson-valley + upstate-new-york, like Chatham). Coordinates from Wikipedia. The site finds it by itself in the city boxes after that; no code change.
+
+## Empty categories are hidden
+The category list (left side on desktop, chip row on phones) only shows categories that have ads under the current filters (`side()` in `public/index.html`). "All" and "Saved" always show, and so does the category you are viewing even if it is empty. Until the counts have loaded all categories show. The Post form still lists every category. Because the counts follow the filters, searching or choosing Dealers/Private also shrinks the list.

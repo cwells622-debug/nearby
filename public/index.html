@@ -628,7 +628,7 @@ async function toggleSave(id){
 function side(){
   const row=(n,e,k)=>`<button class="cat" data-cat="${n}" aria-pressed="${cur===n}">${n}<span class="n">${k}</span></button>`;
   const box=$("#cats"),sl=box.scrollLeft,st=box.scrollTop;
-  box.innerHTML=row("All","🏷️",allCount)+row("Saved","♥",saved.size)+cats.map(c=>row(c[0],c[1],catCounts[c[0]]||0)).join("");
+  box.innerHTML=row("All","🏷️",allCount)+row("Saved","♥",saved.size)+cats.filter(c=>allCount===0||catCounts[c[0]]>0||c[0]===cur).map(c=>row(c[0],c[1],catCounts[c[0]]||0)).join("");   // categories with no ads are hidden (the one you are viewing stays); until the counts have loaded, show them all
   box.scrollLeft=sl;box.scrollTop=st;   // keep the list where the visitor scrolled it
 }
 function render(){
