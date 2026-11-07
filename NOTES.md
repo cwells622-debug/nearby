@@ -318,3 +318,10 @@ Found through the Celtic Cycles Kubota mini excavator: its feed row had no VIN a
 Update: the Featured border and badge are navy (`.cw.feat .ph` and `.pill.feat` in `public/index.html`), also in the ad pop-up. Orange now remains only in the header stripe and the gold rule.
 Update: the Featured badge shows three coloured squares (blue, orange, yellow) instead of the word "Featured", on cards and in the pop-up. It sits on a white pill with a thin border so the blue square shows; screen readers still hear "Featured" (aria-label and tooltip). Search the code for the three emoji to change them.
 Update: no border or pill around the 🟦🟧🟨 badge, just the three squares (`.pill.feat` in `public/index.html`).
+
+## Continue with Google (November 2026)
+- "Continue with Google" button at the top of the Log in / Create account pop-up (`#authGoogle` in `public/index.html`, calls `sb.auth.signInWithOAuth({provider:"google"})`, returns to `/`).
+- Setup lives outside the code: Google Cloud project "chadads" (OAuth consent screen + web OAuth client; redirect URI is the Supabase `/auth/v1/callback` address), and the Client ID and secret pasted into Supabase > Authentication > Sign In / Providers > Google. The secret is never in code.
+- Supabase > Authentication > URL Configuration must list https://chadads.com (Site URL / redirect URLs).
+- A typed ad is saved as a draft when Publish is tapped signed out; after the round trip to Google `showUser()` restores the text (photos must be added again).
+- Privacy page mentions Google sign-in (updated November 2026).
