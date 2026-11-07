@@ -287,3 +287,6 @@ The "Link (optional)" web-address box in the Post form (car categories) is hidde
 
 ## Categories: Local Businesses and Want Ad
 Run `add_categories_6.sql` once in the Supabase SQL editor (adds both; safe to repeat). The site picks them up by itself. Also added: their colours (`HUES` in `public/index.html`) and their category-page blurbs (`netlify/edge-lib/seo.js`). Not added to the "Sell" page link list, since they are not things for sale. Note: the Post form still asks for a price (0 = free) and shows the Call for price box only for dealers; a Want Ad may want its price hidden or a "budget" label later.
+
+## Tighter category list
+The desktop category list (left side) has less space between rows: row padding 5px (was 9px), text 14px, icons 16px, no gap (`.cat` rules in the wide-screen media query of `public/index.html`). All categories now fit on a normal screen without scrolling the page. Phones are unchanged (the chip row).
