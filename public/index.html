@@ -1020,7 +1020,7 @@ cddEl.addEventListener("mousedown",e=>{const b=e.target.closest("[data-k]");if(!
 /* ---------- Accounts (Supabase Auth) ---------- */
 // "sb" is our connection to Supabase, like an ADO connection object in classic ASP.
 // Its settings come from config.js.
-let sb=null,user=null,signup=false,editId=null,deepDone=false,postDone=false,postAfterLogin=false,msgAfter=null,draftPending=false,awaitingEmail=false,myDealer=false;   // draftPending: a new ad was filled in while signed out and is waiting for the login
+let sb=null,user=null,signup=false,editId=null,deepDone=false,postDone=false,msgAfter=null,awaitingEmail=false,myDealer=false;   // awaitingEmail: an account was just made and its confirmation email is on the way
 const BUCKET="listing-photos",cityIds={};   // cityIds: "Albany, NY" -> the city's id in the database
 const PHOTO_TYPES={"image/jpeg":"jpg","image/png":"png","image/webp":"webp"},MAX_PHOTO=5*1024*1024,MAX_PHOTO_IN=60*1024*1024,PHOTO_TARGET=1.5*1024*1024,MAX_PHOTOS=5;   // MAX_PHOTOS must match the limit in step4_photos_and_limits.sql
 const cfgOk=typeof NEARBY_CONFIG!=="undefined"&&/^https?:\/\//.test(NEARBY_CONFIG.supabaseUrl)&&!NEARBY_CONFIG.supabaseAnonKey.startsWith("PASTE");
@@ -1052,9 +1052,8 @@ async function loadFavorites(){
 function showUser(u){
   const changed=(u?u.id:null)!==(user?user.id:null);
   user=u;
-  // They filled in an ad before logging in: bring the form back and publish it. Or the page was reloaded meanwhile: bring back the text (photos can't be kept).
-  if(u&&postAfterLogin){postAfterLogin=false;awaitingEmail=false;setTimeout(()=>{startPost();if(draftPending)$("#f").requestSubmit()},400)}
-  else if(u&&!draftPending){const d=takeDraft();if(d)setTimeout(()=>restoreDraft(d),500)}
+  // They tapped "Post an ad" while signed out and have now logged in (or come back from Google or the confirmation email): open the empty Post form for them.
+  if(u){awaitingEmail=false;if(takeWantPost())setTimeout(()=>startPost(),400)}
   if(u&&msgAfter!==null){const cid=msgAfter;msgAfter=null;setTimeout(()=>openMessages().then(()=>{if(cid)openThread(cid)}),600)}   // they came from an email alert and have just logged in
   $("#msgsBtn").hidden=!u;
   if(changed){
@@ -1112,8 +1111,8 @@ $("#fa").addEventListener("submit",async e=>{
     const name=String(f.get("name")).trim()||email.split("@")[0];
     const {data,error}=await sb.auth.signUp({email,password,options:{data:{display_name:name}}});
     if(error)msg.textContent=error.message;
-    else if(!data.session){msg.className="ok";awaitingEmail=draftPending;
-      msg.textContent=draftPending?"Almost done! We sent a confirmation link to "+email+". Click it, and your ad is posted. Keep this page open, or open the link in the same browser. (Check spam if it is slow.)":"Almost done! We sent a confirmation link to "+email+". Click it, then come back and log in."}
+    else if(!data.session){msg.className="ok";awaitingEmail=true;
+      msg.textContent="Almost done! We sent a confirmation link to "+email+". Click it and you are signed in, then tap Post an ad. (Check your spam folder if it is slow.)"}
     else{$("#dAuth").close()}
   }else{
     const {error}=await sb.auth.signInWithPassword({email,password});
@@ -1121,19 +1120,14 @@ $("#fa").addEventListener("submit",async e=>{
   }
   go.disabled=false;
 });
-// If they close the login box without logging in, don't publish the ad later by surprise (their typed ad stays in the form for next time). Waiting for the confirmation email is the exception. Delayed so a successful login is seen first.
-$("#dAuth").addEventListener("close",()=>setTimeout(()=>{if(!user&&!awaitingEmail)postAfterLogin=false},1500));
-// The typed text of a waiting ad is also kept in this browser (not the photos), in case the page is reloaded while they confirm their email.
-const DRAFT_KEY="chadads-ad-draft";
-function saveDraft(f){try{localStorage.setItem(DRAFT_KEY,JSON.stringify({at:Date.now(),t:f.get("t"),c:f.get("c"),p:f.get("p"),por:!!f.get("por"),loc:f.get("loc"),d:f.get("d"),link:f.get("link"),vlink:f.get("vlink"),make:f.get("make")}))}catch(e){}}
-function clearDraft(){try{localStorage.removeItem(DRAFT_KEY)}catch(e){}}
-function takeDraft(){try{const d=JSON.parse(localStorage.getItem(DRAFT_KEY)||"null");clearDraft();return d&&Date.now()-d.at<7*864e5?d:null}catch(e){return null}}
-function restoreDraft(d){
-  startPost();const e=$("#f").elements;
-  e.t.value=d.t||"";if(d.c)e.c.value=d.c;e.p.value=d.p||0;e.por.checked=!!d.por;e.loc.value=d.loc||"";e.d.value=d.d||"";e.link.value=d.link||"";e.vlink.value=d.vlink||"";e.make.value=d.make||"";
-  syncPor();showLinkField();draftPending=true;
-  $("#postMsg").textContent="Welcome! We kept your ad. Add your photos again, then tap Publish ad.";
-}
+// "Post an ad" while signed out: remember the wish in this browser (not just in the page), because Google and the confirmation email both bring them back on a fresh page, maybe in a new tab. It is used once, within 2 hours.
+const WANT_KEY="chadads-want-post";
+function wantPost(){try{localStorage.setItem(WANT_KEY,String(Date.now()))}catch(e){}}
+function dropWantPost(){try{localStorage.removeItem(WANT_KEY)}catch(e){}}
+function takeWantPost(){try{const t=+localStorage.getItem(WANT_KEY)||0;dropWantPost();return t>0&&Date.now()-t<2*3600e3}catch(e){return false}}
+try{localStorage.removeItem("chadads-ad-draft")}catch(e){}   // the old "ad kept while signed out" draft is no longer used
+// If they close the login box without logging in, forget the wish so the Post form does not pop up by surprise later. Waiting for the confirmation email is the exception. Delayed so a successful login is seen first.
+$("#dAuth").addEventListener("close",()=>setTimeout(()=>{if(!user&&!awaitingEmail)dropWantPost()},1500));
 // Runs on page load and every time someone logs in or out.
 if(sb)sb.auth.onAuthStateChange((event,session)=>{showUser(session?session.user:null);if(event==="PASSWORD_RECOVERY"){$("#dAuth").close();$("#dReset").showModal()}});
 
@@ -1287,14 +1281,15 @@ function syncPor(){
 }
 document.addEventListener("change",e=>{if(e.target.id==="por")syncPor()});
 function startPost(id){
-  if(id&&!user){needLogin("Please log in to edit your ad.");return}   // a NEW ad can be filled in without logging in; the login comes when they tap Publish
+  // An account comes first: signed out, they are asked to create one (or log in) and the Post form opens as soon as they are in.
+  if(!user){if(id)needLogin("Please log in to edit your ad.");else{wantPost();needLogin("Create a free account or log in, then you can post your ad.",true)}return}
   const form=$("#f"),i=id?items.find(x=>x.id===id):null;
   if(id&&!(i&&i.sid===user.id))return;
-  const keep=!id&&draftPending;   // a half-finished ad is waiting for the login: show it again instead of an empty form
+  const keep=false;
   editId=i?i.id:null;
   if(!keep){form.reset();$("#fl").setCustomValidity("");picked=[];pickedVideo=null}
   $("#postMsg").textContent="";showPicked();showPickedVideo();
-  const ph=$("#postHint");ph.hidden=!!user||!!i;ph.textContent="No account needed to start. When you tap Publish, you will create a free account (about a minute) and your ad is posted.";
+  $("#postHint").hidden=true;
   // When editing: show the video already on the ad; choosing a new file replaces it.
   const cv=$("#curVideo");cv.hidden=!(i&&i.vpath);
   cv.innerHTML=i&&i.vpath?`<span>🎬 This ad has a video</span><label style="flex-direction:row;align-items:center;gap:6px;color:var(--ink)"><input type="checkbox" name="rmv"> Remove</label>`:"";
@@ -1555,13 +1550,8 @@ function friendlyError(e){
     description:String(f.get("d")).trim(),price:noPriceAd||f.get("por")?(budget||0):Math.max(0,Math.round(+f.get("p")||0)),price_on_request:noPriceAd?!budget:!!f.get("por"),make:LINK_CATS.includes(catName)?(String(f.get("make")||"").trim()||null):null,link,video_link:vlink||null,cover_y:coverY};
   // Uploaded video: a new file replaces the old one; ticking "Remove" deletes it.
   const oldVid=editId?items.find(x=>x.id===editId).vpath:null,dropVid=!!oldVid&&(!!pickedVideo||f.get("rmv")!==null);
-  // Not logged in yet: everything above has been checked, so keep the ad here and ask them to create an account or log in. It is posted right after.
-  if(!user){
-    draftPending=true;postAfterLogin=true;saveDraft(f);
-    $("#dPost").close();
-    needLogin("Almost done! Create a free account (or log in) and your ad is posted right away.",true);
-    return;
-  }
+  // Logged out meanwhile (for example in another tab): ask them to log in again. The form stays as it is.
+  if(!user){needLogin("You are logged out. Please log in, then tap Publish ad again.");return}
   const go=$("#postGo");go.disabled=true;
   let newId=null,newPaths=[],removedRows=false,newVid=null,vidRowGone=false;
   try{
@@ -1620,7 +1610,6 @@ function friendlyError(e){
     console.error("posting failed",err);
     msg.textContent=friendlyError(err);go.disabled=false;go.textContent=editId?"Save changes":"Publish ad";return;
   }
-  draftPending=false;clearDraft();
   go.disabled=false;e.target.reset();picked=[];showPicked();pickedVideo=null;showPickedVideo();$("#dPost").close();
   cur=catName;q="";$("#q").value="";sort="new";editId=null;
   await loadData();window.scrollTo({top:0});
@@ -1680,7 +1669,7 @@ async function loadData(){
     try{history.replaceState(null,"","/")}catch(e){}
     sb.auth.getSession().then(({data})=>{
       if(data.session&&!user)showUser(data.session.user);
-      startPost();   // no login needed to start; it is asked for when they tap Publish
+      startPost();   // signed out: asks them to create an account or log in first
     });
   }}
   // "View message" in an email alert links to /?messages=12 (a conversation) or /?messages=1: open the inbox, asking them to log in first.

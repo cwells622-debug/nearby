@@ -325,3 +325,9 @@ Update: no border or pill around the 🟦🟧🟨 badge, just the three squares 
 - Supabase > Authentication > URL Configuration must list https://chadads.com (Site URL / redirect URLs).
 - A typed ad is saved as a draft when Publish is tapped signed out; after the round trip to Google `showUser()` restores the text (photos must be added again).
 - Privacy page mentions Google sign-in (updated November 2026).
+
+## Account first, then the ad (November 2026; replaces "Post an ad without an account first")
+- Reason: "Confirm email" is back ON in Supabase, so an email signup can't post at once and the typed ad/photos were being lost. Google sign-in (see above) is the quick path.
+- Signed out, "Post an ad" (button, edit, /?post=1) opens the Log in / Create account pop-up (Create account tab, Google button on top). `startPost()` sets a "want to post" flag in localStorage (`chadads-want-post`, valid 2 hours, used once); `showUser()` opens the empty Post form when the person is signed in (same tab, back from Google, or back from the confirmation email, even in a new tab).
+- Closing the pop-up without signing in forgets the flag (unless a confirmation email is pending).
+- Removed the draft code (`saveDraft`/`restoreDraft`, `chadads-ad-draft`); the old key is cleared on load. `sell.html` steps: 1 create account, 2 write the ad.
