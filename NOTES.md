@@ -340,3 +340,4 @@ Update: no border or pill around the 🟦🟧🟨 badge, just the three squares 
 - Tested in the in-app Chromium: ad 40 gave a valid 1080 x 1920 MP4 of 11 seconds (3.7 MB).
 - Reel icon: a second icon (film frame with a play triangle, `ICON.reel`, `data-reel`) sits next to the Instagram icon in "Share this ad". It opens the Instagram pop-up and starts the video at once (`openIg(id,true)`).
 - Reel stripes: the site's header stripes (blue, orange, gold stacked, 8 px each) run full width above the headline and along the bottom edge of the video (replaces the thin three-across stripe).
+- Reel stripes updated: bands are 16 px each (48 px per stripe) and the blue is the brighter flyer blue #2e9be6 (the site header still uses the navy #164663).
