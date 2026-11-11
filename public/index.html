@@ -309,6 +309,8 @@ dialog .dlg.msgs{padding:0;gap:0}
 .rep{margin:2px 0 0;text-align:center}
 .linkbtn{border:0;background:none;color:var(--mute);text-decoration:underline;padding:4px;font-size:13px;cursor:pointer}
 .igprev{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:4px}
+.igreel{display:flex;flex-direction:column;gap:10px;align-items:flex-start}
+.igreel video{max-height:460px;max-width:100%;background:#000;display:block}
 .igprev img{height:300px;width:auto;border-radius:12px;scroll-snap-align:start;flex:none;display:block}
 .spill{border:0;background:var(--soft);color:var(--ink);border-radius:999px;padding:8px 15px;font-weight:500;font-size:14px;text-decoration:none;display:inline-block;transition:background .15s}
 .spill:hover{background:var(--line)}
@@ -415,8 +417,9 @@ dialog .dlg.msgs{padding:0;gap:0}
   <div class="top"><h2>Instagram post</h2><button type="button" class="x" data-close aria-label="Close">✕</button></div>
   <p class="note" id="igMsg" style="margin:0" role="status"></p>
   <div id="igPrev" class="igprev"></div>
+  <div id="igReelBox" class="igreel" hidden><video id="igReelVid" controls playsinline loop muted></video><div class="qa"><button type="button" class="btn" id="igReelSave">Save video</button><button type="button" class="btn ghost" id="igReelShare" hidden>Share video…</button></div></div>
   <label>Caption<textarea id="igCap" rows="9"></textarea></label>
-  <div class="qa"><button type="button" class="btn" id="igShare" hidden>Share…</button><button type="button" class="btn ghost" data-igsave>Save pictures</button><button type="button" class="btn ghost" data-igcopy>Copy caption</button></div>
+  <div class="qa"><button type="button" class="btn" id="igShare" hidden>Share…</button><button type="button" class="btn ghost" data-igsave>Save pictures</button><button type="button" class="btn ghost" id="igReelBtn">Make a reel (video)</button><button type="button" class="btn ghost" data-igcopy>Copy caption</button></div>
   <p class="note" style="margin:0">Instagram doesn't let websites post for you. Save the pictures (or tap Share on a phone and choose Instagram), copy the caption, then in the Instagram app tap + and Post, pick the pictures in order and paste the caption.</p>
 </div></dialog>
 
@@ -780,6 +783,7 @@ function igCaption(i){
 async function openIg(id){
   const i=items.find(x=>x.id===id);if(!i)return;
   igId=id;igFiles=[];igUrls.forEach(u=>URL.revokeObjectURL(u));igUrls=[];
+  igPhotos=[];igLogo=null;igReelDrop();
   $("#igPrev").innerHTML="";$("#igCap").value=igCaption(i);$("#igShare").hidden=true;
   $("#igMsg").textContent="Making your pictures…";
   if(!$("#dIg").open)$("#dIg").showModal();
@@ -787,6 +791,7 @@ async function openIg(id){
     const logo=await loadImg("/logo-sm.webp").catch(()=>null);
     const photos=[];
     for(const src of (i.imgs||[]).slice(0,10)){try{photos.push(await loadImg(src))}catch(e){}}
+    igPhotos=photos;igLogo=logo;
     const canvases=[igCover(i,photos[0]||null,logo,photos.length>1),...photos.slice(1).map(p=>igPhoto(i,p))];
     const blobs=await Promise.all(canvases.map(c=>new Promise((ok,no)=>c.toBlob(b=>b?ok(b):no(new Error("blob")),"image/jpeg",.92))));
     if(igId!==id)return;
@@ -797,6 +802,77 @@ async function openIg(id){
     $("#igShare").hidden=!(navigator.canShare&&navigator.canShare({files:igFiles}));
   }catch(e){$("#igMsg").textContent="Sorry, the pictures could not be made ("+(e&&e.message||"error")+"). Please try again."}
 }
+// ---- Reel: the ad's photos as a short vertical video (1080 x 1920, 9:16) ----
+// Made right here in the browser (a canvas is drawn frame by frame and recorded with the browser's own MediaRecorder; no library, no upload).
+// Instagram wants MP4. Chrome, Edge and Safari can record MP4; a browser that can only do WebM will make WebM, which Instagram may refuse.
+const REEL_H=1920,REEL_SEC=2.2,REEL_FADE=.4;
+let igPhotos=[],igLogo=null,igReelFile=null,igReelUrl=null,igReelBusy=false;
+function igReelDrop(){if(igReelUrl)URL.revokeObjectURL(igReelUrl);igReelUrl=null;igReelFile=null;const b=$("#igReelBox");if(b){b.hidden=true;$("#igReelVid").removeAttribute("src")}}
+function reelMime(){const c=["video/mp4;codecs=avc1.42E01E","video/mp4;codecs=avc1","video/mp4","video/webm;codecs=vp9","video/webm"];return window.MediaRecorder?(c.find(t=>MediaRecorder.isTypeSupported(t))||""):""}
+// The parts of a frame that never change (headline, price, logo, stripe), drawn once. Kept clear of the top and bottom strips the Instagram app covers.
+function reelFrame(i,logo){
+  const c=document.createElement("canvas");c.width=IG_W;c.height=REEL_H;const ctx=c.getContext("2d");
+  const M=70,W=IG_W-2*M,INK="#1e1c19",MUTE="#6d6558",GOLD="#e9a70d";
+  ctx.fillStyle="#ffffff";ctx.fillRect(0,0,IG_W,REEL_H);ctx.textBaseline="alphabetic";ctx.textAlign="left";
+  ctx.fillStyle=INK;ctx.font="700 24px "+IG_FONT;trackText(ctx,"CHADADS  ·  FOR SALE",M,300,7);
+  if(logo){const lh=84,lw=logo.width*lh/logo.height;ctx.drawImage(logo,IG_W-M-lw,248,lw,lh)}
+  let size=104,lines;
+  for(size=104;size>=56;size-=4){ctx.font="600 "+size+"px "+IG_FONT;lines=wrapLines(ctx,i.t,W,99);if(lines.length<=3&&lines.every(l=>ctx.measureText(l).width<=W))break}
+  if(lines.length>3){ctx.font="600 56px "+IG_FONT;lines=wrapLines(ctx,i.t,W,3)}
+  const lead=Math.round(size*1.06);let y=372+Math.round(size*0.8);
+  ctx.fillStyle=INK;lines.forEach((l,n)=>ctx.fillText(l,M,y+n*lead));
+  y+=(lines.length-1)*lead+44;ctx.fillStyle=GOLD;ctx.fillRect(M,y,72,5);y+=54;
+  const price=pt(i).toUpperCase(),loc=String(i.loc||"").toUpperCase(),sep=price&&loc?"   —   ":"";
+  let fs=30,sp=5;for(;fs>20;fs-=2){ctx.font="700 "+fs+"px "+IG_FONT;if(trackWidth(ctx,price+sep+loc,sp)<=W)break}
+  ctx.font="700 "+fs+"px "+IG_FONT;let x=M;
+  if(price){ctx.fillStyle=INK;x+=trackText(ctx,price,x,y,sp)+sp}
+  ctx.font="500 "+fs+"px "+IG_FONT;ctx.fillStyle=MUTE;trackText(ctx,sep+loc,x,y,sp);
+  ctx.fillStyle=INK;ctx.font="700 26px "+IG_FONT;trackText(ctx,"CHADADS.COM",M,1530,6);
+  drawStripe(ctx,REEL_H-10,10);
+  return {canvas:c,top:y+50,bottom:1470,M,W};
+}
+async function igMakeReel(){
+  const i=items.find(x=>x.id===igId);if(!i||igReelBusy)return;
+  const mime=reelMime(),msg=$("#igMsg"),btn=$("#igReelBtn");
+  if(!mime){msg.textContent="This browser can't make videos. Please use Chrome, Edge or Safari.";return}
+  if(!igPhotos.length){msg.textContent="This ad has no photos to make a video from.";return}
+  igReelBusy=true;btn.disabled=true;igReelDrop();
+  try{
+    const f=reelFrame(i,igLogo),photos=igPhotos.slice(0,8),n=photos.length;
+    const box={x:f.M,y:f.top,w:f.W,h:Math.max(500,f.bottom-f.top)};
+    const total=Math.max(5,n*REEL_SEC);
+    const c=document.createElement("canvas");c.width=IG_W;c.height=REEL_H;const ctx=c.getContext("2d");
+    const rec=new MediaRecorder(c.captureStream(30),{mimeType:mime,videoBitsPerSecond:6e6}),parts=[];
+    rec.ondataavailable=e=>{if(e.data&&e.data.size)parts.push(e.data)};
+    const stopped=new Promise(ok=>{rec.onstop=ok});
+    const slide=(k,t)=>{   // photo k, t = seconds since it appeared; a slow zoom
+      const zoom=1+0.05*Math.min(1,t/REEL_SEC);
+      ctx.save();ctx.beginPath();ctx.rect(box.x,box.y,box.w,box.h);ctx.clip();
+      const img=photos[k],s=Math.max(box.w/img.width,box.h/img.height)*zoom,dw=img.width*s,dh=img.height*s;
+      ctx.drawImage(img,box.x+(box.w-dw)/2,box.y+(box.h-dh)/2,dw,dh);ctx.restore();
+    };
+    const draw=el=>{
+      ctx.globalAlpha=1;ctx.drawImage(f.canvas,0,0);
+      const slot=Math.min(n-1,Math.floor(el/REEL_SEC)),t=el-slot*REEL_SEC;
+      if(slot>0&&t<REEL_FADE){slide(slot-1,REEL_SEC+t);ctx.globalAlpha=t/REEL_FADE}
+      slide(slot,t);ctx.globalAlpha=1;
+    };
+    draw(0);rec.start(250);
+    const t0=performance.now();
+    await new Promise(done=>{const step=()=>{const el=(performance.now()-t0)/1000;if(el>=total){draw(total-.001);done();return}draw(el);msg.textContent="Making your reel… "+Math.round(100*el/total)+"%. Keep this tab open.";requestAnimationFrame(step)};requestAnimationFrame(step)});
+    await new Promise(r=>setTimeout(r,300));rec.stop();await stopped;
+    if(!parts.length)throw new Error("empty video");
+    const ext=mime.startsWith("video/mp4")?"mp4":"webm",type=ext==="mp4"?"video/mp4":"video/webm";
+    igReelFile=new File([new Blob(parts,{type})],"chadads-ad-"+i.id+"-reel."+ext,{type});
+    igReelUrl=URL.createObjectURL(igReelFile);
+    const v=$("#igReelVid");v.src=igReelUrl;$("#igReelBox").hidden=false;v.play().catch(()=>{});
+    $("#igReelShare").hidden=!(navigator.canShare&&navigator.canShare({files:[igReelFile]}));
+    msg.textContent="Your reel is ready ("+Math.round(total)+" seconds)."+(ext==="mp4"?"":" This browser made a WebM file, which Instagram may not accept. For a file Instagram takes, make the reel in Chrome, Edge or Safari.");
+  }catch(e){msg.textContent="Sorry, the video could not be made ("+(e&&e.message||"error")+"). Please try again."}
+  igReelBusy=false;btn.disabled=false;
+}
+function igReelSave(){if(!igReelFile)return;const a=document.createElement("a");a.href=igReelUrl;a.download=igReelFile.name;document.body.appendChild(a);a.click();a.remove()}
+function igReelShareNow(){if(igReelFile)navigator.share({files:[igReelFile],title:(items.find(x=>x.id===igId)||{}).t||"ChadAds"}).catch(()=>{})}
 function igSave(){igFiles.forEach((f,n)=>setTimeout(()=>{const a=document.createElement("a");a.href=igUrls[n];a.download=f.name;document.body.appendChild(a);a.click();a.remove()},n*400))}
 function igCopy(btn){
   const ta=$("#igCap"),done=()=>{const o=btn.textContent;btn.textContent="Copied";setTimeout(()=>{btn.textContent=o},1800)};
@@ -928,6 +1004,9 @@ document.addEventListener("click",e=>{
   if(t.closest("[data-igsave]")){igSave();return}
   const igc=t.closest("[data-igcopy]");if(igc){igCopy(igc);return}
   if(t.closest("#igShare")){igShareNow();return}
+  if(t.closest("#igReelBtn")){igMakeReel();return}
+  if(t.closest("#igReelSave")){igReelSave();return}
+  if(t.closest("#igReelShare")){igReelShareNow();return}
   const ns=t.closest("[data-nshare]");if(ns){
     const i=items.find(x=>x.id===+ns.dataset.nshare);
     if(i&&navigator.share)navigator.share({title:i.t,text:ttlPrice(i),url:adUrl(i)}).catch(()=>{});return}

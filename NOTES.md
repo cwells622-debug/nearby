@@ -331,3 +331,10 @@ Update: no border or pill around the 🟦🟧🟨 badge, just the three squares 
 - Signed out, "Post an ad" (button, edit, /?post=1) opens the Log in / Create account pop-up (Create account tab, Google button on top). `startPost()` sets a "want to post" flag in localStorage (`chadads-want-post`, valid 2 hours, used once); `showUser()` opens the empty Post form when the person is signed in (same tab, back from Google, or back from the confirmation email, even in a new tab).
 - Closing the pop-up without signing in forgets the flag (unless a confirmation email is pending).
 - Removed the draft code (`saveDraft`/`restoreDraft`, `chadads-ad-draft`); the old key is cleared on load. `sell.html` steps: 1 create account, 2 write the ad.
+
+## Instagram reel (video from the ad's photos)
+- In the Instagram post pop-up, "Make a reel (video)" builds a 9:16 video (1080 x 1920, about 2.2 seconds per photo, up to 8 photos, minimum 5 seconds) with the headline, price, town, logo and stripe, a slow zoom and a short cross-fade. Then Save video / Share video.
+- Made in the browser only: a canvas is drawn frame by frame and recorded with the built-in MediaRecorder (no library, no upload, nothing stored). Needs the tab to stay open and visible for the 10 to 20 seconds it takes.
+- Output is MP4 in Chrome, Edge and Safari (what Instagram accepts). A browser that can only record WebM makes WebM and says Instagram may refuse it.
+- Text sits inside the Instagram reel "safe area" (about 250 px from the top, 390 px from the bottom). Code: `igMakeReel()`, `reelFrame()` in `public/index.html`.
+- Tested in the in-app Chromium: ad 40 gave a valid 1080 x 1920 MP4 of 11 seconds (3.7 MB).
