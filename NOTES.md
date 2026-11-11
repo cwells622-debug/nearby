@@ -341,3 +341,8 @@ Update: no border or pill around the 🟦🟧🟨 badge, just the three squares 
 - Reel icon: a second icon (film frame with a play triangle, `ICON.reel`, `data-reel`) sits next to the Instagram icon in "Share this ad". It opens the Instagram pop-up and starts the video at once (`openIg(id,true)`).
 - Reel stripes: the site's header stripes (blue, orange, gold stacked, 8 px each) run full width above the headline and along the bottom edge of the video (replaces the thin three-across stripe).
 - Reel stripes updated: bands are 16 px each (48 px per stripe) and the blue is the brighter flyer blue #2e9be6 (the site header still uses the navy #164663).
+
+## SEO check, 11 November 2026 (Search Console coverage export)
+- Indexed 219, not indexed 329: Discovered-not-indexed 140, blocked by robots.txt 126, noindex 31, soft 404 15, 404 11, crawled-not-indexed 3, duplicate 2, redirect 1. Impressions only 0 to 6 a day: the problem is ranking, not indexing.
+- The 126 "blocked by robots.txt" are almost certainly the `/sign?ad=ID` print-sign links (blocked on purpose). Done: that link now has `rel="noopener nofollow"` so Google stops finding them (`shareHtml()` in `public/index.html`). Keep `/sign`, `/flyer`, `/s/` in robots.txt.
+- Still to do: example addresses for the 15 soft 404s; speed up the 140 discovered pages (links, sitemap); local-intent titles; unique text for dealer ads; real outside links.
