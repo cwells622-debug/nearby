@@ -361,3 +361,9 @@ Update: no border or pill around the 🟦🟧🟨 badge, just the three squares 
 - Header stripes now have small white gaps between the colours, like the logo: bands 5 px (blue, orange, gold) with 3 px gaps (`var(--bg)`), 21 px in all (`header::after` in `public/index.html`); page top padding raised by 6 px to match (`.wrap`).
 - Header stripe gaps changed to 2 px (bands 5 px, 19 px in all); `.wrap` top padding 35 px (31 px on phones).
 - Post form banner stripes: now a skewed box (`transform:skewX(-20deg)`, wider than the banner) so every stripe, including the orange one, runs the full height of the banner (`#dPost .pbanner::after`).
+
+## Main page: blue striped header, cream background, rounded corners (November 2026)
+- Rounded corners are back site-wide (the global square rule is removed; the old rounded values in each rule apply again). To go square again, re-add `*,*::before,*::after{border-radius:0!important}` in `public/index.html`. About/Sell/Terms/Privacy pages (`page.css`) were not touched.
+- Header is now a solid dark-blue band (`var(--navy)`): white "ChadAds" wordmark in text (not the logo picture) with a gold "Free in your city" under it, a white search box, light "Log in"/"Messages" buttons, an orange "Post an ad" button, and the racing stripes (a skewed `header::after` box) on the right edge. The old thin stripe under the header is gone. It shrinks when scrolled (`header.compact`: smaller name, tagline hidden). On phones the stripes are narrower and the page top padding is smaller.
+- Page background is warm cream (`--bg:#f7f5ee`), cards and pop-ups stay white (`--panel`), chips and grey boxes use a warm grey (`--soft:#eeebe2`, `--line:#e4e0d5`). Dark mode is unchanged.
+- The logo picture (`logo-sm.webp`) is no longer shown in the header (and is no longer preloaded); it is still used for the Instagram pictures, flyers and link previews.

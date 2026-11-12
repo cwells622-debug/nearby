@@ -4,7 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <base href="/">
-<link rel="preload" as="image" href="logo-sm.webp" type="image/webp">
 <script src="/analytics.js" defer></script>
 <title>ChadAds | Local Classifieds in the Capital Region &amp; Upstate NY</title>
 <meta name="description" content="Buy and sell vehicles, campers, trailers and equipment in the Capital District, Albany, Saratoga, Troy, Adirondacks, Hudson Valley and Upstate NY.">
@@ -46,7 +45,7 @@
 <link rel="manifest" href="/site.webmanifest">
 <style>
 /* ChadAds look, taken from the logo: warm cream and black, an orange accent (--acc) for buttons, navy (--link) for links, mustard for small touches. */
-:root{--bg:#ffffff;--panel:#ffffff;--ink:#14171c;--mute:#5d6572;--line:#e4e7ec;--acc:#e95e0d;--acc-ink:#1e1c19;--acc-text:#b8460a;--link:#164663;--navy:#164663;--mustard:#e9a70d;--soft:#f2f4f7;--glass:rgba(255,255,255,.86);
+:root{--bg:#f7f5ee;--panel:#ffffff;--ink:#14171c;--mute:#5d6572;--line:#e4e0d5;--acc:#e95e0d;--acc-ink:#1e1c19;--acc-text:#b8460a;--link:#164663;--navy:#164663;--mustard:#e9a70d;--soft:#eeebe2;--glass:rgba(255,255,255,.86);
 --shadow:0 2px 4px rgba(0,0,0,.04),0 12px 28px rgba(0,0,0,.08);
 box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15120e;--panel:#201c16;--ink:#f6e9d2;--mute:#a99f8d;--line:#3b342a;--acc:#f26a1b;--acc-ink:#1a120a;--acc-text:#ff8a45;--link:#7fb6dc;--navy:#2c6a93;--mustard:#e9a70d;--soft:#2b261e;--glass:rgba(21,18,14,.78);--shadow:0 2px 4px rgba(0,0,0,.4),0 12px 28px rgba(0,0,0,.5)}}
@@ -58,25 +57,27 @@ body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.47 -apple-sy
 button,input,select,textarea{font:inherit;color:inherit}
 button{cursor:pointer}
 :focus-visible{outline:3px solid var(--acc);outline-offset:2px}
-header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--glass);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid var(--line);display:flex;gap:14px;align-items:center;padding:12px 20px}
-header::after{content:"";position:absolute;left:0;right:0;bottom:-19px;height:19px;background:linear-gradient(var(--navy) 0 5px,var(--bg) 5px 7px,var(--acc) 7px 12px,var(--bg) 12px 14px,var(--mustard) 14px 19px);pointer-events:none}
-.logo{display:flex;align-items:center;color:var(--ink);text-decoration:none;white-space:nowrap}
-.logo{flex-direction:column;align-items:flex-start;gap:4px}
-.logo img{height:84px;width:auto;display:block;transition:height .22s ease}
-.tag3{font:700 12px/1 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Inter,Roboto,system-ui,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:var(--mute);max-height:16px;overflow:hidden;transition:max-height .22s ease,opacity .22s ease}
-.tag3 i{font-style:normal;color:var(--acc);margin:0 .4em}
+/* Header: a bold blue band with the racing stripes at the right (same look as the Post an ad pop-up). The stripes are a skewed box so every stripe runs the full height. */
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--navy);color:#fff;overflow:hidden;display:flex;gap:14px;align-items:center;padding:12px 152px 12px 22px;transition:padding .22s ease}
+header>*{position:relative;z-index:1}   /* the buttons stay above the stripes */
+header::after{content:"";position:absolute;top:0;bottom:0;right:-26px;width:150px;transform:skewX(-20deg);background:linear-gradient(90deg,transparent 0 16%,#e95e0d 16% 36%,var(--navy) 36% 43%,#f5b800 43% 62%,var(--navy) 62% 69%,#f3ead6 69% 100%);pointer-events:none}
+.logo{display:flex;flex-direction:column;align-items:flex-start;gap:4px;color:#fff;text-decoration:none;white-space:nowrap}
+.brand{font-size:34px;font-weight:800;letter-spacing:-.03em;line-height:1;transition:font-size .22s ease}
+.tag3{color:#f5b800;font-weight:700;font-size:15px;line-height:1.1;max-height:20px;overflow:hidden;transition:max-height .22s ease,opacity .22s ease}
 /* once the page is scrolled, the header shrinks so it doesn't take over the screen */
-header.compact .logo img{height:62px}
- .tag3{font-size:9.5px;letter-spacing:.11em}
- .tag3 i{margin:0 .3em}
- header.compact .logo img{height:38px}
+header.compact{padding-top:8px;padding-bottom:8px}
+header.compact .brand{font-size:26px}
 header.compact .tag3{max-height:0;opacity:0}
-.search{flex:1 1 0;min-width:0;border:0;background:var(--soft);border-radius:999px;padding:11px 18px}
+header .btn.ghost{background:rgba(255,255,255,.18);color:#fff}
+header .btn.ghost:hover{background:rgba(255,255,255,.28);opacity:1}
+header #post{background:var(--acc);color:#fff}
+header .who{color:#dbe6ee}
+.search{flex:1 1 0;min-width:0;border:0;background:#fff;color:#14171c;border-radius:999px;padding:11px 18px}
 .search::placeholder{color:var(--mute)}
 .btn{border:0;background:var(--navy);color:#fff;font-weight:600;border-radius:999px;padding:10px 20px;white-space:nowrap;transition:opacity .15s}
 .btn:hover{opacity:.88}
 .btn.ghost{background:var(--soft);color:var(--ink)}
-.wrap{max-width:1200px;margin:0 auto;padding:35px 20px 56px}
+.wrap{max-width:1200px;margin:0 auto;padding:22px 20px 56px}
 aside{display:flex;gap:8px;overflow-x:auto;padding:2px 0 6px;scrollbar-width:none}
 aside::-webkit-scrollbar{display:none}
 aside h3{display:none}
@@ -88,7 +89,7 @@ aside h3{display:none}
 /* Computer screens: categories go down the left side, phones keep the scrolling pills above */
 @media (min-width:761px){
  .wrap{display:grid;grid-template-columns:220px minmax(0,1fr);gap:36px;align-items:start}
- aside{position:sticky;top:84px;flex-direction:column;gap:0;overflow-x:hidden;overflow-y:auto;max-height:calc(100vh - 100px);padding:0 6px 0 0}
+ aside{position:sticky;top:92px;flex-direction:column;gap:0;overflow-x:hidden;overflow-y:auto;max-height:calc(100vh - 100px);padding:0 6px 0 0}
  .cat{width:100%;background:none;border-radius:8px;padding:5px 12px;font-size:14px;gap:8px}
  .cat:hover{background:var(--soft)}
  .cat[aria-pressed="true"]{background:var(--soft);color:var(--ink);font-weight:600}
@@ -168,8 +169,7 @@ dialog[open]{animation:pop .22s ease}
 dialog::backdrop{background:rgba(0,0,0,.4);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
 .dlg{padding:24px;display:flex;flex-direction:column;gap:14px}
 .dlg .top{display:flex;justify-content:space-between;align-items:center;gap:10px}
-/* Square corners everywhere on the site (buttons, chips, cards, photos, pop-ups), to match the editorial look. Delete the next rule to bring the rounded look back. */
-*,*::before,*::after{border-radius:0!important}
+/* Rounded corners are back across the site (they were square from October to November 2026). To go square again, add this rule: *,*::before,*::after{border-radius:0!important} */
 .x{border:0;background:var(--soft);width:34px;height:34px;border-radius:50%;color:var(--mute)}
 label{display:flex;flex-direction:column;gap:6px;font-weight:500;font-size:14px;color:var(--mute)}
 /* Post form city box: our own drop-down list under the input */
@@ -360,14 +360,14 @@ dialog .dlg.msgs{padding:0;gap:0}
 :root[data-theme="dark"] .autherr{color:#ff6961}
 @media (max-width:760px){
  .who{display:none}
- header{padding:10px 14px;gap:10px;flex-wrap:wrap}
+ header{padding:10px 62px 10px 14px;gap:10px;flex-wrap:wrap}
+ header::after{width:84px;right:-18px}
  .logo{flex:1}
+ .brand{font-size:28px}
+ .tag3{font-size:13px}
+ header.compact .brand{font-size:22px}
  .search{order:3;flex:1 1 100%}
- .wrap{padding:31px 14px 48px}
- .logo img{height:62px}
- .tag3{font-size:9.5px;letter-spacing:.11em}
- .tag3 i{margin:0 .3em}
- header.compact .logo img{height:38px}
+ .wrap{padding:16px 14px 48px}
  .btn{padding:7px 12px;font-size:14px}
  h1{font-size:25px}
  .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:22px 12px}
@@ -378,7 +378,7 @@ dialog .dlg.msgs{padding:0;gap:0}
 </head>
 <body>
 <header>
-  <a class="logo" href="./" aria-label="ChadAds home"><img src="logo-sm.webp" alt="ChadAds" width="96" height="64" fetchpriority="high"><span class="tag3" aria-hidden="true">List<i>•</i>Sell<i>•</i>Local</span></a>
+  <a class="logo" href="./" aria-label="ChadAds home"><span class="brand">ChadAds</span><span class="tag3" aria-hidden="true">Free in your city</span></a>
   <input class="search" id="q" type="search" placeholder="Search listings" aria-label="Search listings">
   <div class="hdr-r">
     <span class="who" id="who"></span>
