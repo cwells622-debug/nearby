@@ -253,7 +253,12 @@ dialog.wide{width:min(1020px,96vw)}
 .badge{background:var(--acc);color:var(--acc-ink);border-radius:999px;font-size:12px;font-weight:700;padding:1px 7px;margin-left:6px}
 /* Post an ad pop-up: bold blue banner with racing stripes, cream page, white fields with an orange focus line, grey photo tiles, a big orange POST FREE button.
    Delete this block (and the .pbanner/.pbody wrapper in the markup is harmless) to go back to the plain look. */
-#dPost{--pbg:#f7f5ee;--pfield:#fff;--pline:#dcd8cd;--plabel:#4b4a46;--ptile:#eceae3;--pblue:#1f5fbf;--pgold:#f5b800;background:var(--pbg)}
+#dPost{--pbg:#f7f5ee;--pfield:#fff;--pline:#dcd8cd;--plabel:#4b4a46;--ptile:#eceae3;--pblue:var(--navy);--pgold:#f5b800;background:var(--pbg)}
+/* Rounded corners in this pop-up only (the rest of the site stays square). The ID makes these win over the site-wide square rule. */
+#dPost{border-radius:26px!important}
+#dPost label input,#dPost label select,#dPost label textarea,#dPost .phtiles i,#dPost .coverbox,#dPost .cdd,#dPost .thumbs img,#dPost .thumbs button,#dPost .cprev,#dPost .cprev img,#dPost .vrow{border-radius:12px!important}
+#dPost #postGo{border-radius:14px!important}
+#dPost .x{border-radius:50%!important}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) #dPost{--pbg:var(--panel);--pfield:var(--soft);--pline:var(--line);--plabel:var(--mute);--ptile:var(--soft)}}
 :root[data-theme="dark"] #dPost{--pbg:var(--panel);--pfield:var(--soft);--pline:var(--line);--plabel:var(--mute);--ptile:var(--soft)}
 #dPost .pform{padding:0;gap:0}
