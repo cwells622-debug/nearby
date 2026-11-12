@@ -251,6 +251,32 @@ dialog.wide{width:min(1020px,96vw)}
 .card .ph{position:relative}
 /* Messages: inbox on the left, conversation on the right (one at a time on phones) */
 .badge{background:var(--acc);color:var(--acc-ink);border-radius:999px;font-size:12px;font-weight:700;padding:1px 7px;margin-left:6px}
+/* Post an ad pop-up: bold blue banner with racing stripes, cream page, white fields with an orange focus line, grey photo tiles, a big orange POST FREE button.
+   Delete this block (and the .pbanner/.pbody wrapper in the markup is harmless) to go back to the plain look. */
+#dPost{--pbg:#f7f5ee;--pfield:#fff;--pline:#dcd8cd;--plabel:#4b4a46;--ptile:#eceae3;--pblue:#1f5fbf;--pgold:#f5b800;background:var(--pbg)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) #dPost{--pbg:var(--panel);--pfield:var(--soft);--pline:var(--line);--plabel:var(--mute);--ptile:var(--soft)}}
+:root[data-theme="dark"] #dPost{--pbg:var(--panel);--pfield:var(--soft);--pline:var(--line);--plabel:var(--mute);--ptile:var(--soft)}
+#dPost .pform{padding:0;gap:0}
+#dPost .pbanner{position:relative;display:flex;justify-content:space-between;align-items:flex-start;background:var(--pblue);color:#fff;padding:22px 24px 24px;overflow:hidden;min-height:112px}
+#dPost .pbanner::after{content:"";position:absolute;top:0;bottom:0;right:0;width:150px;background:linear-gradient(110deg,transparent 0 14%,#e95e0d 14% 32%,var(--pblue) 32% 40%,var(--pgold) 40% 58%,var(--pblue) 58% 66%,#f3ead6 66% 100%);pointer-events:none}
+#dPost .pbrand{font-size:38px;font-weight:800;letter-spacing:-.03em;line-height:1}
+#dPost .ptag{color:var(--pgold);font-weight:700;font-size:18px;margin-top:8px}
+#dPost .pbanner .x{position:relative;z-index:1;background:rgba(255,255,255,.22);color:#fff}
+#dPost .pbody{padding:22px 24px 26px;display:flex;flex-direction:column;gap:16px}
+#dPost .pbody h2{font-size:30px;font-weight:800;letter-spacing:-.02em;color:var(--ink);margin:0}
+#dPost label{color:var(--plabel);font-weight:600;font-size:15px}
+#dPost label input,#dPost label select,#dPost label textarea{box-sizing:border-box;background:var(--pfield);border:1px solid var(--pline);box-shadow:0 1px 2px rgba(0,0,0,.05);padding:14px;font-size:17px;color:var(--ink)}
+#dPost label input:focus,#dPost label select:focus,#dPost label textarea:focus{background:var(--pfield);border:2px solid var(--acc);padding:13px}
+#dPost .money{position:relative;display:block}
+#dPost .money::before{content:"$";position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:17px;color:var(--ink);pointer-events:none}
+#dPost .money input{width:100%;padding-left:30px}
+#dPost .money input:focus{padding-left:29px}
+#dPost .phbox{position:relative;cursor:pointer}
+#dPost .phtiles{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+#dPost .phtiles i{display:grid;place-items:center;aspect-ratio:5/4;background:var(--ptile);border:1px solid var(--pline);color:#8c887c;font-style:normal;font-size:44px;font-weight:300}
+#dPost .phbox input{position:absolute;opacity:0;width:1px;height:1px;padding:0;border:0;box-shadow:none}
+#dPost .phbox:focus-within .phtiles i{outline:2px solid var(--acc)}
+#dPost #postGo{width:100%;background:var(--acc);color:#fff;font-size:20px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;padding:18px;white-space:normal}
 dialog .dlg.msgs{padding:0;gap:0}
 .mwrap{display:grid;grid-template-columns:320px minmax(0,1fr);height:min(82vh,660px)}
 .mlist{border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
@@ -366,23 +392,25 @@ dialog .dlg.msgs{padding:0;gap:0}
 
 <footer class="site-foot"><a href="/sell">Sell on ChadAds</a><a href="/about">About</a><a href="/terms">Terms</a><a href="/privacy">Privacy</a><span>© 2026 ChadAds</span><nav class="seo-nav" id="seoNav" aria-label="Browse categories and regions"></nav></footer>
 
-<dialog id="dPost"><form class="dlg" id="f">
-  <div class="top"><h2 id="postTitle">Post an ad</h2><button type="button" class="x" data-close aria-label="Close">✕</button></div>
+<dialog id="dPost"><form class="dlg pform" id="f">
+  <div class="pbanner"><div><div class="pbrand">ChadAds</div><div class="ptag">Free in your city</div></div><button type="button" class="x" data-close aria-label="Close">✕</button></div>
+  <div class="pbody">
+  <h2 id="postTitle">Post an ad</h2>
   <p class="note" id="postHint" hidden style="margin:-6px 0 0"></p>
   <div id="curPhotos" class="thumbs" hidden></div>
-  <label><span id="photoLbl">Start with your photos (optional, up to 5; JPG, PNG or WebP). Big photos are resized for you.</span><input id="fimg" type="file" multiple accept="image/jpeg,image/png,image/webp"></label>
+  <label class="phbox"><span id="photoLbl">Photos (optional, up to 5)</span><span class="phtiles" aria-hidden="true"><i>+</i><i>+</i><i>+</i></span><input id="fimg" type="file" multiple accept="image/jpeg,image/png,image/webp"></label>
   <div id="newPhotos" class="thumbs" hidden></div>
   <div id="coverBox" class="coverbox" hidden>
     <div class="cprev" id="coverPrev"></div>
     <label>Cover photo (the picture on the home page). Slide to choose which part shows.<input type="range" id="cy" name="cy" min="0" max="100" value="50" aria-label="Cover photo framing"></label>
   </div>
-  <label>Title<input name="t" required maxlength="60" placeholder="What are you selling?"></label>
+  <label>What are you selling?<input name="t" required maxlength="60" placeholder="Mountain bike"></label>
   <div class="row">
     <label>Category<select name="c" id="fc"></select></label>
-    <label id="priceLbl"><span>Price ($, 0 for free)</span><input name="p" type="number" min="0" value="0" required></label>
+    <label id="priceLbl"><span>Price (0 for free)</span><span class="money"><input name="p" type="number" min="0" value="0" required></span></label>
   </div>
   <label id="porRow" hidden style="flex-direction:row;align-items:center;gap:8px;margin-top:-6px"><input type="checkbox" name="por" id="por" style="width:auto;padding:0;margin:0"> Call for price (don't show a price)</label>
-  <label class="cityl">City<input name="loc" id="fl" required autocomplete="off" role="combobox" aria-expanded="false" aria-controls="cdd" placeholder="Start typing a city"><div class="cdd" id="cdd" role="listbox" hidden></div></label><datalist id="cl"></datalist><!-- #cl: suggestions for the "my city" box in the location panel -->
+  <label class="cityl">Location<input name="loc" id="fl" required autocomplete="off" role="combobox" aria-expanded="false" aria-controls="cdd" placeholder="Start typing a city"><div class="cdd" id="cdd" role="listbox" hidden></div></label><datalist id="cl"></datalist><!-- #cl: suggestions for the "my city" box in the location panel -->
   <label>Description<textarea name="d" rows="3" required placeholder="Condition, size, pickup details"></textarea></label>
   <label id="makeRow" hidden>Make<input name="make" maxlength="30" list="makes" autocomplete="off" placeholder="Ford, Chevrolet, Toyota ... (pick or type)"></label><datalist id="makes"><option value="Acura"><option value="Audi"><option value="BMW"><option value="Buick"><option value="Cadillac"><option value="Chevrolet"><option value="Chrysler"><option value="Dodge"><option value="Ford"><option value="GMC"><option value="Honda"><option value="Hyundai"><option value="Infiniti"><option value="Jeep"><option value="Kia"><option value="Lexus"><option value="Lincoln"><option value="Mazda"><option value="Mercedes-Benz"><option value="Mercury"><option value="Mini"><option value="Mitsubishi"><option value="Nissan"><option value="Oldsmobile"><option value="Plymouth"><option value="Pontiac"><option value="Porsche"><option value="Ram"><option value="Saturn"><option value="Subaru"><option value="Tesla"><option value="Toyota"><option value="Volkswagen"><option value="Volvo"></datalist>
   <label id="linkRow" hidden><span id="linkLbl">Link (optional)</span><input name="link" type="url" maxlength="500" placeholder="https://" autocomplete="off"></label>
@@ -392,7 +420,8 @@ dialog .dlg.msgs{padding:0;gap:0}
   <div id="newVideo" class="vrow" hidden></div>
   <label>Video link (YouTube or Vimeo, optional)<input name="vlink" type="url" maxlength="200" placeholder="https://www.youtube.com/watch?v=..." autocomplete="off"></label>
   <p class="autherr" id="postMsg" role="alert"></p>
-  <button class="btn" type="submit" id="postGo">Publish ad</button>
+  <button class="btn" type="submit" id="postGo">Post free</button>
+  </div>
 </form></dialog>
 
 <dialog id="dMsg" class="wide"><div class="dlg msgs">
@@ -1360,7 +1389,7 @@ function syncPor(){
   const f=$("#f").elements,cat=f.c.value,np=NOPRICE_CATS.includes(cat);
   $("#porRow").hidden=np||!(myDealer||f.por.checked);
   $("#priceLbl").hidden=cat==="Local Businesses";   // businesses have no price box at all
-  $("#priceLbl").firstChild.textContent=cat==="Want Ad"?"Budget ($, optional)":"Price ($, 0 for free)";
+  $("#priceLbl").firstChild.textContent=cat==="Want Ad"?"Budget (optional)":"Price (0 for free)";
   f.p.disabled=!np&&f.por.checked;f.p.required=!np&&!f.por.checked;
   if(cat==="Want Ad"&&f.p.value==="0")f.p.value="";else if(cat!=="Want Ad"&&f.p.value==="")f.p.value="0";   // a Want Ad's budget starts empty
 }
@@ -1380,8 +1409,8 @@ function startPost(id){
   cv.innerHTML=i&&i.vpath?`<span>🎬 This ad has a video</span><label style="flex-direction:row;align-items:center;gap:6px;color:var(--ink)"><input type="checkbox" name="rmv"> Remove</label>`:"";
   $("#videoLbl").textContent=i&&i.vpath?"Replace the video (leave empty to keep it)":"Video clip (optional, MP4, MOV or WebM, up to 50 MB)";
   $("#postTitle").textContent=i?"Edit your ad":"Post an ad";
-  $("#postGo").textContent=i?"Save changes":"Publish ad";
-  $("#photoLbl").textContent=i?"Add more photos (up to 5 in total). Big photos are resized for you.":"Start with your photos (optional, up to 5; JPG, PNG or WebP). Big photos are resized for you.";
+  $("#postGo").textContent=i?"Save changes":"Post free";
+  $("#photoLbl").textContent=i?"Add more photos (up to 5 in total)":"Photos (optional, up to 5)";
   // When editing, show the current photos; tick one to remove it when you save.
   const cp=$("#curPhotos");
   cp.hidden=!(i&&i.paths.length);
@@ -1636,7 +1665,7 @@ function friendlyError(e){
   // Uploaded video: a new file replaces the old one; ticking "Remove" deletes it.
   const oldVid=editId?items.find(x=>x.id===editId).vpath:null,dropVid=!!oldVid&&(!!pickedVideo||f.get("rmv")!==null);
   // Logged out meanwhile (for example in another tab): ask them to log in again. The form stays as it is.
-  if(!user){needLogin("You are logged out. Please log in, then tap Publish ad again.");return}
+  if(!user){needLogin("You are logged out. Please log in, then tap Post free again.");return}
   const go=$("#postGo");go.disabled=true;
   let newId=null,newPaths=[],removedRows=false,newVid=null,vidRowGone=false;
   try{
@@ -1693,7 +1722,7 @@ function friendlyError(e){
     if(removedRows)await sb.from("listing_photos").insert(removed.map(p=>({listing_id:editId,storage_path:p})));
     if(newId)await sb.from("listings").delete().eq("id",newId);
     console.error("posting failed",err);
-    msg.textContent=friendlyError(err);go.disabled=false;go.textContent=editId?"Save changes":"Publish ad";return;
+    msg.textContent=friendlyError(err);go.disabled=false;go.textContent=editId?"Save changes":"Post free";return;
   }
   go.disabled=false;e.target.reset();picked=[];showPicked();pickedVideo=null;showPickedVideo();$("#dPost").close();
   cur=catName;q="";$("#q").value="";sort="new";editId=null;
