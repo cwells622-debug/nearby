@@ -263,7 +263,7 @@ dialog.wide{width:min(1020px,96vw)}
 :root[data-theme="dark"] #dPost{--pbg:var(--panel);--pfield:var(--soft);--pline:var(--line);--plabel:var(--mute);--ptile:var(--soft)}
 #dPost .pform{padding:0;gap:0}
 #dPost .pbanner{position:relative;display:flex;justify-content:space-between;align-items:flex-start;background:var(--pblue);color:#fff;padding:22px 24px 24px;overflow:hidden;min-height:112px}
-#dPost .pbanner::after{content:"";position:absolute;top:0;bottom:0;right:0;width:150px;background:linear-gradient(110deg,transparent 0 14%,#e95e0d 14% 32%,var(--pblue) 32% 40%,var(--pgold) 40% 58%,var(--pblue) 58% 66%,#f3ead6 66% 100%);pointer-events:none}
+#dPost .pbanner::after{content:"";position:absolute;top:0;bottom:0;right:-30px;width:190px;transform:skewX(-20deg);background:linear-gradient(90deg,transparent 0 18%,#e95e0d 18% 36%,var(--pblue) 36% 43%,var(--pgold) 43% 62%,var(--pblue) 62% 69%,#f3ead6 69% 100%);pointer-events:none}   /* a skewed box, so every stripe runs the full height of the banner */
 #dPost .pbrand{font-size:38px;font-weight:800;letter-spacing:-.03em;line-height:1}
 #dPost .ptag{color:var(--pgold);font-weight:700;font-size:18px;margin-top:8px}
 #dPost .pbanner .x{position:relative;z-index:1;background:rgba(255,255,255,.22);color:#fff}
