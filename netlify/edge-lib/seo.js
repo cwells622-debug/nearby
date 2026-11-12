@@ -304,6 +304,17 @@ export function buildListPage(shell, { catName, region, ads, total, cats, city, 
   return { html: h, indexable };
 }
 
+// The home page's extra readable block: the newest ads as plain links, then every category and region. ads need: id, title, price,
+// price_on_request, categories{name}, cities{name,state}; cats need: name.
+export function homeExtras(ads, cats) {
+  const li = (a) => `<li style="margin:4px 0"><a href="${esc(adPath(a.id, a.title))}"><strong>${esc(priceText(a))}</strong> ${esc(a.title)}${a.cities ? " · " + esc(a.cities.name) + ", " + esc(a.cities.state) : ""}</a></li>`;
+  const catLinks = (cats || []).map((c) => `<a href="${browsePath(c.name, null)}">${esc(catLabel(c.name))}</a>`).join(" · ");
+  const regLinks = REGION_ORDER.map((r) => `<a href="${browsePath(null, r)}">${esc(REGIONS[r].name)}</a>`).join(" · ");
+  return `<nav class="seo-newest" aria-label="Newest ads and ways to browse">` +
+    (ads && ads.length ? `<h2>Newest ads</h2><ul style="list-style:none;padding:0;columns:2 260px;font-size:14px">${ads.map(li).join("\n")}</ul>` : "") +
+    `<h2>Browse by category</h2><p>${catLinks}</p><h2>Browse by region</h2><p>${regLinks}</p></nav>`;
+}
+
 // The sitemap: the plain pages, every category/region page that has enough ads, and one entry per active ad.
 // "ads" need: id, title, created_at, categories{name}, cities{regions}.
 export function buildSitemap(ads, todayIso) {
