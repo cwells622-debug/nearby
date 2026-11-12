@@ -66,6 +66,24 @@ function relatedLinks(ad) {
   return `<nav aria-label="Related pages"><p>${out.join(" · ")}</p></nav>`;
 }
 
+// A short facts line for a dealer ad, for the search-result description and the first words on the page, so they do not begin with
+// the dealer's legal boilerplate. The importer (supabase/functions/import-feed/index.ts, descriptionFor) writes a line like
+// "2026 Ford F-150 STX (New, 1 miles)." then "Engine: ... Transmission: ... Exterior: White." and ends with "Sold by Dealer, Town.".
+// Returns "" for any other ad (the normal description is used then).
+export function adFacts(ad) {
+  const lines = String(ad.description || "").split("\n").map((l) => l.trim()).filter(Boolean);
+  const k = lines.findIndex((l) => /\((New|Used)(, [\d,]+ miles)?\)\.$/.test(l));
+  if (k < 0) return "";
+  const cond = lines[k].match(/\(((?:New|Used)(?:, [\d,]+ miles)?)\)\.$/)[1];
+  const spec = lines[k + 1] && /^(Engine|Transmission|Fuel|Exterior|Interior): /.test(lines[k + 1]) ? lines[k + 1] : "";
+  const engine = (spec.match(/Engine: (.+?)\.?\s+(?:Transmission|Fuel|Exterior|Interior): /) || spec.match(/Engine: (.+?)\.?$/) || [])[1];
+  const color = (spec.match(/Exterior: ([^.]+)\./) || [])[1];
+  const dealer = (lines.map((l) => l.match(/^Sold by (.+?)\.$/)).filter(Boolean).pop() || [])[1];
+  const nice = (s) => s.toLowerCase().replace(/(^|[\s/-])([a-z])/g, (m, a, b) => a + b.toUpperCase());   // "RED" -> "Red"
+  const bits = [cond.replace(/^(.*, )1 miles$/, "$11 mile"), engine && clip(engine.replace(/\.+$/, ""), 60), color && nice(color) + " exterior"].filter(Boolean);
+  return bits.join(" · ") + (dealer ? `. Sold by ${dealer}.` : ".");
+}
+
 // Takes the normal home page (the "shell") and returns the same page with this ad's own title,
 // description, preview picture, structured data and readable text filled in. The app still starts
 // as usual and opens this ad's pop-up.
@@ -78,7 +96,8 @@ export function buildAdPage(shell, ad) {
   const seller = ad.profiles && ad.profiles.display_name ? ad.profiles.display_name : "a local seller";
   const url = SITE + adPath(ad.id, ad.title);
   const pageTitle = `${clip(ad.title, 52)} – ${priceText(ad)}${city ? " in " + city : ""} | ChadAds`;
-  const desc = clip(`${priceText(ad)}${city ? " · " + city : ""}. ${ad.description}`, 155);
+  const facts = adFacts(ad);
+  const desc = clip(`${priceText(ad)}${city ? " · " + city : ""}. ${facts || ad.description}`, 155);
   const image = photos[0] || SITE + "/logo.webp";
 
   let h = shell;
@@ -125,7 +144,7 @@ export function buildAdPage(shell, ad) {
   const article =
     `<article class="seo-ad"><h1>${esc(ad.title)}</h1>` +
     `<p><strong>${esc(priceText(ad))}</strong>${city ? " · " + esc(city) : ""}${cat ? " · " + esc(cat) : ""}</p>` +
-    `${imgs}<p style="white-space:pre-line">${esc(ad.description)}</p>` +
+    `${imgs}${facts ? `<p>${esc(facts)}</p>` : ""}<p style="white-space:pre-line">${esc(ad.description)}</p>` +
     `<p>Listed by ${esc(seller)} on ChadAds. <a href="/">Browse more local classifieds</a>.</p>${relatedLinks(ad)}</article>`;
   h = h.replace(/<main id="main">[\s\S]*?<\/main>/, () => `<main id="main">${article}</main>`);
   return h;
