@@ -853,12 +853,21 @@ function reelFrame(i,logo){
   const c=document.createElement("canvas");c.width=IG_W;c.height=REEL_H;const ctx=c.getContext("2d");
   const M=70,W=IG_W-2*M,INK="#1e1c19",MUTE="#6d6558",GOLD="#e9a70d";
   ctx.fillStyle="#ffffff";ctx.fillRect(0,0,IG_W,REEL_H);ctx.textBaseline="alphabetic";ctx.textAlign="left";
-  ctx.fillStyle=INK;ctx.font="700 24px "+IG_FONT;trackText(ctx,"CHADADS  ·  FOR SALE",M,324,7);
-  if(logo){const lh=84,lw=logo.width*lh/logo.height;ctx.drawImage(logo,IG_W-M-lw,272,lw,lh)}
+  // The site header: a dark-blue band with the name, the gold tagline and the racing stripes at the right (skewed so each stripe runs the full height).
+  const HB=370,NAVY="#164663";
+  ctx.fillStyle=NAVY;ctx.fillRect(0,0,IG_W,HB);
+  ctx.save();ctx.beginPath();ctx.rect(0,0,IG_W,HB);ctx.clip();
+  const off=Math.tan(20*Math.PI/180)*HB,sx=IG_W-480,sw=570;   // stripe block: 570 px wide, starting 480 px in from the right edge
+  [[.18,.36,"#e95e0d"],[.43,.62,"#f5b800"],[.69,1.2,"#f3ead6"]].forEach(([a,b,col])=>{
+    const x0=sx+sw*a,x1=sx+sw*b;ctx.fillStyle=col;ctx.beginPath();
+    ctx.moveTo(x0+off/2,0);ctx.lineTo(x1+off/2,0);ctx.lineTo(x1-off/2,HB);ctx.lineTo(x0-off/2,HB);ctx.closePath();ctx.fill()});
+  ctx.restore();
+  ctx.fillStyle="#ffffff";ctx.font="800 84px "+IG_FONT;ctx.fillText("ChadAds",M,288);
+  ctx.fillStyle="#f5b800";ctx.font="700 36px "+IG_FONT;ctx.fillText("Sell Local",M,336);
   let size=104,lines;
   for(size=104;size>=56;size-=4){ctx.font="600 "+size+"px "+IG_FONT;lines=wrapLines(ctx,i.t,W,99);if(lines.length<=3&&lines.every(l=>ctx.measureText(l).width<=W))break}
   if(lines.length>3){ctx.font="600 56px "+IG_FONT;lines=wrapLines(ctx,i.t,W,3)}
-  const lead=Math.round(size*1.06);let y=396+Math.round(size*0.8);
+  const lead=Math.round(size*1.06);let y=HB+64+Math.round(size*0.8);
   ctx.fillStyle=INK;lines.forEach((l,n)=>ctx.fillText(l,M,y+n*lead));
   y+=(lines.length-1)*lead+44;ctx.fillStyle=GOLD;ctx.fillRect(M,y,72,5);y+=54;
   const price=pt(i).toUpperCase(),loc=String(i.loc||"").toUpperCase(),sep=price&&loc?"   —   ":"";
@@ -868,8 +877,8 @@ function reelFrame(i,logo){
   ctx.font="500 "+fs+"px "+IG_FONT;ctx.fillStyle=MUTE;trackText(ctx,sep+loc,x,y,sp);
   ctx.fillStyle=INK;ctx.font="700 26px "+IG_FONT;trackText(ctx,"CHADADS.COM",M,1540,6);
   // the modern flyers' stripes (bright blue, orange, gold, stacked, 16 px each) across the full width, above the headline and along the bottom edge
-  const band=(by,h)=>{[["#2e9be6"],["#e95e0d"],["#e9a70d"]].forEach((col,k)=>{ctx.fillStyle=col[0];ctx.fillRect(0,by+k*h,IG_W,h)})};   // the brighter blue of the modern flyers
-  band(200,16);band(REEL_H-48,16);
+  const band=(by,h)=>{[["#164663"],["#e95e0d"],["#e9a70d"]].forEach((col,k)=>{ctx.fillStyle=col[0];ctx.fillRect(0,by+k*h,IG_W,h)})};   // the site's dark blue
+  band(REEL_H-48,16);
   return {canvas:c,top:y+50,bottom:1470,M,W};
 }
 async function igMakeReel(){
