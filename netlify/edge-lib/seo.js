@@ -217,7 +217,7 @@ export function parseBrowsePath(pathname) {
 
 // Fills the home page shell with a list page: its own title, description, preview, structured data, a readable list of
 // ads, and a small "landing" note the app uses to show the same filter on screen.
-export function buildListPage(shell, { catName, region, ads, total, cats, city, nearby }) {
+export function buildListPage(shell, { catName, region, ads, total, cats, city, nearby, more }) {
   const R = region ? REGIONS[region] : null;
   const C = city || null;                      // a city page: { name, state, regions }; "nearby" = the city has no ads of its own, so these are ads from towns around it
   const cname = C ? `${C.name}, ${C.state}` : "";
@@ -288,12 +288,17 @@ export function buildListPage(shell, { catName, region, ads, total, cats, city, 
     return `<li><a href="${esc(adPath(a.id, a.title))}">${ph ? `<img src="${esc(th)}" data-full="${esc(ph)}" onerror="this.onerror=null;this.src=this.dataset.full" alt="${esc(a.title)}" loading="lazy" width="200" height="150" style="width:100%;height:auto;aspect-ratio:4/3;object-fit:cover;border-radius:12px">` : ""}` +
       `<strong>${esc(priceText(a))}</strong> ${esc(a.title)}<br><small>${esc(city)}</small></a></li>`;
   }).join("\n");
+  // Ads after the first 48: one plain text link each (no photos), so they are linked from here too.
+  const moreHtml = (more && more.length)
+    ? `<h2>More ads</h2><ul style="list-style:none;padding:0;columns:2 260px">${more.map((a) => `<li style="margin:4px 0"><a href="${esc(adPath(a.id, a.title))}"><strong>${esc(priceText(a))}</strong> ${esc(a.title)}${a.cities ? " · " + esc(a.cities.name) + ", " + esc(a.cities.state) : ""}</a></li>`).join("\n")}</ul>`
+    : "";
   const catLinks = (cats || []).map((c) => `<a href="${browsePath(c.name, null)}">${esc(catLabel(c.name))}</a>`).join(" · ");
   const regLinks = REGION_ORDER.map((r) => `<a href="${browsePath(null, r)}">${esc(REGIONS[r].name)}</a>`).join(" · ");
   const article =
     `<article class="seo-list"><h1>${esc(h1)}</h1><p>${esc(intro)}</p>` +
     (ads.length ? `<ul style="list-style:none;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px">${items}</ul>`
                 : `<p>No ads here yet. <a href="/">Browse everything on ChadAds</a>, or sign in and list the first one.</p>`) +
+    moreHtml +
     `<nav aria-label="More ways to browse"><h2>Browse by category</h2><p>${catLinks}</p><h2>Browse by region</h2><p>${regLinks}</p></nav></article>`;
   h = h.replace(/<main id="main">[\s\S]*?<\/main>/, () => `<main id="main">${article}</main>`);
   return { html: h, indexable };

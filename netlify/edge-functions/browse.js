@@ -79,9 +79,20 @@ export default async (request) => {
     nearby = true;
   }
 
+  // The rest of the ads (after the first 48, which show with photos) as plain links, so every ad can be reached from a list page
+  // and not only from the sitemap. Light query: no photos. If it fails the page is simply built without them.
+  let more = [];
+  if (!nearby && total > ads.length) {
+    try {
+      const mq = q.replace(/select=[^&]*/, "select=id,title,price,price_on_request,categories!inner(name,active),cities!inner(name,state)").replace(/limit=\d+/, "limit=450") + `&offset=${ads.length}`;
+      const mr = await fetch(mq, { headers: HEADERS });
+      if (mr.ok) more = await mr.json();
+    } catch (e) { more = []; }
+  }
+
   const shellRes = await fetch(url.origin + "/index.html");
   if (!shellRes.ok) return unavailable();
-  const { html: page } = buildListPage(await shellRes.text(), { catName, region: route.region, ads, total, cats, city, nearby });
+  const { html: page } = buildListPage(await shellRes.text(), { catName, region: route.region, ads, total, cats, city, nearby, more });
 
   return html(page, 200, {
     "cache-control": "public, max-age=0, must-revalidate",
