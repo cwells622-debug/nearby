@@ -272,8 +272,10 @@ dialog.wide{width:min(1020px,96vw)}
 #dPost .money input{width:100%;padding-left:30px}
 #dPost .money input:focus{padding-left:29px}
 #dPost .phbox{position:relative;cursor:pointer}
-#dPost .phtiles{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
-#dPost .phtiles i{display:grid;place-items:center;aspect-ratio:5/4;background:var(--ptile);border:1px solid var(--pline);color:#8c887c;font-style:normal;font-size:44px;font-weight:300}
+#dPost .phtiles{display:block}
+#dPost .phtiles i{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;height:120px;background:var(--ptile);border:1px solid var(--pline);color:#8c887c;font-style:normal;font-size:44px;font-weight:300;line-height:1}
+#dPost .phtiles small{font-size:14px;font-weight:600;letter-spacing:.04em;color:var(--plabel)}
+#dPost .phbox:hover .phtiles i{background:var(--pline)}
 #dPost .phbox input{position:absolute;opacity:0;width:1px;height:1px;padding:0;border:0;box-shadow:none}
 #dPost .phbox:focus-within .phtiles i{outline:2px solid var(--acc)}
 #dPost #postGo{width:100%;background:var(--acc);color:#fff;font-size:20px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;padding:18px;white-space:normal}
@@ -398,7 +400,7 @@ dialog .dlg.msgs{padding:0;gap:0}
   <h2 id="postTitle">Post an ad</h2>
   <p class="note" id="postHint" hidden style="margin:-6px 0 0"></p>
   <div id="curPhotos" class="thumbs" hidden></div>
-  <label class="phbox"><span id="photoLbl">Photos (optional, up to 5)</span><span class="phtiles" aria-hidden="true"><i>+</i><i>+</i><i>+</i></span><input id="fimg" type="file" multiple accept="image/jpeg,image/png,image/webp"></label>
+  <label class="phbox"><span id="photoLbl">Photos (optional, up to 5)</span><span class="phtiles" aria-hidden="true"><i>+<small>Add photos</small></i></span><input id="fimg" type="file" multiple accept="image/jpeg,image/png,image/webp"></label>
   <div id="newPhotos" class="thumbs" hidden></div>
   <div id="coverBox" class="coverbox" hidden>
     <div class="cprev" id="coverPrev"></div>
