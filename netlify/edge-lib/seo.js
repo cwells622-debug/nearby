@@ -310,7 +310,9 @@ export function homeExtras(ads, cats) {
   const li = (a) => `<li style="margin:4px 0"><a href="${esc(adPath(a.id, a.title))}"><strong>${esc(priceText(a))}</strong> ${esc(a.title)}${a.cities ? " · " + esc(a.cities.name) + ", " + esc(a.cities.state) : ""}</a></li>`;
   const catLinks = (cats || []).map((c) => `<a href="${browsePath(c.name, null)}">${esc(catLabel(c.name))}</a>`).join(" · ");
   const regLinks = REGION_ORDER.map((r) => `<a href="${browsePath(null, r)}">${esc(REGIONS[r].name)}</a>`).join(" · ");
-  return `<nav class="seo-newest" aria-label="Newest ads and ways to browse">` +
+  // Kept out of sight (the usual "visually hidden" way: still in the page for search engines and screen readers) so visitors never see
+  // a list of links flash by while the app loads; the app replaces it a moment later anyway.
+  return `<nav class="seo-newest" aria-label="Newest ads and ways to browse" style="position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);clip-path:inset(50%);white-space:nowrap;border:0">` +
     (ads && ads.length ? `<h2>Newest ads</h2><ul style="list-style:none;padding:0;columns:2 260px;font-size:14px">${ads.map(li).join("\n")}</ul>` : "") +
     `<h2>Browse by category</h2><p>${catLinks}</p><h2>Browse by region</h2><p>${regLinks}</p></nav>`;
 }
