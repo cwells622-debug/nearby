@@ -14,6 +14,9 @@ export const AD_SELECT =
   "categories(name,active),cities(name,state,regions)," +
   "listing_photos(id,storage_path,position),profiles!seller_id(display_name)";
 
+// The usual "visually hidden" style: out of sight but still in the page for search engines and screen readers.
+const HIDDEN_STYLE = "position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);clip-path:inset(50%);white-space:nowrap;border:0";
+
 // Escape text before putting it into HTML (so nobody can inject markup).
 export const esc = (s) =>
   String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -296,9 +299,9 @@ export function buildListPage(shell, { catName, region, ads, total, cats, city, 
   const regLinks = REGION_ORDER.map((r) => `<a href="${browsePath(null, r)}">${esc(REGIONS[r].name)}</a>`).join(" · ");
   const article =
     `<article class="seo-list"><h1>${esc(h1)}</h1><p>${esc(intro)}</p>` +
-    (ads.length ? `<ul style="list-style:none;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px">${items}</ul>`
+    // The ad lists are kept out of sight (still in the page for search engines and screen readers) so visitors never see them flash while the app loads.
+    (ads.length ? `<div style="${HIDDEN_STYLE}"><ul style="list-style:none;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px">${items}</ul>${moreHtml}</div>`
                 : `<p>No ads here yet. <a href="/">Browse everything on ChadAds</a>, or sign in and list the first one.</p>`) +
-    moreHtml +
     `<nav aria-label="More ways to browse"><h2>Browse by category</h2><p>${catLinks}</p><h2>Browse by region</h2><p>${regLinks}</p></nav></article>`;
   h = h.replace(/<main id="main">[\s\S]*?<\/main>/, () => `<main id="main">${article}</main>`);
   return { html: h, indexable };
@@ -312,7 +315,7 @@ export function homeExtras(ads, cats) {
   const regLinks = REGION_ORDER.map((r) => `<a href="${browsePath(null, r)}">${esc(REGIONS[r].name)}</a>`).join(" · ");
   // Kept out of sight (the usual "visually hidden" way: still in the page for search engines and screen readers) so visitors never see
   // a list of links flash by while the app loads; the app replaces it a moment later anyway.
-  return `<nav class="seo-newest" aria-label="Newest ads and ways to browse" style="position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);clip-path:inset(50%);white-space:nowrap;border:0">` +
+  return `<nav class="seo-newest" aria-label="Newest ads and ways to browse" style="${HIDDEN_STYLE}">` +
     (ads && ads.length ? `<h2>Newest ads</h2><ul style="list-style:none;padding:0;columns:2 260px;font-size:14px">${ads.map(li).join("\n")}</ul>` : "") +
     `<h2>Browse by category</h2><p>${catLinks}</p><h2>Browse by region</h2><p>${regLinks}</p></nav>`;
 }
