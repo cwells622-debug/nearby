@@ -359,3 +359,4 @@ Update: no border or pill around the 🟦🟧🟨 badge, just the three squares 
 - Post form photos: one wide "+ Add photos" box instead of three tiles (same hidden file input; picked photos still show as thumbnails below it).
 - Post form: rounded corners in this pop-up only (dialog 26 px, fields/photo box 12 px, button 14 px, close button round; the rest of the site stays square) and the banner uses the site's dark blue (`var(--navy)`, #164663) instead of the brighter mock-up blue. Rules sit at the top of the "Post an ad pop-up" CSS block.
 - Header stripes now have small white gaps between the colours, like the logo: bands 5 px (blue, orange, gold) with 3 px gaps (`var(--bg)`), 21 px in all (`header::after` in `public/index.html`); page top padding raised by 6 px to match (`.wrap`).
+- Header stripe gaps changed to 2 px (bands 5 px, 19 px in all); `.wrap` top padding 35 px (31 px on phones).
