@@ -768,18 +768,32 @@ function trackText(ctx,text,x,y,sp){   // letter-spaced text, drawn letter by le
   let cx=x;for(const ch of String(text)){ctx.fillText(ch,cx,y);cx+=ctx.measureText(ch).width+sp}return cx-x-sp;
 }
 function trackWidth(ctx,text,sp){let w=0;for(const ch of String(text))w+=ctx.measureText(ch).width+sp;return Math.max(0,w-sp)}
+// The site header look, drawn at the top of a picture: a dark-blue band with the name, the gold tagline and the racing stripes at the right
+// (skewed so each stripe runs the full height). hb = band height; the stripes scale with it (they are drawn for a 370 px band).
+function drawBrandBand(ctx,hb,m,nameY,tagY,nameSize,tagSize){
+  const k=hb/370;
+  ctx.fillStyle="#164663";ctx.fillRect(0,0,IG_W,hb);
+  ctx.save();ctx.beginPath();ctx.rect(0,0,IG_W,hb);ctx.clip();
+  const off=Math.tan(20*Math.PI/180)*hb,sx=IG_W-480*k,sw=570*k;
+  [[.18,.36,"#e95e0d"],[.43,.62,"#f5b800"],[.69,1.2,"#f3ead6"]].forEach(([a,b,col])=>{
+    const x0=sx+sw*a,x1=sx+sw*b;ctx.fillStyle=col;ctx.beginPath();
+    ctx.moveTo(x0+off/2,0);ctx.lineTo(x1+off/2,0);ctx.lineTo(x1-off/2,hb);ctx.lineTo(x0-off/2,hb);ctx.closePath();ctx.fill()});
+  ctx.restore();
+  ctx.textBaseline="alphabetic";ctx.textAlign="left";
+  ctx.fillStyle="#ffffff";ctx.font="800 "+nameSize+"px "+IG_FONT;ctx.fillText("ChadAds",m,nameY);
+  ctx.fillStyle="#f5b800";ctx.font="700 "+tagSize+"px "+IG_FONT;ctx.fillText("Sell Local",m,tagY);
+}
 function igCover(i,photo,logo,more){
   const c=document.createElement("canvas");c.width=IG_W;c.height=IG_H;const ctx=c.getContext("2d");
   const M=76,W=IG_W-2*M,INK="#1e1c19",MUTE="#6d6558",GOLD="#e9a70d";
   ctx.fillStyle="#ffffff";ctx.fillRect(0,0,IG_W,IG_H);ctx.textBaseline="alphabetic";ctx.textAlign="left";
-  // top row: small spaced capitals on the left, the logo on the right
-  ctx.fillStyle=INK;ctx.font="700 24px "+IG_FONT;trackText(ctx,"CHADADS  ·  FOR SALE",M,108,7);
-  if(logo){const lh=84,lw=logo.width*lh/logo.height;ctx.drawImage(logo,IG_W-M-lw,56,lw,lh)}
+  const HB=200;
+  drawBrandBand(ctx,HB,M,118,164,64,30);
   // headline: a regular-weight serif, the biggest size that fits (two lines preferred, three at most)
   let size=118,lines;
   const fits=(max)=>{for(size=118;size>=(max===2?78:56);size-=4){ctx.font="600 "+size+"px "+IG_FONT;lines=wrapLines(ctx,i.t,W,99);if(lines.length<=max&&lines.every(l=>ctx.measureText(l).width<=W))return true}return false};
   if(!fits(2)&&!fits(3)){size=56;ctx.font="600 56px "+IG_FONT;lines=wrapLines(ctx,i.t,W,3)}
-  const lead=Math.round(size*1.06);let y=196+Math.round(size*0.8);
+  const lead=Math.round(size*1.06);let y=HB+30+Math.round(size*0.8);
   ctx.fillStyle=INK;lines.forEach((l,n)=>ctx.fillText(l,M,y+n*lead));
   y+=(lines.length-1)*lead;
   // a short gold rule, then the price and the town in small spaced capitals
@@ -799,7 +813,7 @@ function igCover(i,photo,logo,more){
   ctx.fillStyle=INK;ctx.font="700 26px "+IG_FONT;trackText(ctx,more?"SWIPE FOR MORE PHOTOS":"CHADADS.COM",M,ly+66,6);
   if(more){const cx=IG_W-M-40,cy=ly+54;ctx.strokeStyle=INK;ctx.lineWidth=3;ctx.beginPath();ctx.arc(cx,cy,40,0,Math.PI*2);ctx.stroke();
     ctx.lineWidth=4;ctx.lineCap="round";ctx.lineJoin="round";ctx.beginPath();ctx.moveTo(cx-6,cy-14);ctx.lineTo(cx+8,cy);ctx.lineTo(cx-6,cy+14);ctx.stroke()}
-  drawStripe(ctx,IG_H-10,10);
+  [["#164663"],["#e95e0d"],["#e9a70d"]].forEach((col,k)=>{ctx.fillStyle=col[0];ctx.fillRect(0,IG_H-18+k*6,IG_W,6)});   // the site's three stripes along the bottom edge
   return c;
 }
 // Other slides: just the photo at its own shape, 1080 px wide, no background and no branding (the first slide carries it).
@@ -853,17 +867,8 @@ function reelFrame(i,logo){
   const c=document.createElement("canvas");c.width=IG_W;c.height=REEL_H;const ctx=c.getContext("2d");
   const M=70,W=IG_W-2*M,INK="#1e1c19",MUTE="#6d6558",GOLD="#e9a70d";
   ctx.fillStyle="#ffffff";ctx.fillRect(0,0,IG_W,REEL_H);ctx.textBaseline="alphabetic";ctx.textAlign="left";
-  // The site header: a dark-blue band with the name, the gold tagline and the racing stripes at the right (skewed so each stripe runs the full height).
-  const HB=370,NAVY="#164663";
-  ctx.fillStyle=NAVY;ctx.fillRect(0,0,IG_W,HB);
-  ctx.save();ctx.beginPath();ctx.rect(0,0,IG_W,HB);ctx.clip();
-  const off=Math.tan(20*Math.PI/180)*HB,sx=IG_W-480,sw=570;   // stripe block: 570 px wide, starting 480 px in from the right edge
-  [[.18,.36,"#e95e0d"],[.43,.62,"#f5b800"],[.69,1.2,"#f3ead6"]].forEach(([a,b,col])=>{
-    const x0=sx+sw*a,x1=sx+sw*b;ctx.fillStyle=col;ctx.beginPath();
-    ctx.moveTo(x0+off/2,0);ctx.lineTo(x1+off/2,0);ctx.lineTo(x1-off/2,HB);ctx.lineTo(x0-off/2,HB);ctx.closePath();ctx.fill()});
-  ctx.restore();
-  ctx.fillStyle="#ffffff";ctx.font="800 84px "+IG_FONT;ctx.fillText("ChadAds",M,288);
-  ctx.fillStyle="#f5b800";ctx.font="700 36px "+IG_FONT;ctx.fillText("Sell Local",M,336);
+  const HB=370;
+  drawBrandBand(ctx,HB,M,288,336,84,36);
   let size=104,lines;
   for(size=104;size>=56;size-=4){ctx.font="600 "+size+"px "+IG_FONT;lines=wrapLines(ctx,i.t,W,99);if(lines.length<=3&&lines.every(l=>ctx.measureText(l).width<=W))break}
   if(lines.length>3){ctx.font="600 56px "+IG_FONT;lines=wrapLines(ctx,i.t,W,3)}
