@@ -14,7 +14,13 @@ export default async () => {
     ads.push(...rows);
     if (rows.length < 1000) break;
   }
-  return new Response(buildSitemap(ads, new Date().toISOString()), {
+  // Dealer pages (/dealer/name). If this lookup fails the sitemap is simply built without them.
+  let dealers = [];
+  try {
+    const dr = await fetch(`${SB_URL}/rest/v1/profiles?select=display_name&is_dealer=eq.true&limit=1000`, { headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` } });
+    if (dr.ok) dealers = (await dr.json()).map((d) => d.display_name).filter(Boolean);
+  } catch (e) { dealers = []; }
+  return new Response(buildSitemap(ads, new Date().toISOString(), dealers), {
     headers: {
       "content-type": "application/xml; charset=utf-8",
       "cache-control": "public, max-age=0, must-revalidate",

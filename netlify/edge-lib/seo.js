@@ -322,7 +322,7 @@ export function homeExtras(ads, cats) {
 
 // The sitemap: the plain pages, every category/region page that has enough ads, and one entry per active ad.
 // "ads" need: id, title, created_at, categories{name}, cities{regions}.
-export function buildSitemap(ads, todayIso) {
+export function buildSitemap(ads, todayIso, dealers = []) {
   const day = (iso) => String(iso || todayIso).slice(0, 10);
   const groups = new Map();   // address -> { n: how many ads, last: newest date, need: ads required }
   const bump = (path, need, when) => {
@@ -343,6 +343,83 @@ export function buildSitemap(ads, todayIso) {
     .map(([p, f, pr]) => `  <url><loc>${SITE}${p}</loc><lastmod>${day(todayIso)}</lastmod><changefreq>${f}</changefreq><priority>${pr}</priority></url>`);
   const lists = [...groups.entries()].filter(([, g]) => g.n >= g.need).sort(([a], [b]) => (a < b ? -1 : 1))
     .map(([p, g]) => `  <url><loc>${esc(SITE + p)}</loc><lastmod>${g.last}</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>`);
+  const dealerUrls = dealers.map((n) => `  <url><loc>${esc(SITE + dealerPath(n))}</loc><lastmod>${day(todayIso)}</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>`);
   const adUrls = ads.map((a) => `  <url><loc>${esc(SITE + adPath(a.id, a.title))}</loc><lastmod>${day(a.created_at)}</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>`);
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${[...fixed, ...lists, ...adUrls].join("\n")}\n</urlset>\n`;
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${[...fixed, ...lists, ...dealerUrls, ...adUrls].join("\n")}\n</urlset>\n`;
+}
+// ---- Dealer pages: chadads.com/dealer/tri-city-auto-sales lists every active ad from one dealer. ----
+// The address is the dealer's display name run through slugify() (same as slugify() in public/index.html).
+export const dealerPath = (name) => `/dealer/${slugify(name)}`;
+
+// dealer: { display_name, dealer_website }; ads: newest first, with photos, categories and cities.
+export function buildDealerPage(dealer, ads, total) {
+  const name = dealer.display_name || "Dealer";
+  const url = SITE + dealerPath(name);
+  const towns = [...new Set(ads.map((a) => a.cities && a.cities.name).filter(Boolean))];
+  const title = `${name} – ${total} ad${total === 1 ? "" : "s"} for sale | ChadAds`;
+  const desc = clip(`${total} ad${total === 1 ? "" : "s"} from ${name}${towns.length ? " in " + towns.slice(0, 3).join(", ") : ""}. See everything this dealer has for sale on ChadAds.`, 155);
+  const first = ads[0] && sortedPhotos(ads[0])[0];
+  const image = first ? photoUrl(first.storage_path) : SITE + "/logo.webp";
+  const site = /^https?:\/\//i.test(dealer.dealer_website || "") ? dealer.dealer_website : "";
+  const ld = {
+    "@context": "https://schema.org",
+    "@graph": [
+      { "@type": "CollectionPage", name: `${name} on ChadAds`, description: desc, url },
+      { "@type": "BreadcrumbList", itemListElement: [["ChadAds", SITE + "/"], [name, url]].map(([n, item], i) => ({ "@type": "ListItem", position: i + 1, name: n, item })) },
+      ...(ads.length ? [{ "@type": "ItemList", numberOfItems: total,
+        itemListElement: ads.slice(0, 30).map((a, i) => ({ "@type": "ListItem", position: i + 1, url: SITE + adPath(a.id, a.title), name: a.title })) }] : []),
+    ],
+  };
+  const cards = ads.map((a) => {
+    const p = sortedPhotos(a)[0], ph = p ? photoUrl(p.storage_path) : "", th = p ? photoUrl(thumbPath(p.storage_path)) : "";
+    const city = a.cities ? `${a.cities.name}, ${a.cities.state}` : "";
+    return `<li><a href="${esc(adPath(a.id, a.title))}">${ph ? `<img src="${esc(th)}" data-full="${esc(ph)}" onerror="this.onerror=null;this.src=this.dataset.full" alt="${esc(a.title)}" loading="lazy" width="240" height="180">` : `<div class="noimg"></div>`}` +
+      `<span class="pr">${esc(priceText(a))}</span><span class="tt">${esc(a.title)}</span><small>${esc(city)}</small></a></li>`;
+  }).join("\n");
+  return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${esc(title)}</title>
+<meta name="description" content="${esc(desc)}">
+<link rel="canonical" href="${esc(url)}">
+<meta name="robots" content="${total ? "index,follow,max-image-preview:large" : "noindex,follow"}">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="ChadAds">
+<meta property="og:url" content="${esc(url)}">
+<meta property="og:title" content="${esc(title)}">
+<meta property="og:description" content="${esc(desc)}">
+<meta property="og:image" content="${esc(image)}">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="/page.css">
+<style>
+main.wide{max-width:1100px}
+.dtop{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:10px 0 22px}
+.dgrid{list-style:none;padding:0;margin:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:16px}
+.dgrid li{margin:0}
+.dgrid a{display:block;background:var(--panel);border:1px solid var(--line);border-radius:18px;overflow:hidden;color:var(--ink);text-decoration:none;height:100%}
+.dgrid img,.dgrid .noimg{display:block;width:100%;height:auto;aspect-ratio:4/3;object-fit:cover;background:var(--soft)}
+.dgrid .pr{display:block;font-weight:800;font-size:19px;padding:10px 12px 0}
+.dgrid .tt{display:block;padding:2px 12px 0;line-height:1.3}
+.dgrid small{display:block;color:var(--mute);padding:2px 12px 12px}
+</style>
+<script src="/analytics.js" defer></script>
+<script type="application/ld+json">${safeJson(ld)}</script>
+</head>
+<body>
+<header><a href="/" aria-label="ChadAds home"><span class="brand">ChadAds</span><span class="tag3">Sell Local</span></a><a class="btn" href="/">Browse ads</a></header>
+<main class="wide">
+  <h1>${esc(name)}</h1>
+  <p class="lead">${total} ad${total === 1 ? "" : "s"} for sale${towns.length ? " in " + esc(towns.slice(0, 3).join(", ")) : ""}</p>
+  <div class="dtop">${site ? `<a class="btn" href="${esc(site)}" target="_blank" rel="noopener noreferrer nofollow">Visit the dealer's website</a>` : ""}<a class="btn ghost" href="/?who=dealer">All dealers</a></div>
+  ${ads.length ? `<ul class="dgrid">${cards}</ul>` : `<p>No ads from this dealer right now. <a href="/">Browse everything on ChadAds</a>.</p>`}
+</main>
+<footer><a href="/sell">Sell</a><a href="/about">About</a><a href="/terms">Terms</a><a href="/privacy">Privacy</a><div style="margin-top:8px">© 2026 ChadAds</div></footer>
+</body>
+</html>`;
 }
