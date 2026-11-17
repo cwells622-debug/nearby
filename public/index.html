@@ -606,7 +606,7 @@ async function prof(id){
   let l=[];
   if(i.sid){
     try{
-      const {data}=await sb.from("listings").select(AD_SELECT).eq("seller_id",i.sid).eq("status","active").order("created_at",{ascending:false}).limit(48)
+      const {data}=await sb.from("listings").select(AD_SELECT).eq("seller_id",i.sid).eq("status","active").order("created_at",{ascending:false}).limit(i.sd?200:48)
         .order("position",{referencedTable:"listing_photos"}).order("id",{referencedTable:"listing_photos"});
       (data||[]).forEach(r=>{const a=mapAd(r);if(a){cache[a.id]=a;l.push(a)}});items=Object.values(cache);
     }catch(e){}
@@ -1015,6 +1015,7 @@ function open(id){
     ${i.pr&&!noPrice(i)?`<p class="d">Call for price</p>`:""}
     ${safeUrl(i.link)?`<p style="margin:0"><a href="${esc(safeUrl(i.link))}" data-ext target="_blank" rel="noopener noreferrer nofollow ugc" style="color:var(--link);font-weight:600">🔗 ${esc(new URL(i.link).hostname)}</a></p>`:""}
     <button class="seller sbtn" data-prof="${i.id}"><div class="av">${esc(s.n[0])}</div><span><b>${esc(s.n)}</b>${i.sd?` <span class="pill dealer">Dealer</span>`:""}<br>${rate(s)} · View profile</span></button>
+    ${i.sd&&i.sid&&!mine?`<button class="btn ghost lg" data-prof="${i.id}" style="width:100%">See all ads from ${esc(s.n)}</button>`:""}
     ${mine?(i.sid?`<div class="ctas"><button class="btn lg" data-edit="${i.id}">Edit this ad</button><button class="btn ghost lg" data-del="${i.id}">Delete this ad</button></div>`:""):
       i.sd&&safeUrl(i.sw)?`<div class="ctas"><a class="btn lg" href="${esc(safeUrl(i.sw))}" data-ext target="_blank" rel="noopener noreferrer nofollow" style="text-decoration:none;display:inline-block;text-align:center">Visit the dealer's website</a><p class="note" style="margin:6px 0 0;font-size:13px">Contact the dealer on their own website. Messages are not taken in ChadAds.</p></div>`:
       `<div class="ctas"><button class="btn lg" data-msg="${i.id}">Message ${esc(s.n)}</button><div id="offer">${offerHtml(i,s)}</div></div>`}

@@ -376,3 +376,6 @@ Update: no border or pill around the 🟦🟧🟨 badge, just the three squares 
 
 ## Instagram caption: dealer domain and 5 hashtags
 In `igCaption()` (public/index.html): a dealer ad now says "Visit <dealer domain>" (domain only, no www/https) above the ChadAds link; other ads keep "Message the seller on ChadAds". Hashtags capped at 5: #ChadAds, #ForSale, category, town, and one region.
+
+## See all ads from this dealer
+Dealer ads (not your own) show a "See all ads from <dealer>" button in the ad pop-up. It opens the existing seller profile page, which lists the dealer's active ads (up to 200 for dealers, 48 for others).
