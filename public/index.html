@@ -1493,13 +1493,31 @@ $("#f").addEventListener("input",e=>{
   else if(n==="rm"){showPicked()}
   else if(e.target.id==="cy")refreshCover();
 });
+// Each chosen photo is shrunk and cleaned right away, one at a time (not all at once at Post time). Phone photos are huge; keeping
+// several full-size ones open together used up the browser's memory and the later ones failed with "couldn't be read".
+let photoQ=Promise.resolve();
 $("#fimg").addEventListener("change",e=>{
-  for(const f of e.target.files)if(!picked.some(p=>p.name===f.name&&p.size===f.size&&p.lastModified===f.lastModified))picked.push(f);
+  const files=[...e.target.files];
   e.target.value="";   // empty the box so the same file can be chosen again later
-  const msg=$("#postMsg");msg.textContent="";
-  if(picked.length>MAX_PHOTOS){picked.length=MAX_PHOTOS;msg.textContent="An ad can have up to "+MAX_PHOTOS+" photos. Extra ones were not added."}
-  showPicked();
+  photoQ=photoQ.then(()=>addPhotos(files)).catch(()=>{});
 });
+async function addPhotos(files){
+  const msg=$("#postMsg");msg.textContent="";
+  const bad=[];let over=false;
+  for(const f of files){
+    const key=f.name+"|"+f.size+"|"+f.lastModified;
+    if(picked.some(p=>p._k===key))continue;
+    if(picked.length>=MAX_PHOTOS){over=true;break}
+    msg.textContent="Preparing photos…";
+    try{
+      const b=await cleanPhoto(f);
+      const nf=new File([b],f.name,{type:b.type,lastModified:f.lastModified});nf._k=key;nf._clean=true;
+      picked.push(nf);showPicked();
+    }catch(err){bad.push(err&&err.message||"A photo could not be read.")}
+  }
+  msg.textContent=bad.length?bad[0]+(bad.length>1?" ("+(bad.length-1)+" more could not be added.)":""):over?"An ad can have up to "+MAX_PHOTOS+" photos. Extra ones were not added.":"";
+  showPicked();
+}
 // ---- Video ----
 // One uploaded clip per ad (the database enforces this too). Chosen file waits here until "Publish".
 let pickedVideo=null;
@@ -1570,6 +1588,10 @@ async function decodePhoto(file){
   if(window.createImageBitmap){
     try{return wrap(await createImageBitmap(file,{imageOrientation:"from-image"}))}catch(e){}   // newest: also applies the phone's rotation
     try{return wrap(await createImageBitmap(file))}catch(e){}                                      // same, without the option
+    // Last tries for very big photos when memory is tight: wait a moment, then let the browser decode a smaller copy.
+    await new Promise(x=>setTimeout(x,400));
+    try{return wrap(await createImageBitmap(file,{imageOrientation:"from-image",resizeWidth:2000,resizeQuality:"medium"}))}catch(e){}
+    try{return wrap(await createImageBitmap(file))}catch(e){}
   }
   return await new Promise((res,rej)=>{                                                          // oldest route, through an <img> (browsers rotate these themselves)
     const url=URL.createObjectURL(file),im=new Image();
@@ -1637,7 +1659,7 @@ async function uploadOnce(bucket,path,blob,type){
 }
 // Photos go in a folder named after the user's id, so storage rules can check ownership.
 async function uploadPhoto(file){
-  const blob=await cleanPhoto(file);   // never upload the original file
+  const blob=file._clean?file:await cleanPhoto(file);   // never upload the original file (a picked photo was already cleaned when it was chosen)
   const path=user.id+"/"+uuid()+"."+PHOTO_TYPES[blob.type];
   const {error}=await uploadOnce(BUCKET,path,blob,blob.type);
   if(error){console.error("photo upload failed",error);throw error}
@@ -1657,7 +1679,9 @@ function friendlyError(e){
   return m||"Something went wrong. Please try again.";
 }$("#f").addEventListener("submit",async e=>{
   e.preventDefault();
-  const msg=$("#postMsg");msg.textContent="";
+  const msg=$("#postMsg");
+  await photoQ;   // photos chosen a moment ago may still be getting prepared
+  msg.textContent="";
   const f=new FormData(e.target),files=picked.slice();
   const loc=await lookupCity(String(f.get("loc")));
   if(!loc){$("#fl").setCustomValidity("Choose a city from the list");$("#fl").reportValidity();return}

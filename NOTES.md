@@ -385,3 +385,6 @@ Each dealer has a page at `/dealer/<name-slug>` (e.g. /dealer/tri-city-auto-sale
 
 ## Video link only on Edit
 The YouTube/Vimeo link box (`#vlinkRow`) is hidden on the Post form and shown only when editing an ad (set in `startPost()`).
+
+## Photo upload fix ("couldn't be read" with several photos)
+Cause: all chosen photos stayed open full-size as previews, using up browser memory, so later photos failed to decode. Now each photo is shrunk/cleaned (GPS removed) the moment it is chosen, one at a time (`addPhotos()`), the preview and the upload use the small copy (`_clean` flag skips a second clean), submit waits for any photos still being prepared, and `decodePhoto()` has extra retries (wait, then decode at a smaller size). A photo that cannot be read is reported when chosen and not added.
