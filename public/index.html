@@ -425,7 +425,7 @@ dialog .dlg.msgs{padding:0;gap:0}
   <!-- Video upload is switched off for now (remove the word "hidden" below to bring it back; the rest of the code is still in place). The YouTube/Vimeo link below stays. -->
   <label id="vidUploadRow" hidden><span id="videoLbl">Video clip (optional, MP4, MOV or WebM, up to 50 MB)</span><input id="fvid" type="file" accept="video/mp4,video/quicktime,video/webm"></label>
   <div id="newVideo" class="vrow" hidden></div>
-  <label>Video link (YouTube or Vimeo, optional)<input name="vlink" type="url" maxlength="200" placeholder="https://www.youtube.com/watch?v=..." autocomplete="off"></label>
+  <label id="vlinkRow" hidden>Video link (YouTube or Vimeo, optional)<input name="vlink" type="url" maxlength="200" placeholder="https://www.youtube.com/watch?v=..." autocomplete="off"></label>
   <p class="autherr" id="postMsg" role="alert"></p>
   <button class="btn" type="submit" id="postGo">Post free</button>
   </div>
@@ -1427,6 +1427,7 @@ function startPost(id){
   $("#postMsg").textContent="";showPicked();showPickedVideo();
   $("#postHint").hidden=true;
   // When editing: show the video already on the ad; choosing a new file replaces it.
+  $("#vlinkRow").hidden=!i;   // the YouTube/Vimeo link is on the Edit form only, not when posting a new ad
   const cv=$("#curVideo");cv.hidden=!(i&&i.vpath);
   cv.innerHTML=i&&i.vpath?`<span>🎬 This ad has a video</span><label style="flex-direction:row;align-items:center;gap:6px;color:var(--ink)"><input type="checkbox" name="rmv"> Remove</label>`:"";
   $("#videoLbl").textContent=i&&i.vpath?"Replace the video (leave empty to keep it)":"Video clip (optional, MP4, MOV or WebM, up to 50 MB)";

@@ -382,3 +382,6 @@ Dealer ads (not your own) show a "See all ads from <dealer>" button in the ad po
 
 ## Dealer pages
 Each dealer has a page at `/dealer/<name-slug>` (e.g. /dealer/tri-city-auto-sales): a full page (not the small pop-up) listing all of that dealer's active ads, up to 500, with photos, price, town and a "Visit the dealer's website" button. Built by the edge function `netlify/edge-functions/dealer.js` + `buildDealerPage()` in `netlify/edge-lib/seo.js`. The slug is the dealer's display name run through slugify(), so renaming a dealer changes its address. Dealers are added to sitemap.xml. The ad pop-up button "See all ads from <dealer>" and the Instagram caption (dealer ads) link to it. Not tested locally (edge functions need Netlify) - check after the push.
+
+## Video link only on Edit
+The YouTube/Vimeo link box (`#vlinkRow`) is hidden on the Post form and shown only when editing an ad (set in `startPost()`).
