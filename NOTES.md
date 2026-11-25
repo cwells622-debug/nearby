@@ -393,3 +393,6 @@ Cause: all chosen photos stayed open full-size as previews, using up browser mem
 Estate Sales, Bicycles, Musical Instruments, Firewood and Building Materials. Run `add_categories_7.sql` in the Supabase SQL Editor (the site picks them up by itself); the page titles/blurbs are in `CATEGORY_INFO` in netlify/edge-lib/seo.js.
 
 Estate Sales has no price box (like Local Businesses): NOPRICE_CATS in public/index.html and priceText() in seo.js ("Estate sale").
+
+## Post form price off-screen on phone
+Cause: `.row` used `1fr 1fr`, which cannot shrink below the widest content, so the long new category name "Firewood and Building Materials" widened the Category column and pushed Price off the screen. Fixed with `minmax(0,1fr)` columns and `min-width:0` on the fields.

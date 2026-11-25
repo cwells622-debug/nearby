@@ -180,7 +180,8 @@ label{display:flex;flex-direction:column;gap:6px;font-weight:500;font-size:14px;
 .cdd .cn{padding:9px 14px;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
 label input,label select,label textarea{border:1px solid transparent;background:var(--soft);border-radius:12px;padding:12px;font-weight:400;color:var(--ink)}
 label input:focus,label select:focus,label textarea:focus{outline:none;border-color:var(--acc);background:var(--panel)}
-.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}   /* minmax(0,…): a long category name (Firewood and Building Materials) must not push the price off the screen */
+.row>label,.row select,.row input{min-width:0;max-width:100%}
 .big{aspect-ratio:4/3;border-radius:20px;font-size:80px}
 .price{font-size:30px;font-weight:700;letter-spacing:-.02em}
 .tag{display:inline-block;background:var(--soft);border-radius:999px;padding:3px 12px;font-size:13px;font-weight:500;width:fit-content}
