@@ -388,3 +388,6 @@ The YouTube/Vimeo link box (`#vlinkRow`) is hidden on the Post form and shown on
 
 ## Photo upload fix ("couldn't be read" with several photos)
 Cause: all chosen photos stayed open full-size as previews, using up browser memory, so later photos failed to decode. Now each photo is shrunk/cleaned (GPS removed) the moment it is chosen, one at a time (`addPhotos()`), the preview and the upload use the small copy (`_clean` flag skips a second clean), submit waits for any photos still being prepared, and `decodePhoto()` has extra retries (wait, then decode at a smaller size). A photo that cannot be read is reported when chosen and not added.
+
+## New categories (add_categories_7.sql)
+Estate Sales, Bicycles, Musical Instruments, Firewood and Building Materials. Run `add_categories_7.sql` in the Supabase SQL Editor (the site picks them up by itself); the page titles/blurbs are in `CATEGORY_INFO` in netlify/edge-lib/seo.js.

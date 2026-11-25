@@ -193,6 +193,10 @@ export const CATEGORY_INFO = {
   "Sports": { label: "Sports & Outdoor Gear", blurb: "Bikes, fitness and outdoor gear from local sellers." },
   "Tools": { label: "Tools", blurb: "Hand tools, power tools and shop equipment for sale locally." },
   "Trailers": { label: "Trailers", blurb: "Utility, car-hauler, dump, enclosed and equipment trailers." },
+  "Estate Sales": { label: "Estate Sales", blurb: "Local estate sales, moving sales and household liquidations in the Capital Region and Upstate New York." },
+  "Bicycles": { label: "Bicycles", blurb: "Road, mountain, kids and commuter bicycles and bike parts from local sellers." },
+  "Musical Instruments": { label: "Musical Instruments", blurb: "Guitars, drums, keyboards, amps and band gear from local musicians." },
+  "Firewood and Building Materials": { label: "Firewood & Building Materials", blurb: "Firewood, lumber, stone, windows, doors and salvaged building materials for sale locally." },
 };
 export const catLabel = (name) => (CATEGORY_INFO[name] && CATEGORY_INFO[name].label) || name;
 const catBlurb = (name) => (CATEGORY_INFO[name] && CATEGORY_INFO[name].blurb) || `Local ${name.toLowerCase()} listings.`;
