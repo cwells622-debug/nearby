@@ -649,7 +649,7 @@ const where2=i=>esc(i.loc)+(dd(i)?" · "+dd(i):"");   // "Albany, NY · 12 mi aw
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt=p=>p===0?"Free":"$"+p.toLocaleString();
-const NOPRICE_CATS=["Local Businesses","Want Ad"];   // no price in the form; a Want Ad may give a budget. Keep in step with priceText() in netlify/edge-lib/seo.js
+const NOPRICE_CATS=["Local Businesses","Want Ad","Estate Sales"];   // no price in the form; a Want Ad may give a budget. Keep in step with priceText() in netlify/edge-lib/seo.js
 const noPrice=i=>NOPRICE_CATS.includes(i.c);
 const pt=i=>i.pr?"":(i.c==="Want Ad"?"Budget ":"")+fmt(i.p);   // an ad's price as text: "Free" or "$5,000"; empty for a "Call for price" ad (the pop-up says it in the text instead)
 const ttlPrice=i=>i.t+(pt(i)?" – "+pt(i):"")+" on ChadAds";
@@ -1410,7 +1410,7 @@ async function sendOfferNow(ad,amount){
 function syncPor(){
   const f=$("#f").elements,cat=f.c.value,np=NOPRICE_CATS.includes(cat);
   $("#porRow").hidden=np||!(myDealer||f.por.checked);
-  $("#priceLbl").hidden=cat==="Local Businesses";   // businesses have no price box at all
+  $("#priceLbl").hidden=cat==="Local Businesses"||cat==="Estate Sales";   // businesses and estate sales have no price box at all
   $("#priceLbl").firstChild.textContent=cat==="Want Ad"?"Budget (optional)":"Price (0 for free)";
   f.p.disabled=!np&&f.por.checked;f.p.required=!np&&!f.por.checked;
   if(cat==="Want Ad"&&f.p.value==="0")f.p.value="";else if(cat!=="Want Ad"&&f.p.value==="")f.p.value="0";   // a Want Ad's budget starts empty

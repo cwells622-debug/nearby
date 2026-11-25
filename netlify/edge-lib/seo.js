@@ -28,10 +28,11 @@ export const slugify = (t) =>
 
 export const adPath = (id, title) => `/ad/${id}-${slugify(title)}`;
 export const money = (p) => (Number(p) === 0 ? "Free" : "$" + Number(p).toLocaleString("en-US"));
-// Local Businesses and Want Ads have no price box. A Want Ad may give a budget. Keep in step with NOPRICE_CATS in public/index.html.
+// Local Businesses, Estate Sales and Want Ads have no price box. A Want Ad may give a budget. Keep in step with NOPRICE_CATS in public/index.html.
 export const priceText = (a) => {
   const cat = a.categories && a.categories.name;
   if (cat === "Local Businesses") return "Local business";
+  if (cat === "Estate Sales") return "Estate sale";
   if (cat === "Want Ad") return a.price_on_request ? "Wanted" : "Budget " + money(a.price);
   return a.price_on_request ? "Call for price" : money(a.price);
 };

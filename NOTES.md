@@ -391,3 +391,5 @@ Cause: all chosen photos stayed open full-size as previews, using up browser mem
 
 ## New categories (add_categories_7.sql)
 Estate Sales, Bicycles, Musical Instruments, Firewood and Building Materials. Run `add_categories_7.sql` in the Supabase SQL Editor (the site picks them up by itself); the page titles/blurbs are in `CATEGORY_INFO` in netlify/edge-lib/seo.js.
+
+Estate Sales has no price box (like Local Businesses): NOPRICE_CATS in public/index.html and priceText() in seo.js ("Estate sale").
