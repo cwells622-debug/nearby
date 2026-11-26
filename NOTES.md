@@ -396,3 +396,6 @@ Estate Sales has no price box (like Local Businesses): NOPRICE_CATS in public/in
 
 ## Post form price off-screen on phone
 Cause: `.row` used `1fr 1fr`, which cannot shrink below the widest content, so the long new category name "Firewood and Building Materials" widened the Category column and pushed Price off the screen. Fixed with `minmax(0,1fr)` columns and `min-width:0` on the fields.
+
+## Caruso Classics removed from the feed
+`hide_caruso.sql`: pauses DealerID 1035978 and sets its ads to status hidden (nothing deleted). To undo: dealer active=true and ads status=active.
