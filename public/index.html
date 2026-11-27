@@ -1099,7 +1099,7 @@ document.addEventListener("click",e=>{
   const cat=t.closest("[data-cat]");if(cat){cur=cat.dataset.cat;make="";q="";$("#q").value="";reload();window.scrollTo({top:0});return}
   const c=t.closest(".card");if(c){open(c.dataset.id);return}
   if(t.closest("[data-close]")){t.closest("dialog").close();return}
-  if(t.id==="post"){startPost();return}
+  if(t.id==="post"){track("post_click",{source:"header_button"});startPost();return}
   const ed=t.closest("[data-edit]");if(ed){startPost(+ed.dataset.edit);return}
   const dl=t.closest("[data-del]");if(dl){deleteAd(+dl.dataset.del);return}
   if(t.tagName==="DIALOG")t.close();
@@ -1159,6 +1159,8 @@ cddEl.addEventListener("mousedown",e=>{const b=e.target.closest("[data-k]");if(!
 // Its settings come from config.js.
 let sb=null,user=null,signup=false,editId=null,deepDone=false,postDone=false,msgAfter=null,awaitingEmail=false,myDealer=false;   // awaitingEmail: an account was just made and its confirmation email is on the way
 const BUCKET="listing-photos",cityIds={};   // cityIds: "Albany, NY" -> the city's id in the database
+// Counts what people do (Google Analytics events; only when analytics is on, i.e. the real site, not you, not Do Not Track). Never pass names, emails or anything personal.
+const track=(n,p)=>{try{if(window.gtag)window.gtag("event",n,p||{})}catch(e){}};
 const PHOTO_TYPES={"image/jpeg":"jpg","image/png":"png","image/webp":"webp"},MAX_PHOTO=5*1024*1024,MAX_PHOTO_IN=60*1024*1024,PHOTO_TARGET=1.5*1024*1024,MAX_PHOTOS=5;   // MAX_PHOTOS must match the limit in step4_photos_and_limits.sql
 const cfgOk=typeof NEARBY_CONFIG!=="undefined"&&/^https?:\/\//.test(NEARBY_CONFIG.supabaseUrl)&&!NEARBY_CONFIG.supabaseAnonKey.startsWith("PASTE");
 if(cfgOk&&window.supabase)sb=window.supabase.createClient(NEARBY_CONFIG.supabaseUrl,NEARBY_CONFIG.supabaseAnonKey);
@@ -1419,7 +1421,7 @@ function syncPor(){
 document.addEventListener("change",e=>{if(e.target.id==="por")syncPor()});
 function startPost(id){
   // An account comes first: signed out, they are asked to create one (or log in) and the Post form opens as soon as they are in.
-  if(!user){if(id)needLogin("Please log in to edit your ad.");else{wantPost();needLogin("Create a free account or log in, then you can post your ad.",true)}return}
+  if(!user){if(id)needLogin("Please log in to edit your ad.");else{wantPost();track("post_needs_account");needLogin("Create a free account or log in, then you can post your ad.",true)}return}
   const form=$("#f"),i=id?items.find(x=>x.id===id):null;
   if(id&&!(i&&i.sid===user.id))return;
   const keep=false;
@@ -1444,6 +1446,7 @@ function startPost(id){
   else if(!keep)$("#fl").value=me;
   syncPor();
   showLinkField();showPicked();
+  if(!i)track("post_form_open");
   $("#dView").close();$("#dPost").showModal();
 }
 // The "Link" box only appears for these categories (the database enforces the same list; see step13_autos_categories.sql and step19_auto_categories.sql).
@@ -1772,6 +1775,7 @@ function friendlyError(e){
     console.error("posting failed",err);
     msg.textContent=friendlyError(err);go.disabled=false;go.textContent=editId?"Save changes":"Post free";return;
   }
+  track(editId?"ad_edited":"ad_posted",{category:catName});
   go.disabled=false;e.target.reset();picked=[];showPicked();pickedVideo=null;showPickedVideo();$("#dPost").close();
   cur=catName;q="";$("#q").value="";sort="new";editId=null;
   await loadData();window.scrollTo({top:0});
@@ -1831,7 +1835,7 @@ async function loadData(){
     try{history.replaceState(null,"","/")}catch(e){}
     sb.auth.getSession().then(({data})=>{
       if(data.session&&!user)showUser(data.session.user);
-      startPost();   // signed out: asks them to create an account or log in first
+      track("post_click",{source:"post_link"});startPost();   // signed out: asks them to create an account or log in first
     });
   }}
   // "View message" in an email alert links to /?messages=12 (a conversation) or /?messages=1: open the inbox, asking them to log in first.

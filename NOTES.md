@@ -402,3 +402,6 @@ Cause: `.row` used `1fr 1fr`, which cannot shrink below the widest content, so t
 
 ## Home and Sell descriptions
 Home meta/og/twitter/JSON-LD description now lists cars, trucks, campers, ATVs, boats, bicycles, tools and furniture + "Free to list". /sell description and og description updated the same way (titles unchanged).
+
+## Post-an-ad tracking (Google Analytics events)
+`track(name, params)` in public/index.html sends GA4 events through the existing gtag (only on the real site, not for the owner, not with Do Not Track). Events: `post_click` (source: header_button or post_link from /sell and flyers), `post_needs_account` (signed-out person sent to create an account), `post_form_open` (new-ad form opened), `ad_posted` / `ad_edited` (category). In GA4: Reports > Engagement > Events. Mark `ad_posted` as a key event (Admin > Events) to see conversions. No personal data is sent.
