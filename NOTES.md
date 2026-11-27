@@ -399,3 +399,6 @@ Cause: `.row` used `1fr 1fr`, which cannot shrink below the widest content, so t
 
 ## Caruso Classics removed from the feed
 `hide_caruso.sql`: pauses DealerID 1035978 and sets its ads to status hidden (nothing deleted). To undo: dealer active=true and ads status=active.
+
+## Home and Sell descriptions
+Home meta/og/twitter/JSON-LD description now lists cars, trucks, campers, ATVs, boats, bicycles, tools and furniture + "Free to list". /sell description and og description updated the same way (titles unchanged).
